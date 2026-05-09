@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="RasoSpeak v2 — Agentic AI Speech Coach on AMD Developer Cloud"/>
+  <title>RasoSpeak v2 — AMD Developer Cloud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+
+<!-- ══ ONBOARDING MODAL ══════════════════════════════ -->
+<div id="modal-overlay">
+  <div class="modal-card">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+      <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--primary),#5a4ae8);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 0 22px var(--primary-glow);flex-shrink:0">🎙</div>
+      <div>
+        <h1 class="font-display" style="font-size:22px;font-weight:800;letter-spacing:-0.02em">Raso<span style="color:var(--primary-light)">Speak</span> <span style="font-size:14px;font-weight:500;color:var(--text-muted)">v2</span></h1>
+        <p style="color:var(--text-muted);font-size:11px;margin-top:3px;font-family:var(--font-mono)">Agentic AI Speech Coach · AMD Developer Cloud</p>
+      </div>
+      <div style="margin-left:auto">
+        <span class="amd-badge"><span class="amd-dot"></span>AMD MI300X · ROCm</span>
+      </div>
+    </div>
+
+    <!-- Agentic loop diagram -->
+    <div style="background:var(--surface-0);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:18px">
+      <p style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.18em;color:var(--text-muted);margin-bottom:14px">5-Agent Coaching Loop on AMD MI300X</p>
+      <div style="display:flex;align-items:stretch;gap:4px;overflow-x:auto">
+
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:80px">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(124,106,245,0.12);display:flex;align-items:center;justify-content:center;border:1px solid rgba(124,106,245,0.28)"><span class="material-symbols-outlined" style="color:var(--primary-light);font-size:16px">hearing</span></div>
+          <span style="font-size:9px;text-align:center;color:var(--text-muted);line-height:1.3">TTS<br>Earpiece</span>
+        </div>
+        <div style="display:flex;align-items:center;color:var(--text-muted);font-size:12px;padding-bottom:14px">→</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:80px">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(232,41,74,0.12);display:flex;align-items:center;justify-content:center;border:1px solid rgba(232,41,74,0.28)"><span class="material-symbols-outlined" style="color:var(--amd-red);font-size:16px">mic</span></div>
+          <span style="font-size:9px;text-align:center;color:var(--amd-red);line-height:1.3">Whisper<br>AMD GPU</span>
+        </div>
+        <div style="display:flex;align-items:center;color:var(--text-muted);font-size:12px;padding-bottom:14px">→</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:80px">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(232,41,74,0.12);display:flex;align-items:center;justify-content:center;border:1px solid rgba(232,41,74,0.28)"><span class="material-symbols-outlined" style="color:var(--amd-red);font-size:16px">balance</span></div>
+          <span style="font-size:9px;text-align:center;color:var(--amd-red);line-height:1.3">Qwen2.5<br>Scoring</span>
+        </div>
+        <div style="display:flex;align-items:center;color:var(--text-muted);font-size:12px;padding-bottom:14px">→</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:80px">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(232,41,74,0.12);display:flex;align-items:center;justify-content:center;border:1px solid rgba(232,41,74,0.28)"><span class="material-symbols-outlined" style="color:var(--amd-red);font-size:16px">psychology</span></div>
+          <span style="font-size:9px;text-align:center;color:var(--amd-red);line-height:1.3">Qwen2.5<br>Coaching</span>
+        </div>
+        <div style="display:flex;align-items:center;color:var(--text-muted);font-size:12px;padding-bottom:14px">→</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:80px">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(54,217,168,0.12);display:flex;align-items:center;justify-content:center;border:1px solid rgba(54,217,168,0.28)"><span class="material-symbols-outlined" style="color:var(--secondary);font-size:16px">memory</span></div>
+          <span style="font-size:9px;text-align:center;color:var(--text-muted);line-height:1.3">Session<br>Memory</span>
+        </div>
+
+      </div>
+      <div style="margin-top:10px;padding:8px 12px;background:rgba(232,41,74,0.06);border-radius:8px;border:1px solid rgba(232,41,74,0.15)">
+        <p style="font-size:10px;color:var(--amd-red);font-family:var(--font-mono)">🔴 AMD MI300X: Whisper Large v3 + Qwen2.5-7B via vLLM/ROCm · &lt;1.3s round-trip</p>
+      </div>
+    </div>
+
+    <!-- Feature grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:22px">
+      <div style="background:var(--surface-0);border:1px solid var(--border);border-radius:10px;padding:11px;display:flex;align-items:flex-start;gap:9px">
+        <span class="material-symbols-outlined" style="color:var(--amd-red);font-size:15px;margin-top:1px">memory</span>
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.5">5 specialized agents on AMD MI300X GPU</p>
+      </div>
+      <div style="background:var(--surface-0);border:1px solid var(--border);border-radius:10px;padding:11px;display:flex;align-items:flex-start;gap:9px">
+        <span class="material-symbols-outlined" style="color:var(--secondary);font-size:15px;margin-top:1px">keyboard_voice</span>
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.5">Whisper Large v3 transcription on ROCm</p>
+      </div>
+      <div style="background:var(--surface-0);border:1px solid var(--border);border-radius:10px;padding:11px;display:flex;align-items:flex-start;gap:9px">
+        <span class="material-symbols-outlined" style="color:var(--primary-light);font-size:15px;margin-top:1px">psychology</span>
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.5">Qwen2.5-7B semantic scoring — not just regex</p>
+      </div>
+      <div style="background:var(--surface-0);border:1px solid var(--border);border-radius:10px;padding:11px;display:flex;align-items:flex-start;gap:9px">
+        <span class="material-symbols-outlined" style="color:var(--accent);font-size:15px;margin-top:1px">wifi_off</span>
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.5">Offline fallback — works without backend too</p>
+      </div>
+    </div>
+
+    <button onclick="closeModal()" class="btn btn-primary" style="width:100%;padding:14px;font-size:14px;border-radius:12px">
+      Launch RasoSpeak v2 →
+    </button>
+    <p style="text-align:center;font-size:10px;color:var(--text-muted);margin-top:10px;font-family:var(--font-mono)">
+      AMD Developer Hackathon · lablab.ai · Requires microphone · Chrome / Edge
+    </p>
+  </div>
+</div>
+
+<!-- ══ HEADER ════════════════════════════════════════ -->
+<header id="app-header">
+  <a class="logo" href="#">
+    <div class="logo-mark">🎙</div>
+    <span class="logo-text">Raso<span>Speak</span></span>
+    <span class="logo-ver">v2</span>
+  </a>
+
+  <nav class="nav-tabs">
+    <button class="nav-tab" id="nav-script" onclick="switchView('script')">Script Studio</button>
+    <button class="nav-tab active" id="nav-live"   onclick="switchView('live')">Live Performance</button>
+    <button class="nav-tab" id="nav-stats"  onclick="switchView('stats')">Stats</button>
+  </nav>
+
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="amd-badge" id="amd-header-badge" style="display:none"><span class="amd-dot"></span>AMD Active</span>
+    <div class="status-pill">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text" style="font-family:var(--font-mono)">Idle</span>
+    </div>
+    <div class="session-timer hidden" id="session-timer">00:00</div>
+  </div>
+</header>
+
+<!-- ══ VIEWS ═════════════════════════════════════════ -->
+<div class="views-container">
+
+  <!-- ── SCRIPT STUDIO ─────────────────────────────── -->
+  <div class="view" id="view-script">
+    <div class="studio-editor">
+      <div class="studio-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div>
+            <h2 class="font-display" style="font-size:17px;font-weight:800">Script Studio</h2>
+            <p style="color:var(--text-muted);font-size:11px;margin-top:3px">
+              Paste your script · <span style="color:var(--amd-red)">SegmentationAgent (Qwen2.5-3B on AMD)</span> breaks it into smart chunks
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0">
+            <button class="btn btn-ghost" onclick="loadSample()" style="font-size:11px">Load Sample</button>
+            <button class="btn btn-ghost" onclick="clearAll()"   style="font-size:11px">Clear</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <span style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted)">Chunk size:</span>
+          <div class="chunk-selector" style="padding:0;gap:6px">
+            <button class="chunk-btn" data-size="5"  onclick="setChunk(5)">Tiny (5w)</button>
+            <button class="chunk-btn active" data-size="8"  onclick="setChunk(8)">Short (8w)</button>
+            <button class="chunk-btn" data-size="12" onclick="setChunk(12)">Medium (12w)</button>
+            <button class="chunk-btn" data-size="20" onclick="setChunk(20)">Long (20w)</button>
+          </div>
+        </div>
+      </div>
+
+      <textarea id="script-ta" class="script-textarea"
+        placeholder="Paste your presentation script here...
+
+In online mode, RasoSpeak sends this to SegmentationAgent (Qwen2.5-3B on AMD MI300X) for intelligent chunking — respecting sentence structure and rhetorical pauses.
+
+In offline mode, client-side chunking is used as fallback."></textarea>
+
+      <div class="studio-footer">
+        <span id="wc" style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">0 words · 0 chunks · ~0 min</span>
+        <button class="btn btn-primary" onclick="processAndGo()" style="padding:10px 24px;font-size:13px">
+          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-3px;margin-right:4px">bolt</span>
+          Process &amp; Go Live →
+        </button>
+      </div>
+    </div>
+
+    <div class="studio-sidebar">
+      <div class="chunk-list-header">
+        <span style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted)">Chunks Preview</span>
+        <span id="chunk-count" style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">—</span>
+      </div>
+      <div class="chunk-list-scroll" id="chunk-list">
+        <p style="color:var(--text-muted);font-size:12px;text-align:center;padding-top:24px">Process a script to preview chunks</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LIVE PERFORMANCE ───────────────────────────── -->
+  <div class="view active" id="view-live" style="flex-direction:column">
+
+    <!-- Phase bar -->
+    <div class="phase-bar">
+      <div class="phase-tab" id="ph-deliver"><span class="material-symbols-outlined" style="font-size:14px">hearing</span>DELIVER</div>
+      <div class="phase-tab" id="ph-listen"><span class="material-symbols-outlined" style="font-size:14px">mic</span>LISTEN</div>
+      <div class="phase-tab" id="ph-compare"><span class="material-symbols-outlined" style="font-size:14px">balance</span>COMPARE</div>
+      <div class="phase-tab" id="ph-correct"><span class="material-symbols-outlined" style="font-size:14px">restart_alt</span>CORRECT</div>
+    </div>
+
+    <div class="live-layout">
+
+      <!-- Left sidebar: chunk list -->
+      <div class="live-sidebar-left">
+        <div class="chunk-list-header">
+          <span style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted)">Script Chunks</span>
+          <span id="live-chunk-count" style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">—</span>
+        </div>
+        <div class="chunk-list-scroll" id="live-chunk-list">
+          <p style="color:var(--text-muted);font-size:11px;text-align:center;padding-top:20px">No script loaded</p>
+        </div>
+      </div>
+
+      <!-- Center: stage -->
+      <div class="stage">
+        <div class="stage-ambient" id="stage-ambient"></div>
+
+        <div class="stage-counter">
+          <span class="counter-label">Segment</span>
+          <span class="counter-num" id="seg-num">—</span>
+          <span class="counter-sep">/</span>
+          <span class="counter-total" id="seg-total">—</span>
+        </div>
+
+        <!-- AMD agent indicator -->
+        <div class="agent-indicator" id="agent-indicator">
+          <span class="amd-dot"></span>
+          <span class="agent-indicator-label" id="agent-indicator-label">Agents idle · AMD MI300X</span>
+        </div>
+
+        <div class="earpiece-display">
+          <div class="earpiece-text" id="current-text">
+            <span style="color:var(--text-muted);font-size:1.1rem;font-weight:400">
+              Process a script · press ▶ to start coaching
+            </span>
+          </div>
+        </div>
+
+        <div class="phase-cue">
+          <div class="cue-dot" id="cue-dot"></div>
+          <span class="cue-label" id="cue-label">Waiting — press Start</span>
+        </div>
+
+        <div class="waveform-wrap" id="waveform-wrap"></div>
+
+        <div class="progress-wrap">
+          <div class="progress-track">
+            <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+          </div>
+          <span class="progress-label" id="prog-pct">0%</span>
+        </div>
+      </div>
+
+      <!-- Right panel: feedback -->
+      <div class="live-panel-right">
+
+        <div class="panel-section">
+          <div class="panel-label">
+            <div class="panel-label-dot" style="background:var(--amd-red)"></div>
+            Your Speech
+            <span style="margin-left:auto;font-family:var(--font-mono);font-size:9px;color:var(--amd-red)">Whisper on AMD</span>
+          </div>
+          <div class="live-tx-box" id="live-tx">
+            <span style="color:var(--text-muted);font-style:italic">Awaiting mic…</span>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-label">
+            <div class="panel-label-dot" style="background:var(--primary-light)"></div>
+            Delivery Score
+            <span style="margin-left:auto;font-family:var(--font-mono);font-size:9px;color:var(--amd-red)">Qwen2.5 on AMD</span>
+            <span id="acc-badge" style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--text-muted);margin-left:8px">—</span>
+          </div>
+          <div id="compare-detail">
+            <p style="font-size:11px;color:var(--text-muted)">No comparison yet</p>
+          </div>
+        </div>
+
+        <div class="panel-section" style="border-bottom:none;padding-bottom:0">
+          <div class="panel-label">
+            <div class="panel-label-dot" style="background:var(--accent)"></div>
+            Coach Log
+            <button onclick="clearLog()" style="margin-left:auto;font-size:9px;color:var(--text-muted);background:none;border:none;cursor:pointer;font-family:var(--font-mono)">Clear</button>
+          </div>
+        </div>
+        <div class="coach-scroll" id="coach-log">
+          <div class="log-entry">
+            <div class="log-meta">🤖 RasoSpeak v2</div>
+            <div class="log-msg">Agents ready on <strong>AMD MI300X</strong> · Process a script then press <strong>▶</strong> to start.</div>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card"><div class="metric-val" id="m-wpm" style="color:var(--secondary)">—</div><div class="metric-lbl">WPM</div></div>
+          <div class="metric-card"><div class="metric-val" id="m-acc" style="color:var(--primary-light)">—</div><div class="metric-lbl">Accuracy</div></div>
+          <div class="metric-card"><div class="metric-val" id="m-corr" style="color:var(--danger)">0</div><div class="metric-lbl">Corrections</div></div>
+          <div class="metric-card"><div class="metric-val" id="m-done" style="color:var(--accent)">0</div><div class="metric-lbl">Done</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer controls -->
+    <footer id="live-footer">
+      <div class="footer-controls">
+        <button class="footer-btn" id="btn-prev"   onclick="prevChunk()"   disabled title="Previous (←)"><span class="material-symbols-outlined" style="font-size:19px">skip_previous</span></button>
+        <button class="footer-btn-main" id="btn-main" onclick="toggleSession()" title="Play/Pause (Space)"><span class="material-symbols-outlined" id="btn-main-icon" style="font-size:23px">play_arrow</span></button>
+        <button class="footer-btn" id="btn-next"   onclick="nextChunk()"   disabled title="Next (→)"><span class="material-symbols-outlined" style="font-size:19px">skip_next</span></button>
+        <button class="footer-btn" id="btn-repeat" onclick="repeatChunk()" disabled title="Repeat (R)"><span class="material-symbols-outlined" style="font-size:19px">replay</span></button>
+      </div>
+
+      <div class="footer-divider"></div>
+
+      <div class="footer-group">
+        <div class="footer-group-label">Mode</div>
+        <div class="footer-toggle-group">
+          <button class="footer-toggle mode-btn" data-mode="silent" onclick="setMode(this)">Silent</button>
+          <button class="footer-toggle mode-btn active" data-mode="hint" onclick="setMode(this)">Hint</button>
+          <button class="footer-toggle mode-btn" data-mode="full"   onclick="setMode(this)">Full</button>
+        </div>
+      </div>
+
+      <div class="footer-divider"></div>
+
+      <div class="footer-group">
+        <div class="footer-group-label">Strictness</div>
+        <div class="footer-toggle-group">
+          <button class="footer-toggle strict-btn" data-strict="2" onclick="setStrict(this)">Lenient</button>
+          <button class="footer-toggle strict-btn active" data-strict="3" onclick="setStrict(this)">Normal</button>
+          <button class="footer-toggle strict-btn" data-strict="4" onclick="setStrict(this)">Strict</button>
+        </div>
+      </div>
+
+      <div class="footer-divider"></div>
+
+      <div class="footer-group">
+        <div class="footer-group-label">Earpiece Voice</div>
+        <div style="display:flex;gap:6px">
+          <select id="sel-voice" class="footer-select" style="max-width:130px"></select>
+          <select id="sel-speed" class="footer-select">
+            <option value="0.7">0.7×</option>
+            <option value="0.85" selected>0.85×</option>
+            <option value="1.0">1.0×</option>
+            <option value="1.15">1.15×</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+        <button class="btn btn-danger hidden" id="btn-end" onclick="stopSession()">End Session</button>
+        <div class="session-timer hidden" id="session-timer">00:00</div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ── STATS ──────────────────────────────────────── -->
+  <div class="view" id="view-stats" style="flex-direction:column;overflow-y:auto;padding:30px;gap:22px;background:var(--surface-0)">
+    <div id="stats-content"><p style="color:var(--text-muted)">Loading…</p></div>
+  </div>
+
+</div><!-- /views-container -->
+
+<div id="toast"></div>
+
+<!-- ══ SCRIPTS (load order matters) ════════════════ -->
+<script src="js/state.js"></script>
+<script src="js/nlp.js"></script>
+<script src="js/speech.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

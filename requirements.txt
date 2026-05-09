@@ -1,0 +1,40 @@
+# RasoSpeak v2 — Backend Dependencies
+# AMD Developer Cloud | ROCm 6.1 | Python 3.11
+
+# ── WEB FRAMEWORK ─────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+websockets==13.1
+
+# ── PYDANTIC ───────────────────────────────────────────
+pydantic==2.9.2
+pydantic-settings==2.6.1
+
+# ── HTTP CLIENT ────────────────────────────────────────
+httpx==0.27.2
+
+# ── AMD GPU / ROCm / WHISPER ───────────────────────────
+# faster-whisper uses CTranslate2 which detects ROCm automatically
+faster-whisper==1.1.0
+
+# PyTorch with ROCm backend (install separately via pip with ROCm index):
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.1
+
+# ── vLLM (ROCm backend) ────────────────────────────────
+# Install with ROCm support:
+# pip install vllm --extra-index-url https://download.pytorch.org/whl/rocm6.1
+# Listed here for reference:
+# vllm==0.6.4
+
+# ── AUDIO PROCESSING ───────────────────────────────────
+numpy==2.1.3
+soundfile==0.12.1
+librosa==0.10.2.post1
+
+# ── REDIS (optional — for persistent session history) ──
+redis[asyncio]==5.2.1
+
+# ── UTILITIES ──────────────────────────────────────────
+python-dotenv==1.0.1
+structlog==24.4.0
