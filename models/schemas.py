@@ -15,6 +15,13 @@ class WSMessageType(str, Enum):
     AUDIO_CHUNK    = "AUDIO_CHUNK"
     CHUNK_DONE     = "CHUNK_DONE"
     SESSION_END    = "SESSION_END"
+    QUESTION       = "QUESTION"        # Ask AI a question
+    SEARCH_QUERY   = "SEARCH_QUERY"   # Search the web
+    PARTNER_START  = "PARTNER_START"  # Start partner mode
+    PARTNER_STOP   = "PARTNER_STOP"   # Stop partner mode
+    PARTNER_MESSAGE= "PARTNER_MESSAGE" # Message to partner
+    WAKE_DETECTED  = "WAKE_DETECTED"  # Wake word detected
+    IMPORT_DOCUMENT = "IMPORT_DOCUMENT" # Import document
 
     # Server → Client
     SESSION_READY  = "SESSION_READY"
@@ -23,6 +30,11 @@ class WSMessageType(str, Enum):
     COACHING       = "COACHING"
     ADVANCE        = "ADVANCE"
     SESSION_SUMMARY= "SESSION_SUMMARY"
+    ANSWER         = "ANSWER"          # AI answer to question
+    SEARCH_RESULTS = "SEARCH_RESULTS" # Web search results
+    PARTNER_READY  = "PARTNER_READY"  # Partner mode active
+    PARTNER_RESPONSE = "PARTNER_RESPONSE" # Partner's response
+    REMINDER       = "REMINDER"       # Reminder notification
     ERROR          = "ERROR"
 
 

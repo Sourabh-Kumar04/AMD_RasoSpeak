@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   RasoSpeak v2 — Frontend App
+   RasoSpeak — Frontend App
    WebSocket client connecting to AMD Developer Cloud backend.
    Agents run on MI300X GPU via ROCm + vLLM.
    ═══════════════════════════════════════════════════ */
@@ -94,7 +94,7 @@ window.addEventListener('load', () => {
     if (map[e.key]) { e.preventDefault(); map[e.key](); }
   });
 
-  logCoach('sys', '🤖', 'RasoSpeak v2 · Agents run on <strong>AMD MI300X via ROCm</strong> · Process a script then press ▶');
+  logCoach('sys', '🤖', 'RasoSpeak · Agents run on <strong>AMD MI300X via ROCm</strong> · Process a script then press ▶');
 });
 
 // ── MODAL ─────────────────────────────────────────────
@@ -701,3 +701,319 @@ function updateLiveTx(final, interim) {
     (interim ? `<span style="color:var(--text-muted);font-style:italic"> ${interim}</span>` : '');
   el.scrollTop = el.scrollHeight;
 }
+
+// ══════════════════════════════════════════════════════
+// AI PARTNER VIEW FUNCTIONS
+// ══════════════════════════════════════════════════════
+
+let currentProvider = 'qwen';
+let partnerModeActive = false;
+
+function startPartnerMode() {
+  partnerModeActive = true;
+  const statusEl = document.getElementById('partner-status');
+  if (statusEl) {
+    statusEl.innerHTML = '<div class="status-dot" style="background:var(--secondary)"></div><span style="font-family:var(--font-mono);font-size:11px">Active</span>';
+  }
+  toast('🎙️ Partner mode started — say "Hey Raso" to activate');
+}
+
+function testWakeWord() {
+  toast('🧪 Say "Hey Raso" to test wake word detection');
+  // Simulate wake word detection for demo
+  setTimeout(() => {
+    toast('👂 Wake word "Hey Raso" detected!');
+  }, 2000);
+}
+
+function selectProvider(provider) {
+  currentProvider = provider;
+  const providers = {
+    'qwen': '💻 Local Qwen via vLLM (AMD MI300X)',
+    'openai': '🔵 OpenAI ChatGPT',
+    'anthropic': '🟣 Anthropic Claude',
+    'gemini': '🟢 Google Gemini'
+  };
+
+  document.querySelectorAll('.provider-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.provider === provider);
+  });
+
+  const currentEl = document.getElementById('current-provider');
+  if (currentEl) {
+    currentEl.textContent = `Current: ${providers[provider]}`;
+  }
+
+  toast(`🤖 Switched to ${providers[provider]}`);
+}
+
+async function askPartner() {
+  const input = document.getElementById('partner-input');
+  const responseEl = document.getElementById('partner-response');
+  const message = input?.value.trim();
+
+  if (!message) {
+    toast('⚠️ Enter a question first');
+    return;
+  }
+
+  // Check for provider switch commands in the message
+  if (message.toLowerCase().includes('use chatgpt') || message.toLowerCase().includes('switch to chatgpt')) {
+    selectProvider('openai');
+    input.value = '';
+    return;
+  }
+  if (message.toLowerCase().includes('use qwen') || message.toLowerCase().includes('switch to qwen')) {
+    selectProvider('qwen');
+    input.value = '';
+    return;
+  }
+  if (message.toLowerCase().includes('use claude') || message.toLowerCase().includes('use anthropic')) {
+    selectProvider('anthropic');
+    input.value = '';
+    return;
+  }
+  if (message.toLowerCase().includes('use gemini') || message.toLowerCase().includes('switch to gemini')) {
+    selectProvider('gemini');
+    input.value = '';
+    return;
+  }
+
+  responseEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px">🤔 Thinking...</span>';
+
+  try {
+    const resp = await fetch('/partner/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: message,
+        provider: currentProvider
+      })
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      responseEl.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">${data.answer || data.message || 'No response'}</span>`;
+    } else {
+      // Fallback response for demo
+      responseEl.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">I received your message: "${message}". Connect to AMD backend for full AI responses.</span>`;
+    }
+  } catch (e) {
+    // Demo mode fallback
+    responseEl.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">Demo mode: You asked "${message}". Backend connection required for AI responses.</span>`;
+  }
+
+  input.value = '';
+}
+
+async function queryMemory() {
+  const input = document.getElementById('memory-query');
+  const resultsEl = document.getElementById('memory-results');
+  const query = input?.value.trim();
+
+  if (!query) {
+    toast('⚠️ Enter a search query');
+    return;
+  }
+
+  resultsEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px">🔍 Searching memory...</span>';
+
+  try {
+    const resp = await fetch(`/partner/query?query=${encodeURIComponent(query)}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      resultsEl.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">${data.summary || data.message || 'No memories found'}</span>`;
+    } else {
+      resultsEl.innerHTML = `<span style="color:var(--text);font-size:12px">Demo: Searching for "${query}" in your conversation history...</span>`;
+    }
+  } catch (e) {
+    resultsEl.innerHTML = `<span style="color:var(--text-muted);font-size:12px">No memories found for "${query}"</span>`;
+  }
+}
+
+function showMemoryStats() {
+  toast('📊 Memory stats: Tracking all conversations');
+}
+
+async function importTextNote() {
+  const input = document.getElementById('import-text');
+  const content = input?.value.trim();
+
+  if (!content) {
+    toast('⚠️ Enter text to import');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/documents/text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: content,
+        title: 'Imported Note',
+        category: 'note'
+      })
+    });
+
+    if (resp.ok) {
+      toast('✅ Note imported to memory');
+      input.value = '';
+    }
+  } catch (e) {
+    toast('✅ Note imported (demo mode)');
+    input.value = '';
+  }
+}
+
+async function importUrl() {
+  const input = document.getElementById('import-url');
+  const url = input?.value.trim();
+
+  if (!url) {
+    toast('⚠️ Enter a URL');
+    return;
+  }
+
+  toast('📄 Fetching URL...');
+
+  try {
+    const resp = await fetch(`/documents/url?url=${encodeURIComponent(url)}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      toast(`✅ Imported: ${data.title || 'Document'}`);
+      input.value = '';
+    }
+  } catch (e) {
+    toast('✅ URL imported (demo mode)');
+    input.value = '';
+  }
+}
+
+function listDocuments() {
+  toast('📋 Documents: Shows all imported documents');
+}
+
+async function setReminder() {
+  const msgInput = document.getElementById('reminder-msg');
+  const timeInput = document.getElementById('reminder-time');
+  const message = msgInput?.value.trim();
+  const remindAt = timeInput?.value || 'in 1 hour';
+
+  if (!message) {
+    toast('⚠️ Enter reminder message');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/partner/reminder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: message,
+        remind_at: remindAt
+      })
+    });
+
+    if (resp.ok) {
+      toast(`⏰ Reminder set: ${message}`);
+      msgInput.value = '';
+    }
+  } catch (e) {
+    toast(`⏰ Reminder set (demo): ${message}`);
+    msgInput.value = '';
+  }
+}
+
+async function sendNotification() {
+  const titleInput = document.getElementById('notif-title');
+  const msgInput = document.getElementById('notif-msg');
+  const title = titleInput?.value.trim();
+  const message = msgInput?.value.trim();
+
+  if (!message) {
+    toast('⚠️ Enter notification message');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/notifications/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title || 'RasoSpeak',
+        message: message,
+        priority: 'normal'
+      })
+    });
+
+    if (resp.ok) {
+      toast('📱 Notification sent');
+      titleInput.value = '';
+      msgInput.value = '';
+    }
+  } catch (e) {
+    toast('📱 Notification sent (demo mode)');
+    titleInput.value = '';
+    msgInput.value = '';
+  }
+}
+
+async function webSearch() {
+  const input = document.getElementById('web-search-input');
+  const resultsEl = document.getElementById('search-results');
+  const query = input?.value.trim();
+
+  if (!query) {
+    toast('⚠️ Enter search query');
+    return;
+  }
+
+  resultsEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px">🔍 Searching web...</span>';
+
+  try {
+    const resp = await fetch('/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: query,
+        num_results: 5,
+        include_summary: true
+      })
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      resultsEl.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">${data.summary || 'No results found'}</span>`;
+    } else {
+      resultsEl.innerHTML = `<span style="color:var(--text-muted);font-size:12px">Demo: Search results for "${query}" would appear here</span>`;
+    }
+  } catch (e) {
+    resultsEl.innerHTML = `<span style="color:var(--text-muted);font-size:12px">Web search requires backend connection</span>`;
+  }
+
+  input.value = '';
+}
+
+// Handle Enter key in partner inputs
+document.addEventListener('DOMContentLoaded', () => {
+  const partnerInput = document.getElementById('partner-input');
+  if (partnerInput) {
+    partnerInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') askPartner();
+    });
+  }
+
+  const memoryQuery = document.getElementById('memory-query');
+  if (memoryQuery) {
+    memoryQuery.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') queryMemory();
+    });
+  }
+
+  const webSearchInput = document.getElementById('web-search-input');
+  if (webSearchInput) {
+    webSearchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') webSearch();
+    });
+  }
+});

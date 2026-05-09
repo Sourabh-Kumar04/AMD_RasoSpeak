@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════
-   RasoSpeak v2 — UI Rendering Layer
+   RasoSpeak — UI Rendering Layer
    All DOM mutations, phase animations, stats dashboard.
    ═══════════════════════════════════════════════════ */
 
 /* ── VIEWS ──────────────────────────────────────────── */
 function switchView(v) {
-  ['script', 'live', 'stats'].forEach(id => {
+  ['script', 'live', 'stats', 'partner'].forEach(id => {
     document.getElementById(`view-${id}`)?.classList.toggle('active', id === v);
     document.getElementById(`nav-${id}`)?.classList.toggle('active', id === v);
   });

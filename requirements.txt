@@ -38,3 +38,10 @@ redis[asyncio]==5.2.1
 # ── UTILITIES ──────────────────────────────────────────
 python-dotenv==1.0.1
 structlog==24.4.0
+
+# ── HUGGING FACE SPACE (optional) ──────────────────────
+gradio==4.44.0
+
+# ── DOCUMENT PROCESSING ─────────────────────────────────
+pypdf==4.0.0
+markdown==3.5.2

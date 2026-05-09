@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   RasoSpeak v2 — Offline Speech Layer
+   RasoSpeak — Offline Speech Layer
    Browser TTS (always used for earpiece delivery)
    Browser STT (fallback when AMD Whisper unavailable)
    Web Audio API (always used for waveform viz)

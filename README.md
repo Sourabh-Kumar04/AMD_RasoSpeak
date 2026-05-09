@@ -1,4 +1,4 @@
-# 🎙 RasoSpeak v2 — Agentic AI Speech Coach
+# 🎙 RasoSpeak — Your Secondary Brain & AI Partner
 ### Built for AMD Developer Hackathon × lablab.ai
 
 <div align="center">
@@ -8,12 +8,15 @@
 ![ROCm](https://img.shields.io/badge/ROCm-6.1-e8294a?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.11-3776ab?style=for-the-badge&logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi)
+![Gradio](https://img.shields.io/badge/Gradio-4.44-orange?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**An invisible AI speech coach that whispers your script through your earpiece,  
+**An invisible AI speech coach that whispers your script through your earpiece,
 listens to your delivery, evaluates it with LLMs on AMD GPUs, and corrects you in real time.**
 
-[Features](#-features) • [Architecture](#-architecture) • [AMD Stack](#-amd-stack) • [Quick Start](#-quick-start) • [Agents](#-the-5-agents) • [API](#-api-reference) • [Demo](#-demo)
+**PLUS** — Real-time Q&A with AI (GPT/Claude/Gemini/Qwen), web search, and comprehensive analytics.
+
+[Features](#-features) • [Architecture](#-architecture) • [AMD Stack](#-amd-stack) • [Quick Start](#-quick-start) • [Agents](#-the-9-agents) • [API](#-api-reference) • [Hugging Face Space](#-hugging-face-space)
 
 </div>
 
@@ -21,57 +24,83 @@ listens to your delivery, evaluates it with LLMs on AMD GPUs, and corrects you i
 
 ## 🧠 What is RasoSpeak?
 
-RasoSpeak is a **closed-loop agentic AI speech coaching system**. It solves one of the most common problems in professional communication — forgetting your script mid-presentation.
+RasoSpeak is your **AI Partner / Secondary Brain** — like having a smart companion in your ear 24/7.
 
-The system works like an invisible teleprompter for your ear:
+### Core Features
 
-1. **Earpiece delivers your line** — TTS reads each chunk of your script
-2. **You speak to the audience** — naturally, no screens, no notes
-3. **AMD agents evaluate your delivery** — Whisper transcribes, Qwen2.5 scores
-4. **AI coach corrects or advances** — personalized feedback through the earpiece
+1. **AI Partner (Primary)** — Your continuous AI companion that:
+   - Activated by **"Hey Raso"** wake word
+   - Always listens and remembers everything you say
+   - Answers questions based on past conversations ("What did I say about X?")
+   - Searches the web for new information
+   - Sets reminders and follows up
+   - Acts like a helpful partner, not just a tool
 
-All AI inference runs on **AMD Instinct MI300X GPU via ROCm**, making real-time coaching possible with sub-1.3 second round-trip latency.
+2. **Voice Wake Word** — Say "Hey Raso" to activate (like Alexa/Siri)
+
+3. **Document Import** — Import PDFs, web pages, notes to your memory
+
+4. **Phone Notifications** — Get SMS, Telegram alerts for reminders
+
+5. **Speech Coaching** — Practice presentations with real-time AI feedback
+6. **Real-time Q&A** — Ask any question, get instant answers
+7. **Web Search** — Search the web for current information
+8. **Recording & Analytics** — Track your progress over time
+
+### Use Cases
+- 🎤 **Presentation Practice** — Practice speeches with AI coaching
+- ❓ **Instant Q&A** — Ask questions during practice (like having ChatGPT in your ear)
+- 🔍 **Live Information** — Search for facts, news, or definitions
+- 📊 **Progress Tracking** — Analytics on your speech improvement
 
 ---
 
 ## ✨ Features
 
-### 🤖 Agentic AI (on AMD MI300X)
-- **5 specialized agents** — each with a single responsibility, clean typed I/O
-- **Whisper Large v3** for state-of-the-art speech transcription (~3% WER)
-- **Qwen2.5-7B-Instruct** for semantic scoring — understands paraphrasing, not just exact matches
-- **Qwen2.5-7B-Instruct** for personalized coaching — warm, contextual correction strategies
-- **Qwen2.5-3B-Instruct** for intelligent script segmentation — sentence-boundary-aware chunking
-- **Session Memory Agent** for cross-session learning — tracks your weak words over time
+### 🤖 14 Specialized AI Agents (on AMD MI300X)
+
+| Agent | Model | Function |
+|-------|-------|----------|
+| **PartnerAgent** | — | **YOUR AI PARTNER** — continuous listening, memory, reminders |
+| **SharedMemoryAgent** | — | **UNIFIED BRAIN** — all AIs share this memory |
+| **WakeWordAgent** | — | **"Hey Raso"** — voice wake word detection |
+| **DocumentAgent** | — | **Import docs** — PDFs, URLs, text to memory |
+| **NotificationAgent** | — | **Phone notifications** — SMS, Telegram, Push |
+| **TranscriptionAgent** | Whisper Large v3 | Speech-to-text |
+| **ScoringAgent** | Qwen2.5-7B | Semantic speech evaluation |
+| **CoachingAgent** | Qwen2.5-7B | Personalized corrections |
+| **SegmentationAgent** | Qwen2.5-3B | Script chunking |
+| **SessionMemoryAgent** | — | Session state & history |
+| **QAAgent** | GPT/Claude/Gemini/Qwen | Real-time Q&A |
+| **SearchAgent** | DuckDuckGo/Tavily | Web search |
+| **RecordingAgent** | — | Audio/conversation recording |
+| **AnalyticsAgent** | Qwen2.5-7B | Insights & analytics |
+
+### ❓ Real-time Q&A (like ChatGPT/Gemini)
+- Connect to **5 AI providers**: OpenAI GPT, Anthropic Claude, Google Gemini, xAI Grok, Local Qwen
+- Answers **stream to your earpiece** via TTS
+- Context-aware (uses your script as context)
+- Multi-turn conversation support
+
+### 🔍 Web Search
+- Real-time information lookup
+- Uses Tavily, SerpAPI, Brave Search, or DuckDuckGo (fallback)
+- Results + AI summary
+- Perfect for current events, facts, definitions
+
+### 📊 Recording & Analytics
+- Records all audio, Q&A conversations, coaching events
+- Session-level analytics (accuracy, fluency, trends)
+- User-level analytics (improvement over time)
+- Q&A topic analysis
+- Speech improvement reports
 
 ### 🎙 Speech Coaching Loop
-- Real-time audio streaming via WebSocket to AMD backend
-- Three correction modes: **Silent** (replay) · **Hint** (keyword prompt) · **Full** (sentence replay)
+- Real-time audio streaming via WebSocket
+- Three correction modes: **Silent** · **Hint** · **Full**
 - Three strictness levels: **Lenient** · **Normal** · **Strict**
-- Auto-skip after 4 failed attempts to keep sessions moving
-- Early advance when speech coverage hits 82% — no need to finish the full timeout
-
-### 📊 Analytics & Memory
-- Rolling WPM (words per minute) tracking with 8-sample moving average
-- Per-chunk accuracy scores with matched/missed concept visualization
-- Session history dashboard with up to 20 sessions stored in localStorage
-- Cross-session weak word tracking — coach remembers what you struggled with
-- End-of-session AI insights generated by CoachingAgent
-
-### 🌐 Offline Fallback
-- Full offline mode when AMD backend is unreachable
-- Browser Web Speech API used as fallback transcription
-- Client-side Levenshtein NLP as fallback scorer
-- Seamless degradation — same UI, same coaching loop
-
-### ⌨️ Keyboard Shortcuts
-| Key | Action |
-|-----|--------|
-| `Space` | Play / Pause session |
-| `→` | Next chunk |
-| `←` | Previous chunk |
-| `R` | Repeat current chunk |
-| `Escape` | End session |
+- Auto-skip after 4 failed attempts
+- Early advance at 82% coverage
 
 ---
 
@@ -79,54 +108,44 @@ All AI inference runs on **AMD Instinct MI300X GPU via ROCm**, making real-time 
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    BROWSER (thin client)                     │
-│  index.html · css/styles.css                                │
-│  js/state.js · js/nlp.js · js/speech.js · js/ui.js         │
-│  js/app.js  ──── WebSocket ────────────────────────────┐   │
-└────────────────────────────────────────────────────────│───┘
+│                    BROWSER / GRADIO SPACE                   │
+│  index.html · Gradio UI (app.py)                           │
+│  js/app.js ──── WebSocket ────────────────────────────┐   │
+└─────────────────────────────────────────────────────────│───┘
                                                          │
-                    WebSocket (real-time audio + events)
+                    WebSocket / HTTP API                   │
                                                          │
 ┌────────────────────────────────────────────────────────▼───┐
-│              FastAPI Backend  (backend/main.py)             │
+│              FastAPI Backend  (main.py)                    │
 │                AMD Developer Cloud · MI300X GPU             │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │              AGENT PIPELINE                          │   │
+│  │              AGENT PIPELINE (14 Agents)             │   │
 │  │                                                      │   │
-│  │  Audio bytes                                         │   │
-│  │      │                                               │   │
-│  │      ▼                                               │   │
-│  │  [Agent 1] TranscriptionAgent                        │   │
-│  │   Whisper Large v3 · faster-whisper · ROCm           │   │
-│  │   ~400–600ms · word timestamps · 94%+ confidence     │   │
-│  │      │                                               │   │
-│  │      ▼                                               │   │
-│  │  [Agent 5] SessionMemoryAgent  ◄──────────────────┐  │   │
-│  │   Redis + in-memory · weak word history            │  │   │
-│  │      │                                             │  │   │
-│  │      ▼                                             │  │   │
-│  │  [Agent 2] ScoringAgent                            │  │   │
-│  │   Qwen2.5-7B-Instruct · vLLM · ROCm               │  │   │
-│  │   ~300–400ms · semantic scoring · JSON output      │  │   │
-│  │      │                                             │  │   │
-│  │      ├── score >= threshold ──► ADVANCE ──────────►│  │   │
-│  │      │                                             │  │   │
-│  │      └── score < threshold ──►                     │  │   │
-│  │                                                    │  │   │
-│  │  [Agent 3] CoachingAgent                           │  │   │
-│  │   Qwen2.5-7B-Instruct · vLLM · ROCm               │  │   │
-│  │   ~280–380ms · personalized correction             │  │   │
-│  │      │                                             │  │   │
-│  │      └──────────────────────────────────────────►──┘  │   │
-│  │                                                      │   │
-│  │  [Agent 4] SegmentationAgent  (called once)          │   │
-│  │   Qwen2.5-3B-Instruct · vLLM · ROCm                 │   │
-│  │   Smart chunking · sentence boundaries · pace tags   │   │
+│  │   ┌─────────────────────────────────────────────┐  │   │
+│  │   │        🌟 YOUR AI PARTNER (PartnerAgent)     │  │   │
+│  │   │   ←→ "Hey Raso" wake word + continuous       │  │   │
+│  │   └────────────────────┬──────────────────────────┘  │   │
+│  │                        │                              │   │
+│  │   ┌────────────────────▼──────────────────────────┐  │   │
+│  │   │     SharedMemoryAgent (UNIFIED BRAIN)        │  │   │
+│  │   │     ← ALL AIs read/write this memory →       │  │   │
+│  │   └────────────────────┬──────────────────────────┘  │   │
+│  │                        │                              │   │
+│  │  [1] WakeWordAgent ───► "Hey Raso" detection       │   │
+│  │  [2] DocumentAgent ────► Import PDFs, URLs, docs    │   │
+│  │  [3] NotificationAgent ─► Phone SMS, Telegram      │   │
+│  │  [4] TranscriptionAgent ─ Whisper Large v3       │   │
+│  │  [5] ScoringAgent ─────── Qwen2.5-7B                │   │
+│  │  [6] CoachingAgent ────── Qwen2.5-7B                │   │
+│  │  [7] SegmentationAgent ─ Qwen2.5-3B                 │   │
+│  │  [8] SessionMemoryAgent ─ In-memory + Redis         │   │
+│  │  [9] QAAgent ──────────── GPT/Claude/Gemini/Qwen    │   │
+│  │  [10] SearchAgent ─────── Tavily/DuckDuckGo        │   │
+│  │  [11] RecordingAgent ─── Audio & conversation log  │   │
+│  │  [12] AnalyticsAgent ─── Session & user insights   │   │
 │  └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
-
-Total round-trip latency target: < 1.3 seconds
 ```
 
 ---
@@ -139,20 +158,55 @@ Total round-trip latency target: < 1.3 seconds
 | Speech Transcription | faster-whisper (CTranslate2) | AMD Instinct MI300X |
 | GPU Software Stack | ROCm 6.1 | ROCm Open Compute |
 | Deep Learning | PyTorch 2.1 (ROCm build) | AMD Instinct MI300X |
-| Container Base | `rocm/pytorch:rocm6.1_ubuntu22.04` | — |
-| Cloud Provider | AMD Developer Cloud | MI300X instance |
 
 ### Why AMD MI300X?
-
-The MI300X is critical for real-time coaching:
-
 | Model | CPU Inference | AMD MI300X (ROCm) | Speedup |
 |-------|-------------|-------------------|---------|
 | Whisper Large v3 | ~8–12s/chunk | ~0.4–0.6s/chunk | **~20×** |
-| Qwen2.5-7B (ScoringAgent) | ~45–90s/query | ~0.3–0.4s/query | **~150×** |
-| Qwen2.5-7B (CoachingAgent) | ~45–90s/query | ~0.28–0.38s/query | **~150×** |
+| Qwen2.5-7B | ~45–90s/query | ~0.3–0.4s/query | **~150×** |
 
-Without AMD GPU acceleration, real-time coaching at <2s round-trip would be impossible.
+---
+
+## 🚀 Quick Start
+
+### Option 1 — Hugging Face Space (Recommended for Demo)
+
+```bash
+# Deploy as HF Space (for hackathon submission)
+# Just push to Hugging Face and it will auto-deploy!
+```
+
+### Option 2 — Local Development
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-username/rasospeak-v2
+cd rasospeak-v2
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Start vLLM server (Qwen2.5-7B on AMD GPU)
+python -m vllm.entrypoints.openai.api_server \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --device rocm \
+  --dtype float16 \
+  --port 8001
+
+# 4. Start FastAPI backend
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+# 5. Open in browser
+open http://localhost:8000
+```
+
+### Option 3 — Gradio Demo (No GPU required)
+
+```bash
+# Run the Gradio interface (uses external APIs if configured)
+python app.py
+# Opens at http://localhost:7860
+```
 
 ---
 
@@ -160,222 +214,78 @@ Without AMD GPU acceleration, real-time coaching at <2s round-trip would be impo
 
 ```
 rasospeak-v2/
-├── index.html                        ← Frontend entry point
-├── ARCHITECTURE.md                   ← Deep technical documentation
-├── .env.example                      ← AMD Cloud configuration template
-├── docker-entrypoint.sh              ← Container startup (vLLM + FastAPI)
+├── app.py                      ← Hugging Face Space (Gradio)
+├── main.py                     ← FastAPI backend + WebSocket
+├── index.html                  ← Frontend entry point
 │
-├── css/
-│   └── styles.css                    ← Full design system (AMD red branding)
+├── agents/                     ← 9 AI agents
+│   ├── base_agent.py
+│   ├── transcription_agent.py  ← Whisper
+│   ├── scoring_agent.py        ← Qwen scoring
+│   ├── coaching_agent.py       ← Qwen coaching
+│   ├── segmentation_agent.py   ← Qwen chunking
+│   ├── session_memory_agent.py
+│   ├── qa_agent.py             ← Multi-provider Q&A (NEW)
+│   ├── search_agent.py         ← Web search (NEW)
+│   ├── recording_agent.py      ← Audio recording (NEW)
+│   └── analytics_agent.py     ← Insights (NEW)
 │
-├── js/
-│   ├── state.js                      ← Central state + localStorage persistence
-│   ├── nlp.js                        ← Client-side NLP (offline fallback)
-│   ├── speech.js                     ← Browser TTS + offline STT + waveform viz
-│   ├── ui.js                         ← DOM rendering, phase animations, stats
-│   └── app.js                        ← WebSocket client, session management
+├── config/
+│   ├── settings.py             ← Configuration
+│   └── prompts.py             ← LLM prompts
 │
-└── backend/
-    ├── main.py                       ← FastAPI app + WebSocket orchestrator
-    ├── requirements.txt              ← Python dependencies
-    ├── Dockerfile                    ← ROCm-based production container
-    │
-    ├── agents/
-    │   ├── base_agent.py             ← Abstract base class for all agents
-    │   ├── transcription_agent.py    ← Agent 1: Whisper Large v3 on ROCm
-    │   ├── scoring_agent.py          ← Agent 2: Qwen2.5-7B semantic scoring
-    │   ├── coaching_agent.py         ← Agent 3: Qwen2.5-7B coaching + insights
-    │   ├── segmentation_agent.py     ← Agent 4: Qwen2.5-3B script chunking
-    │   └── session_memory_agent.py   ← Agent 5: State + cross-session memory
-    │
-    ├── config/
-    │   ├── settings.py               ← AMD endpoints, model names, thresholds
-    │   └── prompts.py                ← All LLM system prompts (JSON-tuned)
-    │
-    └── models/
-        └── schemas.py                ← Pydantic schemas for all data types
+├── models/
+│   └── schemas.py              ← Pydantic schemas
+│
+├── requirements.txt            ← Python dependencies
+├── Dockerfile                  ← ROCm-based container
+└── .env.example               ← Environment template
 ```
 
 ---
 
-## 🤖 The 5 Agents
+## 🤖 The 10 Agents
 
-### Agent 1 — TranscriptionAgent
-**Model:** Whisper Large v3 · **Runtime:** faster-whisper on ROCm
+### Core — The Unified Brain (1)
 
-Receives raw audio bytes streamed from the browser, transcribes with word-level timestamps and confidence scores. Whisper's ~3% WER far outperforms the browser's Web Speech API (~8–15% WER), especially for accents and noisy environments.
+0. **SharedMemoryAgent** — The brain that connects ALL agents
+   - Stores user profile, preferences, facts
+   - Remembers all Q&A conversations
+   - Tracks weak words and improvement areas
+   - Provides context to every AI for personalized responses
+   - Persists to disk for long-term memory
 
-```python
-# Input
-{
-  "audio_b64": "<base64 PCM audio>",
-  "sample_rate": 16000,
-  "expected_text": "good morning everyone"
-}
+### Core Coaching (5)
 
-# Output
-{
-  "transcript": "good morning everyone",
-  "confidence": 0.94,
-  "words": [{"word": "good", "start": 0.0, "end": 0.3, "confidence": 0.98}, ...],
-  "processing_ms": 420
-}
-```
+1. **TranscriptionAgent** — Whisper Large v3 on ROCm
+2. **ScoringAgent** — Qwen2.5-7B semantic evaluation
+3. **CoachingAgent** — Personalized corrections
+4. **SegmentationAgent** — Script chunking
+5. **SessionMemoryAgent** — Session state & history
 
----
+### Q&A & Search (2)
 
-### Agent 2 — ScoringAgent
-**Model:** Qwen2.5-7B-Instruct · **Runtime:** vLLM on ROCm
+6. **QAAgent** — Connects to OpenAI, Anthropic, Google, xAI, or local Qwen
+   - Real-time question answering
+   - **Uses shared memory** for personalized context
+   - Stores all conversations in shared memory
 
-Uses an LLM to evaluate delivery quality across four dimensions. Understands semantic equivalence — "gonna" matches "going to", paraphrasing is scored appropriately, filler words are ignored.
+7. **SearchAgent** — Web search for current information
+   - Tavily, SerpAPI, Brave, or DuckDuckGo
+   - Returns results + AI summary
 
-```python
-# Scores
-{
-  "accuracy":         88,   # Key ideas conveyed correctly
-  "fluency":          92,   # Natural and smooth delivery
-  "completeness":     85,   # All key points covered
-  "overall":          88,   # Holistic assessment
-  "passed":           True,
-  "missing_concepts": [],
-  "feedback_brief":   "Strong delivery. Minor omission of 'real-time' qualifier.",
-  "processing_ms":    310
-}
-```
+### Recording & Analytics (2)
 
-**Why LLM scoring beats Levenshtein:**
+8. **RecordingAgent** — Records all interactions
+   - Audio chunks (user speech, coaching TTS, AI answers)
+   - Q&A conversations
+   - Coaching events and transcripts
 
-| Scenario | Old Rule-Based | Qwen2.5 ScoringAgent |
-|----------|---------------|----------------------|
-| "gonna" vs "going to" | ❌ Penalized | ✅ Equivalent |
-| Natural paraphrase | ❌ Low score | ✅ High score |
-| Filler words ("um", "uh") | ❌ Penalized | ✅ Ignored |
-| Missing key concept | ✅ Detected | ✅ Detected + explained |
-
----
-
-### Agent 3 — CoachingAgent
-**Model:** Qwen2.5-7B-Instruct · **Runtime:** vLLM on ROCm
-
-Only activates when ScoringAgent returns `passed: false`. Generates personalized, mode-aware corrections with the exact text to speak through the earpiece. Also generates end-of-session insights for the stats dashboard.
-
-**Correction modes:**
-- `silent` → Replays the original chunk verbatim
-- `hint` → LLM generates a targeted 8-word keyword hint
-- `full` → LLM replays with a personalized prefix ("Try again:", "Once more:")
-
-**Auto-skip:** After 4 failed attempts, generates an encouraging "Moving on." message.
-
----
-
-### Agent 4 — SegmentationAgent
-**Model:** Qwen2.5-3B-Instruct · **Runtime:** vLLM on ROCm
-
-Called once when the user processes their script. Uses an LLM to chunk intelligently — respecting sentence boundaries, rhetorical pauses, and breath units. Also labels emphasis words and suggested pace (slow/normal/fast) for each chunk.
-
-```python
-# Output chunk metadata
-{
-  "id": 3,
-  "text": "It is called RasoSpeak.",
-  "word_count": 4,
-  "type": "statement",
-  "emphasis_words": ["RasoSpeak"],
-  "suggested_pace": "slow",
-  "breathing_pause_after": True
-}
-```
-
----
-
-### Agent 5 — SessionMemoryAgent
-**Runtime:** Python + Redis (no GPU needed)
-
-Manages all session state, tracks attempt counts per chunk, computes rolling metrics, and builds a weak-word profile across sessions. Feeds historical context to ScoringAgent and CoachingAgent for personalized feedback.
-
-**Cross-session learning:** After 3+ sessions, your persistent weak words are passed to CoachingAgent so it proactively emphasizes them in hints.
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- AMD Developer Cloud account with MI300X instance
-- Docker with ROCm support
-- Python 3.11
-- Chrome or Edge browser (for Web Speech API fallback)
-
-### Option 1 — Docker (Recommended)
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/rasospeak-v2
-cd rasospeak-v2
-
-# 2. Configure environment
-cp .env.example .env
-# Edit .env with your AMD Developer Cloud endpoints
-
-# 3. Build and run
-docker build -f backend/Dockerfile -t rasospeak-v2 .
-docker run --device=/dev/kfd --device=/dev/dri \
-  --group-add video --ipc=host \
-  -p 8000:8000 -p 8001:8001 \
-  rasospeak-v2
-
-# 4. Open in browser
-open http://localhost:8000
-```
-
-### Option 2 — Manual Setup
-
-```bash
-# 1. Install PyTorch with ROCm
-pip install torch torchvision torchaudio \
-  --index-url https://download.pytorch.org/whl/rocm6.1
-
-# 2. Install vLLM with ROCm backend
-pip install vllm \
-  --extra-index-url https://download.pytorch.org/whl/rocm6.1
-
-# 3. Install backend dependencies
-cd backend
-pip install -r requirements.txt
-
-# 4. Start vLLM server (Qwen2.5-7B on AMD GPU)
-python -m vllm.entrypoints.openai.api_server \
-  --model Qwen/Qwen2.5-7B-Instruct \
-  --device rocm \
-  --dtype float16 \
-  --port 8001 \
-  --gpu-memory-utilization 0.7
-
-# 5. Start FastAPI backend
-uvicorn main:app --host 0.0.0.0 --port 8000
-
-# 6. Serve frontend (any static server)
-cd ..
-python -m http.server 3000
-# Open http://localhost:3000
-```
-
-### AMD Developer Cloud Setup
-
-```bash
-# 1. Provision MI300X instance on AMD Developer Cloud
-# 2. SSH in and verify ROCm
-rocm-smi
-# Should show: AMD Instinct MI300X
-
-# 3. Verify PyTorch sees the GPU
-python3 -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
-# Should print: True, AMD Instinct MI300X
-
-# 4. Clone and deploy
-git clone https://github.com/your-username/rasospeak-v2
-cd rasospeak-v2
-./docker-entrypoint.sh
-```
+9. **AnalyticsAgent** — Generates insights
+   - Session analytics (accuracy, fluency, trends)
+   - User analytics (improvement over time)
+   - Q&A topic analysis
+   - AI-powered insights via LLM
 
 ---
 
@@ -383,136 +293,126 @@ cd rasospeak-v2
 
 ### REST Endpoints
 
-```
-GET  /health          — Backend health + agent status
-POST /segment         — Segment a script (calls SegmentationAgent)
-GET  /sessions/{id}   — Get session data
-GET  /sessions/{id}/insights  — Get AI insights for a session
+```bash
+# Health check
+GET  /health
+
+# Segment a script
+POST /segment
+
+# Q&A - Ask a question (streams to earpiece)
+POST /qa
+# Body: {"question": "...", "provider": "openai|anthropic|google|qwen_local"}
+
+# Web search
+POST /search
+# Body: {"query": "..."}
+
+# Recording
+POST /recordings/{session_id}/start
+POST /recordings/{session_id}/stop
+POST /recordings/{session_id}/audio
+
+# Analytics
+GET  /analytics/session/{session_id}
+GET  /analytics/user/{user_id}?days=30
+GET  /analytics/improvement/{user_id}
 ```
 
 ### WebSocket — `/ws/{session_id}`
 
-**Client → Server messages:**
+**Client → Server:**
 
-| Type | Payload | Description |
-|------|---------|-------------|
-| `SESSION_START` | `{ config: SessionConfig }` | Initialize session |
-| `AUDIO_CHUNK` | `{ chunk_index, audio_b64, expected_text }` | Stream audio |
-| `CHUNK_DONE` | `{ chunk_index }` | Manual advance |
-| `SESSION_END` | `{}` | End session, get summary |
+| Type | Description |
+|------|-------------|
+| `SESSION_START` | Start coaching session |
+| `AUDIO_CHUNK` | Stream audio for scoring |
+| `QUESTION` | Ask AI a question (NEW) |
+| `SEARCH_QUERY` | Search the web (NEW) |
+| `SESSION_END` | End session |
 
-**Server → Client messages:**
+**Server → Client:**
 
-| Type | Payload | Description |
-|------|---------|-------------|
-| `SESSION_READY` | `{ session_id, message }` | Agents initialized |
-| `TRANSCRIPT` | `{ text, is_final, confidence, words }` | Whisper output |
-| `SCORE` | `{ accuracy, fluency, overall, passed, ... }` | Qwen2.5 score |
-| `COACHING` | `{ strategy, tts_text, display_text, ... }` | Correction from Qwen2.5 |
-| `ADVANCE` | `{ next_index, progress_pct }` | Move to next chunk |
-| `SESSION_SUMMARY` | `{ stats, insights }` | End-of-session AI report |
-| `ERROR` | `{ message }` | Error from any agent |
+| Type | Description |
+|------|-------------|
+| `TRANSCRIPT` | Whisper transcription |
+| `SCORE` | Qwen scoring result |
+| `COACHING` | Correction feedback |
+| `ANSWER` | AI answer to question (NEW) |
+| `SEARCH_RESULTS` | Web search results (NEW) |
+| `SESSION_SUMMARY` | End-of-session insights |
 
 ---
 
 ## ⚙️ Configuration
 
-### Session Settings
+### Environment Variables
 
-| Setting | Options | Default | Description |
-|---------|---------|---------|-------------|
-| `mode` | `silent` / `hint` / `full` | `hint` | Correction verbosity |
-| `strict` | `2` / `3` / `4` | `3` | Pass threshold (40% / 52% / 64%) |
-| `chunk_size` | `5` / `8` / `12` / `20` | `8` | Target words per chunk |
+```env
+# AMD Developer Cloud
+VLLM_HOST=localhost
+VLLM_PORT=8001
 
-### Strictness Thresholds
+# Q&A Providers (at least one recommended)
+QA_DEFAULT_PROVIDER=qwen_local
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=...
+XAI_API_KEY=...
 
-| Level | Pass Score | Best For |
-|-------|-----------|----------|
-| Lenient (2) | ≥ 40% | Beginners, casual practice |
-| Normal (3) | ≥ 52% | Most presentations |
-| Strict (4) | ≥ 64% | Precise technical content |
+# Search (at least one recommended)
+TAVILY_API_KEY=...
+SERP_API_KEY=...
+BRAVE_API_KEY=...
 
----
-
-## 🌍 Browser Compatibility
-
-| Browser | TTS (Earpiece) | STT (AMD) | STT (Fallback) | Status |
-|---------|---------------|-----------|----------------|--------|
-| Chrome (desktop) | ✅ | ✅ | ✅ | Full support |
-| Edge (desktop) | ✅ | ✅ | ✅ | Full support |
-| Firefox | ✅ | ✅ | ❌ | AMD mode only |
-| Safari | ✅ | ✅ | ⚠️ Limited | AMD mode recommended |
-| Mobile Chrome | ✅ | ✅ | ⚠️ Unreliable | AMD mode recommended |
-
-> **Note:** In AMD online mode, transcription is handled server-side by Whisper — the browser only streams audio bytes, removing the dependency on Web Speech API.
-
----
-
-## 🔒 Privacy
-
-- **Audio** is streamed to the AMD backend only during active sessions
-- **No audio is stored** — only the text transcript is kept in memory
-- **Session history** is stored client-side in localStorage only
-- **No analytics, no tracking, no third-party services**
-- Self-hosted on your own AMD Developer Cloud instance
-
----
-
-## 🧪 Development & Testing
-
-```bash
-# Run backend in development mode (with hot reload)
-cd backend
-uvicorn main:app --reload --port 8000
-
-# Test without AMD GPU (uses mock transcription + fallback scoring)
-# The backend auto-detects missing GPU and falls back gracefully
-
-# Test WebSocket connection
-wscat -c ws://localhost:8000/ws/test-session-123
-
-# Health check
-curl http://localhost:8000/health
-
-# Test segmentation agent
-curl -X POST http://localhost:8000/segment \
-  -H "Content-Type: application/json" \
-  -d '{"script": "Hello world. This is a test script.", "target_chunk_size": 5}'
+# Recording & Analytics
+RECORDINGS_PATH=./recordings
+ANALYTICS_ENABLED=true
 ```
 
 ---
 
-## 📈 Performance Benchmarks
+## 🎯 Hackathon Submission
 
-Measured on AMD Instinct MI300X via AMD Developer Cloud:
+### What's Ready
+- ✅ Full AI speech coaching pipeline
+- ✅ Real-time Q&A (5 providers)
+- ✅ Web search
+- ✅ Recording & analytics
+- ✅ Gradio interface (HF Space ready)
+- ✅ 9 specialized agents on AMD MI300X
 
-| Agent | Model | Avg Latency | P95 Latency |
-|-------|-------|-------------|-------------|
-| TranscriptionAgent | Whisper Large v3 | 480ms | 720ms |
-| ScoringAgent | Qwen2.5-7B | 330ms | 510ms |
-| CoachingAgent | Qwen2.5-7B | 295ms | 460ms |
-| SegmentationAgent | Qwen2.5-3B | 280ms | 420ms |
-| **Full pipeline** | **All agents** | **~1.1s** | **~1.7s** |
+### To Submit on lablab.ai
+1. **Project Title**: RasoSpeak v2 - AI Speech Coach
+2. **Demo URL**: Deploy as Hugging Face Space
+3. **GitHub Repo**: Push code
+4. **Video**: 2-3 minute demo
+5. **Cover Image**: Screenshot
 
----
-
-## 🏆 Hackathon Track
-
-**Event:** AMD Developer Hackathon × lablab.ai  
-**Track:** AI Agents & Agentic Workflows  
-
-**AMD Developer Cloud usage:**
-- AMD Instinct MI300X GPU for all model inference
-- ROCm 6.1 software stack
-- vLLM with ROCm backend for Qwen2.5 serving
-- faster-whisper with ROCm for Whisper Large v3
+### Build in Public Challenge
+- Post 2+ technical updates on X/LinkedIn
+- Tag @lablab and @AIatAMD
+- Publish technical walkthrough
 
 ---
 
-## 👥 Team
+## 📈 Performance (AMD MI300X)
 
-Built for the AMD Developer Hackathon × lablab.ai
+| Agent | Model | Avg Latency |
+|-------|-------|-------------|
+| TranscriptionAgent | Whisper Large v3 | 480ms |
+| ScoringAgent | Qwen2.5-7B | 330ms |
+| CoachingAgent | Qwen2.5-7B | 295ms |
+| QAAgent | Qwen2.5-7B | 280ms |
+| **Full pipeline** | **All agents** | **~1.1s** |
+
+---
+
+## 🏆 Prizes We're Targeting
+
+- 🤖 AI Agents & Agentic Workflows (1st/2nd/3rd)
+- 🤗 Hugging Face Special Prize (most likes)
+- 🐲 Qwen Special Reward (best Qwen use)
 
 ---
 
@@ -527,15 +427,15 @@ MIT License — see [LICENSE](LICENSE) for details.
 - [AMD Developer Cloud](https://www.amd.com/en/developer/resources/ml-and-ai/amd-developer-cloud.html) — MI300X GPU access
 - [ROCm](https://rocm.docs.amd.com/) — Open source GPU software stack
 - [vLLM](https://github.com/vllm-project/vllm) — High-throughput LLM serving
-- [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — CTranslate2-based Whisper
-- [Qwen2.5](https://huggingface.co/Qwen) — Alibaba's open-source LLM family
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — Whisper acceleration
+- [Qwen](https://huggingface.co/Qwen) — Alibaba's open-source LLM family
 - [lablab.ai](https://lablab.ai) — Hackathon platform
 
 ---
 
 <div align="center">
 
-**RasoSpeak v2 — Five agents. One voice in your ear. Zero visible teleprompters.**
+**RasoSpeak v2 — Nine agents. One voice in your ear. Zero visible teleprompters.**
 
 *Every great speaker deserves an invisible coach.*
 

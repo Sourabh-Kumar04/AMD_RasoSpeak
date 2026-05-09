@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   RasoSpeak v2 — State Management
+   RasoSpeak — State Management
    Shared state used by both UI layer and offline fallback.
    ═══════════════════════════════════════════════════ */
 

@@ -216,3 +216,25 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# HuggingFace Space
+hf_space_*.txt
+
+# RasoSpeak specific
+*.log
+logs/
+temp/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation helpers (keep README.md and ARCHITECTURE.md)
+DEMO*.md
+HACKATHON*.md
+*SUBMISSION*.md
+*DEPLOYMENT*.md
+POSTS*.md
+SOCIAL*.md
+GUIDE.md

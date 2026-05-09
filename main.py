@@ -1,9 +1,10 @@
 """
-RasoSpeak v2 — FastAPI Backend
+RasoSpeak — Your Secondary Brain & AI Partner
 AMD Developer Cloud | ROCm | vLLM | Whisper
 
-Entry point for the multi-agent speech coaching system.
-Handles WebSocket connections for real-time audio streaming.
+A multi-agent AI system that acts as your continuous AI companion
+with wake word activation, perfect memory, document import,
+phone notifications, and real-time speech coaching.
 """
 
 import asyncio
@@ -11,9 +12,11 @@ import json
 import logging
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any
 
 import uvicorn
+from pydantic import BaseModel
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -23,6 +26,15 @@ from agents.scoring_agent import ScoringAgent
 from agents.coaching_agent import CoachingAgent
 from agents.segmentation_agent import SegmentationAgent
 from agents.session_memory_agent import SessionMemoryAgent
+from agents.qa_agent import QAAgent
+from agents.search_agent import SearchAgent
+from agents.recording_agent import RecordingAgent
+from agents.analytics_agent import AnalyticsAgent
+from agents.shared_memory_agent import SharedMemoryAgent
+from agents.partner_agent import PartnerAgent
+from agents.wake_word_agent import WakeWordAgent
+from agents.document_agent import DocumentAgent
+from agents.notification_agent import NotificationAgent
 from models.schemas import (
     WSMessage, WSMessageType,
     SegmentRequest, AudioChunk,
@@ -46,6 +58,12 @@ async def lifespan(app: FastAPI):
     """Load all agents on startup, clean up on shutdown."""
     log.info("🚀 RasoSpeak v2 starting — loading agents on AMD MI300X...")
 
+    # FIRST: Shared Memory Agent (the brain) - must initialize first!
+    agents["shared_memory"] = SharedMemoryAgent()
+    await agents["shared_memory"].initialize()
+    log.info("✅ SharedMemoryAgent ready (UNIFIED BRAIN)")
+
+    # Core coaching agents
     agents["transcription"] = TranscriptionAgent()
     await agents["transcription"].initialize()
     log.info("✅ TranscriptionAgent ready (Whisper Large v3 on ROCm)")
@@ -66,7 +84,55 @@ async def lifespan(app: FastAPI):
     await agents["memory"].initialize()
     log.info("✅ SessionMemoryAgent ready")
 
-    log.info("🎙 All agents online — RasoSpeak v2 ready")
+    # Q&A Agent (multi-provider AI chat) - now connected to shared memory
+    agents["qa"] = QAAgent()
+    await agents["qa"].initialize()
+    agents["qa"].set_shared_memory(agents["shared_memory"])
+    log.info("✅ QAAgent ready (OpenAI/Anthropic/Google/xAI/Qwen)")
+
+    # Search Agent (web search) - connected to shared memory
+    agents["search"] = SearchAgent()
+    await agents["search"].initialize()
+    agents["search"].set_shared_memory(agents["shared_memory"])
+    log.info("✅ SearchAgent ready (Tavily/DuckDuckGo)")
+
+    # Recording Agent - connected to shared memory
+    agents["recording"] = RecordingAgent()
+    await agents["recording"].initialize()
+    agents["recording"].set_shared_memory(agents["shared_memory"])
+    log.info("✅ RecordingAgent ready")
+
+    # Analytics Agent - connected to shared memory
+    agents["analytics"] = AnalyticsAgent()
+    await agents["analytics"].initialize()
+    agents["analytics"].set_shared_memory(agents["shared_memory"])
+    log.info("✅ AnalyticsAgent ready")
+
+    # Partner Agent - Your AI Partner / Secondary Brain
+    agents["partner"] = PartnerAgent()
+    await agents["partner"].initialize()
+    agents["partner"].set_shared_memory(agents["shared_memory"])
+    agents["partner"].set_search_agent(agents["search"])
+    log.info("✅ PartnerAgent ready (YOUR AI PARTNER)")
+
+    # Wake Word Agent - Listen for "Hey Raso"
+    agents["wake_word"] = WakeWordAgent()
+    await agents["wake_word"].initialize()
+    log.info("✅ WakeWordAgent ready (listening for 'Hey Raso')")
+
+    # Document Agent - Import documents to memory
+    agents["documents"] = DocumentAgent()
+    await agents["documents"].initialize()
+    agents["documents"].set_shared_memory(agents["shared_memory"])
+    log.info("✅ DocumentAgent ready (import docs to memory)")
+
+    # Notification Agent - Phone notifications
+    agents["notifications"] = NotificationAgent()
+    await agents["notifications"].initialize()
+    agents["notifications"].set_shared_memory(agents["shared_memory"])
+    log.info("✅ NotificationAgent ready (phone notifications)")
+
+    log.info("🧠 All 14 agents online — RasoSpeak v2 ready as your AI PARTNER!")
     yield
 
     # Cleanup
@@ -78,8 +144,8 @@ async def lifespan(app: FastAPI):
 
 # ── APP ────────────────────────────────────────────────
 app = FastAPI(
-    title="RasoSpeak v2",
-    description="Agentic AI Speech Coach — AMD Developer Cloud",
+    title="RasoSpeak — Your Secondary Brain & AI Partner",
+    description="A multi-agent AI system with wake word activation, perfect memory, document import, phone notifications, and real-time speech coaching. Powered by AMD MI300X.",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -91,22 +157,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve the frontend
-app.mount("/static", StaticFiles(directory=".."), name="static")
+# Serve the frontend - check for static folder, fall back to root
+import os
+static_dir = "static" if os.path.exists("static") else "."
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+# ── ROOT ROUTE ─────────────────────────────────────────
+@app.get("/")
+async def root():
+    from fastapi.responses import FileResponse
+    return FileResponse("index.html")
 
 
 # ── REST ENDPOINTS ─────────────────────────────────────
 @app.get("/health")
 async def health():
+    # Check which agents are working
+    agent_status = {}
+    for name, agent in agents.items():
+        try:
+            # Try to get status from each agent
+            if hasattr(agent, 'is_listening'):
+                agent_status[name] = "ready" if not agent.is_listening() else "listening"
+            elif hasattr(agent, 'is_continuous_mode'):
+                agent_status[name] = "ready" if not agent.is_continuous_mode() else "active"
+            else:
+                agent_status[name] = "ready"
+        except Exception:
+            agent_status[name] = "error"
+
     return {
         "status": "ok",
-        "agents": list(agents.keys()),
+        "agents": agent_status,
+        "total_agents": len(agents),
         "amd_device": settings.AMD_DEVICE,
         "models": {
             "transcription": settings.WHISPER_MODEL,
             "scoring":       settings.SCORING_MODEL,
             "coaching":      settings.COACHING_MODEL,
             "segmentation":  settings.SEGMENTATION_MODEL,
+            "qa":            settings.QA_MODEL,
+        },
+        "providers": {
+            "openai": bool(settings.OPENAI_API_KEY),
+            "anthropic": bool(settings.ANTHROPIC_API_KEY),
+            "google": bool(settings.GOOGLE_API_KEY),
+            "xai": bool(settings.XAI_API_KEY),
+        },
+        "features": {
+            "wake_word": True,
+            "document_import": True,
+            "notifications": True,
+            "partner_mode": True,
+            "web_search": True,
         }
     }
 
@@ -142,6 +246,525 @@ async def get_session_insights(session_id: str):
         return {"error": "Session not found"}, 404
     insights = await agents["coaching"].generate_session_insights(session)
     return insights
+
+
+# ══════════════════════════════════════════════════════
+# NEW: Q&A ENDPOINTS — Real-time AI question answering
+# ══════════════════════════════════════════════════════
+
+class QARequest(BaseModel):
+    question: str
+    provider: str = None  # openai | anthropic | google | xai | qwen_local
+    context: str = None
+    stream_to_earpiece: bool = True
+
+
+@app.post("/qa")
+async def ask_question(req: QARequest, session_id: str = None):
+    """
+    Ask a question to AI and get answer (streams to earpiece).
+    Connect to OpenAI GPT, Anthropic Claude, Google Gemini, xAI Grok, or local Qwen.
+    """
+    result = await agents["qa"].ask(
+        question=req.question,
+        provider=req.provider,
+        context=req.context,
+        stream_to_earpiece=req.stream_to_earpiece,
+        session_id=session_id,
+    )
+    return result
+
+
+@app.get("/qa/providers")
+async def get_qa_providers():
+    """Get available AI providers."""
+    return {
+        "available": list(agents["qa"]._clients.keys()),
+        "default": agents["qa"]._default_provider,
+    }
+
+
+# ══════════════════════════════════════════════════════
+# NEW: SEARCH ENDPOINTS — Web search for real-time info
+# ══════════════════════════════════════════════════════
+
+class SearchRequest(BaseModel):
+    query: str
+    num_results: int = 5
+    include_summary: bool = True
+
+
+@app.post("/search")
+async def web_search(req: SearchRequest):
+    """
+    Search the web for real-time information.
+    Uses Tavily (if API key), SerpAPI, Brave Search, or DuckDuckGo (fallback).
+    """
+    result = await agents["search"].search(
+        query=req.query,
+        num_results=req.num_results,
+        include_summary=req.include_summary,
+    )
+    return result
+
+
+# ══════════════════════════════════════════════════════
+# NEW: RECORDING ENDPOINTS — Audio/conversation storage
+# ══════════════════════════════════════════════════════
+
+class StartRecordingRequest(BaseModel):
+    metadata: dict = {}
+
+
+@app.post("/recordings/{session_id}/start")
+async def start_recording(session_id: str, req: StartRecordingRequest = None):
+    """Start recording a session."""
+    metadata = req.metadata if req else {}
+    result = await agents["recording"].start_session_recording(session_id, metadata)
+
+    # Also start in memory agent
+    await agents["memory"].create_session(session_id)
+
+    return result
+
+
+@app.post("/recordings/{session_id}/stop")
+async def stop_recording(session_id: str):
+    """Stop recording a session."""
+    result = await agents["recording"].stop_session_recording(session_id)
+    return result
+
+
+class AudioRecordRequest(BaseModel):
+    audio_b64: str
+    audio_type: str = "user_speech"  # user_speech, coaching_tts, qa_response
+    metadata: dict = {}
+
+
+@app.post("/recordings/{session_id}/audio")
+async def record_audio(session_id: str, req: AudioRecordRequest):
+    """Record an audio chunk."""
+    result = await agents["recording"].record_audio(
+        session_id=session_id,
+        audio_b64=req.audio_b64,
+        audio_type=req.audio_type,
+        metadata=req.metadata,
+    )
+    return result
+
+
+@app.get("/recordings")
+async def list_recordings(limit: int = 50):
+    """List all recorded sessions."""
+    return await agents["recording"].get_all_recordings(limit)
+
+
+@app.get("/recordings/{session_id}")
+async def get_recording(session_id: str):
+    """Get recording data for a specific session."""
+    return await agents["recording"].get_session_record(session_id)
+
+
+# ══════════════════════════════════════════════════════
+# NEW: ANALYTICS ENDPOINTS — Session & user insights
+# ══════════════════════════════════════════════════════
+
+@app.get("/analytics/session/{session_id}")
+async def get_session_analytics(session_id: str):
+    """Get comprehensive analytics for a session."""
+    return await agents["analytics"].generate_session_analytics(session_id)
+
+
+@app.get("/analytics/user/{user_id}")
+async def get_user_analytics(user_id: str, days: int = 30):
+    """Get analytics across multiple sessions for a user."""
+    return await agents["analytics"].generate_user_analytics(user_id, days)
+
+
+@app.get("/analytics/improvement/{user_id}")
+async def get_improvement_report(user_id: str):
+    """Get speech improvement report over time."""
+    return await agents["analytics"].get_speech_improvement_report(user_id)
+
+
+@app.get("/analytics/qa-topics/{user_id}")
+async def get_qa_topics(user_id: str):
+    """Analyze what topics user asks about most."""
+    return await agents["analytics"].get_qa_topics_analysis(user_id)
+
+
+# ══════════════════════════════════════════════════════
+# SHARED MEMORY ENDPOINTS — Unified brain for all AIs
+# ══════════════════════════════════════════════════════
+
+class MemoryStoreRequest(BaseModel):
+    key: str
+    value: Any
+    category: str = "general"
+
+
+class RememberFactRequest(BaseModel):
+    fact: str
+    category: str = "general"
+
+
+@app.post("/memory/store")
+async def store_memory(req: MemoryStoreRequest):
+    """Store a memory item in shared memory."""
+    return await agents["shared_memory"].store(req.key, req.value, req.category)
+
+
+@app.get("/memory/recall")
+async def recall_memory(query: str = None, key: str = None, category: str = None, limit: int = 10):
+    """Recall memories based on query, key, or category."""
+    return await agents["shared_memory"].recall(query, key, category, limit)
+
+
+@app.post("/memory/fact")
+async def remember_fact(req: RememberFactRequest):
+    """Store a fact about the user."""
+    return await agents["shared_memory"].remember_user_fact(req.fact, req.category)
+
+
+@app.get("/memory/stats")
+async def get_memory_stats():
+    """Get shared memory statistics."""
+    return await agents["shared_memory"].get_memory_stats()
+
+
+@app.get("/memory/context")
+async def get_ai_context(ai_name: str = None):
+    """Get formatted context for AI prompts."""
+    return await agents["shared_memory"].get_context_for_ai(ai_name)
+
+
+class PreferenceRequest(BaseModel):
+    key: str
+    value: Any
+
+
+@app.post("/memory/preference")
+async def set_preference(req: PreferenceRequest):
+    """Set a user preference."""
+    return await agents["shared_memory"].set_user_preference(req.key, req.value)
+
+
+@app.get("/memory/preferences")
+async def get_preferences():
+    """Get user preferences."""
+    return await agents["shared_memory"].get_user_preferences()
+
+
+class WeakWordRequest(BaseModel):
+    word: str
+    context: str = None
+
+
+@app.post("/memory/weak-word")
+async def add_weak_word(req: WeakWordRequest, session_id: str = None):
+    """Add a word the user struggles with."""
+    return await agents["shared_memory"].add_weak_word(req.word, req.context, session_id)
+
+
+# ══════════════════════════════════════════════════════
+# PARTNER AGENT — Your AI Partner / Secondary Brain
+# ══════════════════════════════════════════════════════
+
+class PartnerAskRequest(BaseModel):
+    message: str
+    provider: str = None
+
+
+class ReminderRequest(BaseModel):
+    message: str
+    remind_at: str = None  # ISO timestamp or "in 1 hour"
+
+
+@app.post("/partner/start")
+async def start_partner_mode(session_id: str = None):
+    """Start continuous partner mode - partner is always listening."""
+    return await agents["partner"].start_continuous_mode(session_id)
+
+
+@app.post("/partner/stop")
+async def stop_partner_mode():
+    """Stop continuous partner mode."""
+    return await agents["partner"].stop_continuous_mode()
+
+
+@app.get("/partner/status")
+async def get_partner_status():
+    """Get partner mode status."""
+    current_provider = await agents["partner"].get_current_provider()
+
+    # Get preference info
+    prefs = await agents["shared_memory"].get_user_preferences()
+    default_provider = prefs.get("preferred_ai_provider", "qwen_local")
+    temp_provider = prefs.get("temporary_ai_provider")
+
+    return {
+        "continuous_mode": agents["partner"].is_continuous_mode(),
+        "current_provider": current_provider,
+        "default_provider": default_provider,
+        "temporary_provider": temp_provider,
+    }
+
+
+@app.post("/partner/provider")
+async def set_partner_provider(provider: str, temporary: bool = False):
+    """
+    Set the AI provider for the partner.
+
+    Examples:
+    - POST /partner/provider?provider=openai (permanent)
+    - POST /partner/provider?provider=google&temporary=true (one question)
+    """
+    if temporary:
+        await agents["shared_memory"].set_user_preference("temporary_ai_provider", provider)
+    else:
+        await agents["shared_memory"].set_user_preference("preferred_ai_provider", provider)
+        await agents["shared_memory"].set_user_preference("temporary_ai_provider", None)
+
+    provider_names = {
+        "openai": "ChatGPT",
+        "anthropic": "Claude",
+        "google": "Gemini",
+        "xai": "Grok",
+        "qwen_local": "Local Qwen",
+    }
+
+    return {
+        "provider": provider,
+        "display_name": provider_names.get(provider, provider),
+        "temporary": temporary,
+        "message": f"Switched to {provider_names.get(provider, provider)}" + (" for this question" if temporary else ""),
+    }
+
+
+@app.post("/partner/ask")
+async def ask_partner(req: PartnerAskRequest):
+    """
+    Ask your AI partner anything.
+    Uses past conversations + web search + knowledge.
+    """
+    return await agents["partner"].ask_partner(req.message, req.provider)
+
+
+@app.post("/partner/listen")
+async def partner_listen(user_input: str, audio_b64: str = None):
+    """
+    In continuous mode, let partner listen and remember.
+    """
+    return await agents["partner"].listen_and_remember(user_input, audio_b64)
+
+
+@app.get("/partner/query")
+async def query_past_conversations(query: str):
+    """
+    Query past conversations.
+    Example: "What did I say about AI?" "When did I talk about X?"
+    """
+    return await agents["partner"].query_past(query)
+
+
+@app.post("/partner/reminder")
+async def set_partner_reminder(req: ReminderRequest):
+    """Set a reminder."""
+    return await agents["partner"].set_reminder(req.message, req.remind_at)
+
+
+@app.get("/partner/reminders")
+async def get_partner_reminders():
+    """Get all reminders."""
+    return await agents["partner"].get_reminders()
+
+
+@app.delete("/partner/reminder/{reminder_id}")
+async def delete_partner_reminder(reminder_id: str):
+    """Delete a reminder."""
+    return await agents["partner"].delete_reminder(reminder_id)
+
+
+@app.get("/partner/summarize")
+async def summarize_partner_conversations(days: int = 7):
+    """Summarize conversations over past N days."""
+    return await agents["partner"].summarize_conversations(days)
+
+
+# ══════════════════════════════════════════════════════
+# WAKE WORD — "Hey Raso"
+# ══════════════════════════════════════════════════════
+
+class WakeAudioRequest(BaseModel):
+    audio_b64: str
+    transcript: str = None
+
+
+@app.post("/wake/start")
+async def start_wake_listening():
+    """Start listening for 'Hey Raso' wake word."""
+    return await agents["wake_word"].start_listening()
+
+
+@app.post("/wake/stop")
+async def stop_wake_listening():
+    """Stop wake word listening."""
+    return await agents["wake_word"].stop_listening()
+
+
+@app.get("/wake/status")
+async def get_wake_status():
+    """Get wake word listening status."""
+    return {
+        "listening": agents["wake_word"].is_listening(),
+        "wake_word": "Hey Raso",
+    }
+
+
+@app.post("/wake/process")
+async def process_wake_audio(req: WakeAudioRequest):
+    """Process audio for wake word detection."""
+    result = await agents["wake_word"].process_audio(req.audio_b64)
+
+    # Check for wake word in transcript if provided
+    if req.transcript:
+        from agents.wake_word_agent import check_for_wake_word, extract_command_after_wake
+
+        if check_for_wake_word(req.transcript):
+            # Wake word detected! Activate partner
+            activation = agents["wake_word"].activate_partner()
+
+            # Extract command after wake word
+            command = extract_command_after_wake(req.transcript)
+
+            return {
+                "wake_detected": True,
+                "activated": True,
+                "command": command,
+                **activation,
+            }
+
+    return result
+
+
+# ══════════════════════════════════════════════════════
+# DOCUMENT IMPORT — Import files to memory
+# ══════════════════════════════════════════════════════
+
+class ImportTextRequest(BaseModel):
+    content: str
+    title: str = None
+    tags: list = []
+    category: str = "note"
+
+
+class ImportURLRequest(BaseModel):
+    url: str
+    title: str = None
+    tags: list = []
+
+
+class ImportSnippetRequest(BaseModel):
+    content: str
+    label: str = None
+
+
+@app.post("/documents/text")
+async def import_text_document(req: ImportTextRequest):
+    """Import text content into memory."""
+    return await agents["documents"].import_text(
+        content=req.content,
+        title=req.title,
+        tags=req.tags,
+        category=req.category,
+    )
+
+
+@app.post("/documents/url")
+async def import_url_document(req: ImportURLRequest):
+    """Import content from a URL."""
+    return await agents["documents"].import_url(
+        url=req.url,
+        title=req.title,
+        tags=req.tags,
+    )
+
+
+@app.post("/documents/snippet")
+async def import_snippet(req: ImportSnippetRequest):
+    """Import a quick snippet/clipboard."""
+    return await agents["documents"].import_snippet(
+        content=req.content,
+        label=req.label,
+    )
+
+
+@app.get("/documents")
+async def list_documents(category: str = None, limit: int = 20):
+    """List all imported documents."""
+    return await agents["documents"].list_documents(category, limit)
+
+
+@app.get("/documents/{doc_id}")
+async def get_document(doc_id: str):
+    """Get a specific document."""
+    return await agents["documents"].get_document(doc_id)
+
+
+@app.delete("/documents/{doc_id}")
+async def delete_document(doc_id: str):
+    """Delete a document."""
+    return await agents["documents"].delete_document(doc_id)
+
+
+@app.get("/documents/search")
+async def search_documents(query: str, limit: int = 10):
+    """Search within imported documents."""
+    return await agents["documents"].search_documents(query, limit)
+
+
+# ══════════════════════════════════════════════════════
+# NOTIFICATIONS — Connect to phone
+# ══════════════════════════════════════════════════════
+
+class NotificationRequest(BaseModel):
+    title: str
+    message: str
+    priority: str = "normal"
+    category: str = "general"
+
+
+class RegisterDeviceRequest(BaseModel):
+    device_type: str  # browser, phone, telegram
+    endpoint: str
+    token: str = None
+
+
+@app.post("/notifications/send")
+async def send_notification(req: NotificationRequest):
+    """Send a notification."""
+    return await agents["notifications"].send_notification(
+        title=req.title,
+        message=req.message,
+        priority=req.priority,
+        category=req.category,
+    )
+
+
+@app.post("/notifications/register")
+async def register_device(req: RegisterDeviceRequest):
+    """Register a device for notifications."""
+    return await agents["notifications"].register_device(
+        device_type=req.device_type,
+        endpoint=req.endpoint,
+        token=req.token,
+    )
+
+
+@app.get("/notifications/history")
+async def get_notification_history(limit: int = 20):
+    """Get notification history."""
+    return await agents["notifications"].get_notification_history(limit)
 
 
 # ── WEBSOCKET — THE MAIN LOOP ──────────────────────────
@@ -205,6 +828,168 @@ async def websocket_session(websocket: WebSocket, session_id: str):
                 summary = await handle_session_end(session_id)
                 await send(websocket, WSMessageType.SESSION_SUMMARY, summary)
                 break
+
+            # ── QUESTION (Real-time AI Q&A) ──────────────
+            elif msg.type == WSMessageType.QUESTION:
+                question = msg.data.get("question", "")
+                provider = msg.data.get("provider")
+                context = msg.data.get("context")
+                session = await agents["memory"].get_session(session_id)
+                script_context = None
+                if session:
+                    # Include current script chunks as context
+                    chunks = session.get("chunk_records", {})
+                    if chunks:
+                        script_context = " ".join([
+                            r.get("expected", "") for r in chunks.values()
+                        ])
+
+                log.info(f"❓ Question: {question[:50]}... provider={provider}")
+
+                # Get answer from QAAgent
+                answer_result = await agents["qa"].ask(
+                    question=question,
+                    provider=provider,
+                    context=context or script_context,
+                    stream_to_earpiece=True,
+                    session_id=session_id,
+                )
+
+                # Send answer back to client (for TTS to earpiece)
+                await send(websocket, WSMessageType.ANSWER, {
+                    "question": question,
+                    "answer": answer_result["answer"],
+                    "provider": answer_result.get("provider", "unknown"),
+                    "stream_to_earpiece": True,
+                    "processing_ms": answer_result.get("processing_ms", 0),
+                })
+
+                # Also record in recording agent
+                await agents["recording"].record_qa_interaction(
+                    session_id=session_id,
+                    question=question,
+                    answer=answer_result["answer"],
+                    provider=answer_result.get("provider", "unknown"),
+                )
+
+                log.info(f"✅ Answer sent to client: {answer_result['answer'][:50]}...")
+
+            # ── SEARCH_QUERY (Web search) ────────────────
+            elif msg.type == WSMessageType.SEARCH_QUERY:
+                query = msg.data.get("query", "")
+                num_results = msg.data.get("num_results", 5)
+
+                log.info(f"🔍 Web search: {query[:50]}...")
+
+                # Perform search
+                search_result = await agents["search"].search(
+                    query=query,
+                    num_results=num_results,
+                    include_summary=True,
+                )
+
+                # Send results back to client
+                await send(websocket, WSMessageType.SEARCH_RESULTS, {
+                    "query": query,
+                    "results": search_result.get("results", []),
+                    "summary": search_result.get("summary", ""),
+                    "processing_ms": search_result.get("processing_ms", 0),
+                })
+
+                log.info(f"✅ Search complete: {len(search_result.get('results', []))} results")
+
+            # ── PARTNER_START ────────────────────────────────
+            elif msg.type == WSMessageType.PARTNER_START:
+                result = await agents["partner"].start_continuous_mode(session_id)
+                await send(websocket, WSMessageType.PARTNER_READY, {
+                    "status": "active",
+                    "session_id": session_id,
+                    "message": result.get("message", "Partner mode started"),
+                })
+                log.info(f"🎧 Partner mode started: {session_id}")
+
+            # ── PARTNER_STOP ────────────────────────────────
+            elif msg.type == WSMessageType.PARTNER_STOP:
+                result = await agents["partner"].stop_continuous_mode()
+                await send(websocket, WSMessageType.PARTNER_READY, {
+                    "status": "stopped",
+                    "message": result.get("message", "Partner mode stopped"),
+                })
+                log.info(f"⏹ Partner mode stopped: {session_id}")
+
+            # ── PARTNER_MESSAGE ─────────────────────────────
+            elif msg.type == WSMessageType.PARTNER_MESSAGE:
+                message = msg.data.get("message", "")
+                provider = msg.data.get("provider")
+
+                log.info(f"💬 Partner message: {message[:50]}...")
+
+                # Get response from partner
+                result = await agents["partner"].ask_partner(
+                    question=message,
+                    provider=provider,
+                )
+
+                # Send response back
+                await send(websocket, WSMessageType.PARTNER_RESPONSE, {
+                    "message": message,
+                    "response": result.get("answer", ""),
+                    "provider": result.get("provider", "unknown"),
+                    "processing_ms": result.get("processing_ms", 0),
+                })
+
+                # Also remember this conversation
+                await agents["partner"].listen_and_remember(
+                    user_input=message,
+                    timestamp=datetime.utcnow().isoformat()
+                )
+
+                log.info(f"✅ Partner response sent: {result.get('answer', '')[:50]}...")
+
+            # ── WAKE_DETECTED ───────────────────────────────
+            elif msg.type == WSMessageType.WAKE_DETECTED:
+                transcript = msg.data.get("transcript", "")
+                command = msg.data.get("command", "")
+
+                log.info(f"🔔 Wake word detected: {transcript[:50]}...")
+
+                # Activate partner
+                result = await agents["partner"].start_continuous_mode(session_id)
+
+                # If there's a command after wake word, process it
+                if command:
+                    await send(websocket, WSMessageType.PARTNER_READY, {
+                        "status": "active",
+                        "command": command,
+                        "message": "I'm here! Processing your request...",
+                    })
+
+                    # Process the command
+                    result = await agents["partner"].ask_partner(command)
+                    await send(websocket, WSMessageType.PARTNER_RESPONSE, {
+                        "response": result.get("answer", ""),
+                        "command": command,
+                    })
+
+            # ── IMPORT_DOCUMENT ────────────────────────────
+            elif msg.type == WSMessageType.IMPORT_DOCUMENT:
+                content = msg.data.get("content", "")
+                title = msg.data.get("title", "")
+                doc_type = msg.data.get("type", "note")  # note, url, snippet
+
+                log.info(f"📄 Import document: {title or 'Untitled'}")
+
+                if doc_type == "url":
+                    result = await agents["documents"].import_url(content)
+                elif doc_type == "snippet":
+                    result = await agents["documents"].import_snippet(content, title)
+                else:
+                    result = await agents["documents"].import_text(content, title)
+
+                await send(websocket, WSMessageType.SESSION_READY, {
+                    "message": f"Document imported: {result.get('title', 'Done')}",
+                    "document_id": result.get("document_id"),
+                })
 
     except WebSocketDisconnect:
         log.info(f"🔌 WebSocket disconnected: {session_id}")
