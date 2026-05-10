@@ -23,7 +23,7 @@ const S = {
   paused:   false,
   phase:    PHASE.IDLE,
 
-  // Offline speech (fallback when AMD backend unreachable)
+  // Offline speech (fallback when backend unreachable)
   rec:        null,
   synth:      window.speechSynthesis,
   voices:     [],
@@ -66,7 +66,7 @@ const S = {
   // History (loaded from localStorage)
   sessionHistory: [],
 
-  // AMD backend connection state
+  // Backend connection state
   backendMode: 'online',   // 'online' | 'offline'
   agentStatus: {
     transcription: 'unknown',

@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════
    RasoSpeak — Client-Side NLP (Offline Fallback)
-   Used ONLY when the AMD backend is unreachable.
-   In online mode, all NLP runs on AMD MI300X via vLLM.
+   Used ONLY when the backend is unreachable.
+   In online mode, all NLP runs on GPU via vLLM.
    ═══════════════════════════════════════════════════ */
 
 /* ── STOP WORDS ─────────────────────────────────────── */

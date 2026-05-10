@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════
    RasoSpeak — Frontend App
-   WebSocket client connecting to AMD Developer Cloud backend.
-   Agents run on MI300X GPU via ROCm + vLLM.
+   WebSocket client connecting to GPU Developer Cloud backend.
+   Agents run on GPU GPU via ROCm + vLLM.
    ═══════════════════════════════════════════════════ */
 
 // ── CONFIG ────────────────────────────────────────────
 const CONFIG = {
-  // Change this to your AMD Developer Cloud endpoint
+  // Change this to your GPU Developer Cloud endpoint
   WS_URL:   (location.protocol === 'https:' ? 'wss:' : 'ws:') +
             '//' + (location.hostname === 'localhost'
               ? 'localhost:8000'
@@ -51,7 +51,7 @@ It happens to all of us. Mid-sentence, the words just vanish completely.
 
 Today I am introducing a solution. It is called RasoSpeak. Your invisible AI speech coach.
 
-Here is how it works. RasoSpeak processes your script in advance using AI running on AMD hardware.
+Here is how it works. RasoSpeak processes your script in advance using AI running on GPU hardware.
 
 Then it plays each sentence quietly through your earpiece. You hear your line. You say it to the audience.
 
@@ -94,7 +94,7 @@ window.addEventListener('load', () => {
     if (map[e.key]) { e.preventDefault(); map[e.key](); }
   });
 
-  logCoach('sys', '🤖', 'RasoSpeak · Agents run on <strong>AMD MI300X via ROCm</strong> · Process a script then press ▶');
+  logCoach('sys', '🤖', 'RasoSpeak · Agents run on <strong>GPU GPU via ROCm</strong> · Process a script then press ▶');
 });
 
 // ── MODAL ─────────────────────────────────────────────
@@ -107,13 +107,13 @@ function closeModal() {
   }
 }
 
-// ── PROCESS SCRIPT (calls SegmentationAgent on AMD) ───
+// ── PROCESS SCRIPT (calls SegmentationAgent on GPU) ───
 async function processAndGo() {
   const raw = document.getElementById('script-ta')?.value.trim();
   if (!raw) { toast('⚠️ Enter a script first'); return; }
 
-  toast('⏳ Sending to SegmentationAgent on AMD MI300X…');
-  logCoach('sys', '✂️', 'Sending script to <strong>SegmentationAgent</strong> (Qwen2.5-3B on AMD ROCm)…');
+  toast('⏳ Sending to SegmentationAgent on GPU GPU…');
+  logCoach('sys', '✂️', 'Sending script to <strong>SegmentationAgent</strong> (Qwen2.5-3B on GPU ROCm)…');
 
   try {
     const resp = await fetch(CONFIG.REST_URL, {
@@ -140,9 +140,9 @@ async function processAndGo() {
     updateProgress();
 
     const ms = result.processing_ms;
-    toast(`✅ ${result.total_chunks} chunks · ~${result.estimated_duration_minutes} min · AMD: ${ms}ms`);
+    toast(`✅ ${result.total_chunks} chunks · ~${result.estimated_duration_minutes} min · GPU: ${ms}ms`);
     logCoach('ok', '✅',
-      `SegmentationAgent returned <strong>${result.total_chunks} chunks</strong> in <strong>${ms}ms</strong> on AMD MI300X`
+      `SegmentationAgent returned <strong>${result.total_chunks} chunks</strong> in <strong>${ms}ms</strong> on GPU GPU`
     );
 
   } catch (err) {
@@ -182,7 +182,7 @@ async function startSession() {
   S.segResults     = {};
   resetSessionMetrics();
 
-  // Connect WebSocket to AMD backend
+  // Connect WebSocket to GPU backend
   connectWebSocket();
 
   // Start mic + audio viz
@@ -195,7 +195,7 @@ async function startSession() {
   showEndBtn(true);
   showTimer(true);
 
-  logCoach('sys', '🚀', `Session <code>${APP.sessionId.slice(0, 8)}</code> connecting to AMD Developer Cloud…`);
+  logCoach('sys', '🚀', `Session <code>${APP.sessionId.slice(0, 8)}</code> connecting to GPU Developer Cloud…`);
 }
 
 function pauseSession() {
@@ -257,7 +257,7 @@ function connectWebSocket() {
 
   APP.ws.onopen = () => {
     _wsReconnectAttempts = 0;
-    logCoach('ok', '🔌', `Connected to AMD backend · Session <code>${APP.sessionId.slice(0, 8)}</code>`);
+    logCoach('ok', '🔌', `Connected to GPU backend · Session <code>${APP.sessionId.slice(0, 8)}</code>`);
     // Send session config
     APP.ws.send(JSON.stringify({
       type: 'SESSION_START',
@@ -313,22 +313,22 @@ function handleWSMessage(msg) {
 
   switch (type) {
     case 'SESSION_READY':
-      logCoach('ok', '✅', `AMD agents ready · ${data.message}`);
+      logCoach('ok', '✅', `GPU agents ready · ${data.message}`);
       setTimeout(() => doDeliver(), 600);
       break;
 
     case 'TRANSCRIPT':
-      // Real-time transcript from Whisper on AMD MI300X
+      // Real-time transcript from Whisper on GPU GPU
       updateLiveTx(data.text, '');
       if (data.is_final && data.text.trim().length > 2) {
         logCoach('listen', '🎙',
-          `Whisper: "<strong>${data.text.slice(0, 60)}</strong>" (conf: ${Math.round(data.confidence * 100)}%, ${data.processing_ms}ms on AMD)`
+          `Whisper: "<strong>${data.text.slice(0, 60)}</strong>" (conf: ${Math.round(data.confidence * 100)}%, ${data.processing_ms}ms on GPU)`
         );
       }
       break;
 
     case 'SCORE':
-      // Score from Qwen2.5 ScoringAgent on AMD
+      // Score from Qwen2.5 ScoringAgent on GPU
       S.segResults[data.chunk_index] = { score: data.overall / 100, status: data.passed ? 'ok' : 'warn' };
       APP.accSamples.push(data.overall);
       showCompareDetail({
@@ -340,17 +340,17 @@ function handleWSMessage(msg) {
       setM('acc', data.overall + '%');
       logCoach(data.passed ? 'ok' : 'warn',
         data.passed ? '✅' : '⚠️',
-        `ScoringAgent: <strong>${data.overall}%</strong> overall · ${data.feedback_brief} (${data.processing_ms}ms on AMD)`
+        `ScoringAgent: <strong>${data.overall}%</strong> overall · ${data.feedback_brief} (${data.processing_ms}ms on GPU)`
       );
       renderLiveChunkList();
       break;
 
     case 'COACHING':
-      // Correction from Qwen2.5 CoachingAgent on AMD
+      // Correction from Qwen2.5 CoachingAgent on GPU
       APP.corrections++;
       setM('corr', APP.corrections);
       logCoach('coach', '🎓',
-        `CoachingAgent: <strong>${data.strategy}</strong> · "${data.display_text}" (${data.processing_ms}ms on AMD)`
+        `CoachingAgent: <strong>${data.strategy}</strong> · "${data.display_text}" (${data.processing_ms}ms on GPU)`
       );
       // Speak correction through earpiece (TTS still runs in browser)
       if (data.tts_text && data.strategy !== 'replay') {
@@ -406,7 +406,7 @@ function doListen() {
   if (!APP.running || APP.paused) return;
   setPhase(PHASE.LISTEN);
   startRecording(); // Start sending audio to backend
-  logCoach('listen', '🎤', `Listening — audio streaming to AMD Whisper agent…`);
+  logCoach('listen', '🎤', `Listening — audio streaming to GPU Whisper agent…`);
 }
 
 function doAdvance() {
@@ -483,7 +483,7 @@ async function blobToBase64(blob) {
 
 // ── OFFLINE FALLBACK (if backend unreachable) ─────────
 function startOfflineSession() {
-  logCoach('warn', '⚠️', 'Running in <strong>offline mode</strong> (browser-only NLP, no AMD GPU)');
+  logCoach('warn', '⚠️', 'Running in <strong>offline mode</strong> (browser-only NLP, no GPU GPU)');
   // Import v1 coach loop
   if (typeof startRec === 'function') startRec();
   setTimeout(() => doDeliver(), 600);
@@ -587,8 +587,8 @@ function driveWaveform() {
   APP.rafId = requestAnimationFrame(driveWaveform);
   const buf = new Uint8Array(APP.analyser.frequencyBinCount);
   APP.analyser.getByteTimeDomainData(buf);
-  APP.waveformBars.forEach((bar, i) => {
-    const idx = Math.floor(i * (buf.length / APP.waveformBars.length));
+  S.waveformBars.forEach((bar, i) => {
+    const idx = Math.floor(i * (buf.length / S.waveformBars.length));
     const v   = buf[idx] ?? 128;
     bar.style.height = Math.max(3, ((v - 128) / 128) * 38 + 6) + 'px';
   });
@@ -666,7 +666,7 @@ function persistSession() {
     accuracy:    avgAcc,
     mode:        APP.mode,
     strict:      APP.strict,
-    backend:     'AMD MI300X (ROCm)',
+    backend:     'GPU GPU (ROCm)',
   };
   try {
     const hist = JSON.parse(localStorage.getItem('rs_history') || '[]');
@@ -751,7 +751,7 @@ function testWakeWord() {
 function selectProvider(provider) {
   currentProvider = provider;
   const providers = {
-    'qwen': '💻 Local Qwen via vLLM (AMD MI300X)',
+    'qwen': '💻 Local Qwen via vLLM (GPU GPU)',
     'openai': '🔵 OpenAI ChatGPT',
     'anthropic': '🟣 Anthropic Claude',
     'gemini': '🟢 Google Gemini'
@@ -803,17 +803,17 @@ async function askPartner() {
 
   // Add user message to conversation
   const userMsg = document.createElement('div');
-  userMsg.className = 'partner-msg partner-msg-user';
-  userMsg.innerHTML = `<span style="color:var(--text-primary);font-size:12px">${escHtml(message)}</span>`;
+  userMsg.className = 'bg-surface-block border border-yc rounded-lg p-3 text-body-sm shadow-sm ml-auto max-w-[80%] animate-fadeIn';
+  userMsg.innerHTML = `<div class="text-label-caps text-on-surface-variant mb-1 font-bold">You</div><div class="text-on-surface">${escHtml(message)}</div>`;
   messagesEl.appendChild(userMsg);
 
   // Clear input and show thinking
   input.value = '';
   const thinking = document.createElement('div');
-  thinking.className = 'partner-msg partner-msg-ai';
-  thinking.innerHTML = '<span style="color:var(--text-muted);font-size:12px">🤔 Thinking...</span>';
+  thinking.className = 'bg-surface-container-lowest border border-yc rounded-lg p-3 text-body-sm shadow-sm mr-auto max-w-[80%] animate-pulse';
+  thinking.innerHTML = '<div class="text-label-caps text-primary mb-1 font-bold italic">Partner</div><div class="text-on-surface-variant italic">Thinking...</div>';
   messagesEl.appendChild(thinking);
-  messagesEl.parentElement.scrollTop = messagesEl.parentElement.scrollHeight;
+  messagesEl.scrollTop = messagesEl.scrollHeight;
 
   try {
     const resp = await fetch('/partner/ask', {
@@ -827,16 +827,17 @@ async function askPartner() {
 
     if (resp.ok) {
       const data = await resp.json();
-      thinking.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">${data.answer || data.message || 'No response'}</span>`;
+      thinking.classList.remove('animate-pulse');
+      thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface leading-relaxed">${data.answer || data.message || 'No response'}</div>`;
     } else {
-      // Fallback response for demo
-      thinking.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">I received your message: "${message}". Connect to AMD backend for full AI responses.</span>`;
+      thinking.classList.remove('animate-pulse');
+      thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface">I received your message: "${message}". Connect to GPU backend for full AI responses.</div>`;
     }
   } catch (e) {
-    // Demo mode fallback
-    thinking.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">Demo mode: You asked "${message}". Backend connection required for AI responses.</span>`;
+    thinking.classList.remove('animate-pulse');
+    thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface">Demo mode: You asked "${message}". Backend connection required for AI responses.</div>`;
   }
-  messagesEl.parentElement.scrollTop = messagesEl.parentElement.scrollHeight;
+  messagesEl.scrollTop = messagesEl.scrollHeight;
 
   input.value = '';
 }
@@ -1085,15 +1086,15 @@ async function sendMessage() {
 
   // Add user message
   const userMsg = document.createElement('div');
-  userMsg.className = 'text-sm p-2 bg-white rounded border';
-  userMsg.textContent = text;
+  userMsg.className = 'bg-surface-block border border-yc rounded-lg p-3 text-body-sm shadow-sm ml-auto max-w-[80%] animate-fadeIn';
+  userMsg.innerHTML = `<div class="text-label-caps text-on-surface-variant mb-1 font-bold">You</div><div class="text-on-surface">${escHtml(text)}</div>`;
   messagesEl.appendChild(userMsg);
   input.value = '';
 
   // Show thinking
   const thinking = document.createElement('div');
-  thinking.className = 'text-sm p-2 text-gray-500';
-  thinking.textContent = 'Thinking...';
+  thinking.className = 'bg-surface-container-lowest border border-yc rounded-lg p-3 text-body-sm shadow-sm mr-auto max-w-[80%] animate-pulse';
+  thinking.innerHTML = '<div class="text-label-caps text-primary mb-1 font-bold italic">Partner</div><div class="text-on-surface-variant italic">Thinking...</div>';
   messagesEl.appendChild(thinking);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 
@@ -1104,15 +1105,13 @@ async function sendMessage() {
       body: JSON.stringify({ message: text })
     });
     const data = await resp.json();
-    thinking.remove();
+    thinking.classList.remove('animate-pulse');
 
-    const aiMsg = document.createElement('div');
-    aiMsg.className = 'text-sm p-2 bg-gray-100 rounded border';
-    aiMsg.textContent = data.response || data.error || 'No response';
-    messagesEl.appendChild(aiMsg);
+    thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface leading-relaxed">${data.response || data.error || 'No response'}</div>`;
     messagesEl.scrollTop = messagesEl.scrollHeight;
   } catch (err) {
-    thinking.textContent = 'Error: ' + err.message;
+    thinking.classList.remove('animate-pulse');
+    thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface text-error">Error: ${err.message}</div>`;
   }
 }
 
@@ -1124,21 +1123,27 @@ async function searchMemory() {
   const query = input.value.trim();
   if (!query) return;
 
-  resultsEl.innerHTML = '<p class="text-sm text-gray-500">Searching...</p>';
+  resultsEl.innerHTML = '<div class="md:col-span-full text-center py-10 animate-pulse text-on-surface-variant">🔍 Searching...</div>';
 
   try {
     const resp = await fetch(`/partner/query?query=${encodeURIComponent(query)}`);
     const data = await resp.json();
 
     if (data.results && data.results.length > 0) {
-      resultsEl.innerHTML = data.results.map(r =>
-        `<div class="p-2 bg-gray-50 rounded text-sm">${r.text || JSON.stringify(r)}</div>`
-      ).join('');
+      resultsEl.innerHTML = data.results.map(r => `
+        <div class="bg-surface-container-lowest border border-yc rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-primary text-sm">memory</span>
+            <span class="text-label-caps font-bold text-on-surface-variant">Semantic Node</span>
+          </div>
+          <div class="text-body-sm text-on-surface leading-relaxed">${escHtml(r.text || JSON.stringify(r))}</div>
+        </div>
+      `).join('');
     } else {
-      resultsEl.innerHTML = '<p class="text-sm text-gray-500">No results found</p>';
+      resultsEl.innerHTML = '<div class="md:col-span-full py-20 text-center text-on-surface-variant border border-yc border-dashed rounded-lg">No nodes matched the query heuristic.</div>';
     }
   } catch (err) {
-    resultsEl.innerHTML = '<p class="text-sm text-red-500">Error: ' + err.message + '</p>';
+    resultsEl.innerHTML = `<div class="md:col-span-full py-20 text-center text-error border border-yc border-dashed rounded-lg">Search protocol failed: ${err.message}</div>`;
   }
 }
 

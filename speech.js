@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════
    RasoSpeak — Offline Speech Layer
    Browser TTS (always used for earpiece delivery)
-   Browser STT (fallback when AMD Whisper unavailable)
+   Browser STT (fallback when GPU Whisper unavailable)
    Web Audio API (always used for waveform viz)
    ═══════════════════════════════════════════════════ */
 
@@ -259,32 +259,40 @@ function trackWPM(wordCount) {
 const WAVE_COUNT = 32;
 
 function buildWaveform() {
-  const wrap = document.getElementById('waveform-wrap');
-  if (!wrap) return;
-  wrap.innerHTML   = '';
-  S.waveformBars   = [];
+  const stage = document.getElementById('current-chunk');
+  if (!stage) return;
+  
+  // Cleanup existing
+  const old = document.getElementById('waveform-wrap');
+  if (old) old.remove();
+
+  const wrap = document.createElement('div');
+  wrap.id = 'waveform-wrap';
+  wrap.className = "absolute bottom-10 left-1/2 -translate-y-1/2 flex items-center gap-1 h-12 pointer-events-none";
+  
+  S.waveformBars = [];
   for (let i = 0; i < WAVE_COUNT; i++) {
     const bar = document.createElement('div');
-    bar.className = 'wav-bar';
-    bar.style.animationDelay    = `${(i % 8) * 0.12}s`;
-    bar.style.animationDuration = `${1.8 + (i % 4) * 0.3}s`;
+    bar.className = "w-1.5 bg-primary rounded-full transition-all duration-75 opacity-30 wav-bar";
+    bar.style.height = "4px";
     wrap.appendChild(bar);
     S.waveformBars.push(bar);
   }
+  stage.parentElement.appendChild(wrap);
 }
 
 function animateWaveformForPhase(ph) {
   const COLORS = {
-    [PHASE.DELIVER]: 'var(--primary)',
-    [PHASE.LISTEN]:  'var(--secondary)',
-    [PHASE.COMPARE]: 'var(--accent)',
-    [PHASE.CORRECT]: 'var(--danger)',
+    [PHASE.DELIVER]: '#a33e00', // primary
+    [PHASE.LISTEN]:  '#5d5f5a', // secondary
+    [PHASE.COMPARE]: '#ff6600', // primary-container (accent)
+    [PHASE.CORRECT]: '#ba1a1a', // error
   };
-  const color  = COLORS[ph] || 'var(--surface-4)';
+  const color  = COLORS[ph] || '#E0E0E0';
   const active = ph !== PHASE.IDLE;
   const mode   = ph === PHASE.LISTEN ? 'listening' : ph === PHASE.DELIVER ? 'delivering' : '';
   S.waveformBars.forEach(b => {
-    b.style.background = active ? color : 'var(--surface-4)';
+    b.style.background = active ? color : '#E0E0E0';
     b.style.boxShadow  = active ? `0 0 5px ${color}50` : 'none';
     b.className        = 'wav-bar' + (mode ? ` ${mode}` : '');
   });
@@ -292,7 +300,7 @@ function animateWaveformForPhase(ph) {
 
 function resetWaveform() {
   S.waveformBars.forEach(b => {
-    b.style.background = 'var(--surface-4)';
+    b.style.background = '#E0E0E0';
     b.style.boxShadow  = 'none';
     b.style.height     = '4px';
     b.className        = 'wav-bar';
