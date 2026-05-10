@@ -507,7 +507,7 @@ async def add_weak_word(req: WeakWordRequest, session_id: str = None):
 
 
 # ══════════════════════════════════════════════════════
-# PARTNER AGENT — Your AI Partner / Secondary Brain
+# AI PARTNER — Your Secondary Brain / Conversational AI
 # ══════════════════════════════════════════════════════
 
 class PartnerAskRequest(BaseModel):
@@ -520,21 +520,21 @@ class ReminderRequest(BaseModel):
     remind_at: str | None  # ISO timestamp or "in 1 hour"
 
 
-@app.post("/partner/start")
+@app.post("/ai-partner/start")
 async def start_partner_mode(session_id: str = None):
-    """Start continuous partner mode - partner is always listening."""
+    """Start continuous AI partner mode - always listening for your commands."""
     return await agents["partner"].start_continuous_mode(session_id)
 
 
-@app.post("/partner/stop")
+@app.post("/ai-partner/stop")
 async def stop_partner_mode():
-    """Stop continuous partner mode."""
+    """Stop continuous AI partner mode."""
     return await agents["partner"].stop_continuous_mode()
 
 
-@app.get("/partner/status")
+@app.get("/ai-partner/status")
 async def get_partner_status():
-    """Get partner mode status."""
+    """Get AI partner status."""
     current_provider = await agents["partner"].get_current_provider()
 
     # Get preference info
@@ -550,14 +550,14 @@ async def get_partner_status():
     }
 
 
-@app.post("/partner/provider")
+@app.post("/ai-partner/provider")
 async def set_partner_provider(provider: str, temporary: bool = False):
     """
     Set the AI provider for the partner.
 
     Examples:
-    - POST /partner/provider?provider=openai (permanent)
-    - POST /partner/provider?provider=google&temporary=true (one question)
+    - POST /ai-partner/provider?provider=openai (permanent)
+    - POST /ai-partner/provider?provider=google&temporary=true (one question)
     """
     if temporary:
         await agents["shared_memory"].set_user_preference("temporary_ai_provider", provider)
@@ -581,7 +581,7 @@ async def set_partner_provider(provider: str, temporary: bool = False):
     }
 
 
-@app.post("/partner/ask")
+@app.post("/ai-partner/ask")
 async def ask_partner(req: PartnerAskRequest):
     """
     Ask your AI partner anything.
@@ -590,7 +590,7 @@ async def ask_partner(req: PartnerAskRequest):
     return await agents["partner"].ask_partner(req.message, req.provider)
 
 
-@app.post("/partner/listen")
+@app.post("/ai-partner/listen")
 async def partner_listen(user_input: str, audio_b64: str = None):
     """
     In continuous mode, let partner listen and remember.
@@ -598,7 +598,7 @@ async def partner_listen(user_input: str, audio_b64: str = None):
     return await agents["partner"].listen_and_remember(user_input, audio_b64)
 
 
-@app.get("/partner/query")
+@app.get("/ai-partner/query")
 async def query_past_conversations(query: str):
     """
     Query past conversations.
@@ -607,32 +607,32 @@ async def query_past_conversations(query: str):
     return await agents["partner"].query_past(query)
 
 
-@app.post("/partner/reminder")
+@app.post("/ai-partner/reminder")
 async def set_partner_reminder(req: ReminderRequest):
     """Set a reminder."""
     return await agents["partner"].set_reminder(req.message, req.remind_at)
 
 
-@app.get("/partner/reminders")
+@app.get("/ai-partner/reminders")
 async def get_partner_reminders():
     """Get all reminders."""
     return await agents["partner"].get_reminders()
 
 
-@app.delete("/partner/reminder/{reminder_id}")
+@app.delete("/ai-partner/reminder/{reminder_id}")
 async def delete_partner_reminder(reminder_id: str):
     """Delete a reminder."""
     return await agents["partner"].delete_reminder(reminder_id)
 
 
-@app.get("/partner/summarize")
+@app.get("/ai-partner/summarize")
 async def summarize_partner_conversations(days: int = 7):
     """Summarize conversations over past N days."""
     return await agents["partner"].summarize_conversations(days)
 
 
 # ══════════════════════════════════════════════════════
-# WAKE WORD — "Hey Raso"
+# VOICE ACTIVATION — "Hey Raso" Wake Word Detection
 # ══════════════════════════════════════════════════════
 
 class WakeAudioRequest(BaseModel):
@@ -640,19 +640,19 @@ class WakeAudioRequest(BaseModel):
     transcript: str = None
 
 
-@app.post("/wake/start")
+@app.post("/voice/start")
 async def start_wake_listening():
     """Start listening for 'Hey Raso' wake word."""
     return await agents["wake_word"].start_listening()
 
 
-@app.post("/wake/stop")
+@app.post("/voice/stop")
 async def stop_wake_listening():
     """Stop wake word listening."""
     return await agents["wake_word"].stop_listening()
 
 
-@app.get("/wake/status")
+@app.get("/voice/status")
 async def get_wake_status():
     """Get wake word listening status."""
     return {
@@ -661,7 +661,7 @@ async def get_wake_status():
     }
 
 
-@app.post("/wake/process")
+@app.post("/voice/process")
 async def process_wake_audio(req: WakeAudioRequest):
     """Process audio for wake word detection."""
     result = await agents["wake_word"].process_audio(req.audio_b64)
@@ -697,7 +697,7 @@ class WakeAskRequest(BaseModel):
     audio_b64: str = None
 
 
-@app.post("/wake/ask")
+@app.post("/voice/ask")
 async def wake_word_answer(req: WakeAskRequest):
     """
     Complete flow: "Hey Raso, tell me what is AMD"
@@ -758,13 +758,13 @@ async def wake_word_answer(req: WakeAskRequest):
     }
 
 
-@app.post("/partner/wake")
+@app.post("/ai-partner/wake")
 async def partner_wake_request(message: str):
     """
     Alternative endpoint for "Hey Raso" style queries via REST API.
 
     Usage:
-        POST /partner/wake
+        POST /ai-partner/wake
         Body: "Hey Raso, tell me what is AMD"
     """
     from agents.wake_word_agent import check_for_wake_word, extract_command_after_wake

@@ -754,7 +754,7 @@ function testWakeWord() {
   const testPhrase = testPhrases[Math.floor(Math.random() * testPhrases.length)];
   toast(`🧪 Testing: "${testPhrase}"`);
 
-  fetch('/partner/wake', {
+  fetch('/ai-partner/wake', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(testPhrase)
@@ -856,7 +856,7 @@ async function askPartner() {
   messagesEl.scrollTop = messagesEl.scrollHeight;
 
   try {
-    const resp = await fetch('/partner/ask', {
+    const resp = await fetch('/ai-partner/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -895,7 +895,7 @@ async function queryMemory() {
   resultsEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px">🔍 Searching memory...</span>';
 
   try {
-    const resp = await fetch(`/partner/query?query=${encodeURIComponent(query)}`);
+    const resp = await fetch(`/ai-partner/query?query=${encodeURIComponent(query)}`);
     if (resp.ok) {
       const data = await resp.json();
       resultsEl.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">${data.summary || data.message || 'No memories found'}</span>`;
@@ -981,7 +981,7 @@ async function setReminder() {
   }
 
   try {
-    const resp = await fetch('/partner/reminder', {
+    const resp = await fetch('/ai-partner/reminder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1110,7 +1110,7 @@ async function sendMessage() {
     messagesEl.appendChild(thinking);
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
-    fetch('/wake/ask', {
+    fetch('/voice/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript: text })
@@ -1167,7 +1167,7 @@ async function sendMessage() {
       }
 
       // 2. Ask AI to summarize
-      const aiResp = await fetch('/partner/ask', {
+      const aiResp = await fetch('/ai-partner/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1221,7 +1221,7 @@ async function sendMessage() {
 
         // 2. Get AI summary
         let summary = `Source: ${url}\n\n${content.slice(0, 2000)}`;
-        const aiResp = await fetch('/partner/ask', {
+        const aiResp = await fetch('/ai-partner/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1260,7 +1260,7 @@ async function sendMessage() {
   } else {
     // Normal AI chat - AI decides if important enough to save to memory
     try {
-      const resp = await fetch('/partner/ask', {
+      const resp = await fetch('/ai-partner/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, provider: provider })
@@ -1274,7 +1274,7 @@ async function sendMessage() {
 
       // Ask AI if this is important enough to save to memory
       try {
-        const decideResp = await fetch('/partner/ask', {
+        const decideResp = await fetch('/ai-partner/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1328,7 +1328,7 @@ async function searchMemory() {
   resultsEl.innerHTML = '<div class="md:col-span-full text-center py-10 animate-pulse text-on-surface-variant">🔍 Searching...</div>';
 
   try {
-    const resp = await fetch(`/partner/query?query=${encodeURIComponent(query)}`);
+    const resp = await fetch(`/ai-partner/query?query=${encodeURIComponent(query)}`);
     const data = await resp.json();
 
     if (data.results && data.results.length > 0) {
@@ -1528,7 +1528,7 @@ async function loadMemoryStats() {
 
 async function loadWakeStatus() {
   // Load wake word status
-  const resp = await fetch('/wake/status');
+  const resp = await fetch('/voice/status');
   if (resp.ok) {
     return await resp.json();
   }
@@ -1542,7 +1542,7 @@ async function loadReminders() {
   listEl.innerHTML = '<div class="text-body-sm text-primary animate-pulse">Loading...</div>';
 
   try {
-    const resp = await fetch('/partner/reminders');
+    const resp = await fetch('/ai-partner/reminders');
     if (resp.ok) {
       const data = await resp.json();
       const reminders = data.reminders || [];
@@ -1570,7 +1570,7 @@ async function loadReminders() {
 
 async function deleteReminder(id) {
   try {
-    await fetch(`/partner/reminder/${id}`, { method: 'DELETE' });
+    await fetch(`/ai-partner/reminder/${id}`, { method: 'DELETE' });
     loadReminders();
     toast('Reminder deleted');
   } catch (e) {
@@ -1733,7 +1733,7 @@ async function addReminder() {
   }
 
   try {
-    const resp = await fetch('/partner/reminder', {
+    const resp = await fetch('/ai-partner/reminder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: message, remind_at: 'later' })
@@ -1780,7 +1780,7 @@ async function startVoicePartner() {
   if (statusEl) statusEl.textContent = 'Listening...';
 
   try {
-    const resp = await fetch('/partner/start', { method: 'POST' });
+    const resp = await fetch('/ai-partner/start', { method: 'POST' });
     if (resp.ok) {
       toast('🎙️ Voice partner started');
       startRecording();
@@ -1797,7 +1797,7 @@ async function stopVoicePartner() {
   if (statusEl) statusEl.textContent = 'Stopped';
 
   try {
-    const resp = await fetch('/partner/stop', { method: 'POST' });
+    const resp = await fetch('/ai-partner/stop', { method: 'POST' });
     if (resp.ok) {
       toast('Voice partner stopped');
       stopRecording();
@@ -1809,7 +1809,7 @@ async function stopVoicePartner() {
 
 async function summarizeConversation() {
   try {
-    const resp = await fetch('/partner/summarize');
+    const resp = await fetch('/ai-partner/summarize');
     if (resp.ok) {
       const data = await resp.json();
       toast(`📝 Summary: ${data.summary?.slice(0, 100) || 'No conversation to summarize'}`);
@@ -2316,7 +2316,7 @@ async function processWakeWord() {
   if (resultEl) resultEl.innerHTML = '<span class="text-primary animate-pulse">Processing audio...</span>';
 
   try {
-    const resp = await fetch('/wake/process', { method: 'POST' });
+    const resp = await fetch('/voice/process', { method: 'POST' });
     if (resp.ok) {
       const data = await resp.json();
       if (resultEl) resultEl.innerHTML = `<span class="text-secondary">Wake word detected: ${data.detected || false}</span>`;
@@ -2333,7 +2333,7 @@ async function startWakeDetection() {
   if (resultEl) resultEl.innerHTML = '<span class="text-primary animate-pulse">Listening for "Hey Raso"...</span>';
 
   try {
-    const resp = await fetch('/wake/start', { method: 'POST' });
+    const resp = await fetch('/voice/start', { method: 'POST' });
     if (resp.ok) {
       toast('Wake detection started');
       startAudio();
@@ -2428,7 +2428,7 @@ function setProvider(provider) {
   if (statusEl) statusEl.textContent = `Current: ${labels[provider] || provider}`;
 
   try {
-    fetch('/partner/provider', {
+    fetch('/ai-partner/provider', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider: provider })
@@ -2448,7 +2448,7 @@ async function checkPartnerStatus() {
   displayEl.innerHTML = '<span class="text-primary animate-pulse">Checking...</span>';
 
   try {
-    const resp = await fetch('/partner/status');
+    const resp = await fetch('/ai-partner/status');
     if (resp.ok) {
       const data = await resp.json();
       displayEl.innerHTML = `
