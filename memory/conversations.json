@@ -1,0 +1,26 @@
+[
+  {
+    "key": "conv_1778430949",
+    "value": {
+      "user": "Hello Raso, who are you?",
+      "ai": "I'm here to help! Currently, I'm having trouble connecting to the AI. Please try again in a moment.",
+      "provider": "partner",
+      "context": "continuous_partner_mode",
+      "timestamp": "2026-05-10T16:35:49.293308"
+    },
+    "category": "conversation",
+    "timestamp": "2026-05-10T16:35:49.293320"
+  },
+  {
+    "key": "conv_1778431943",
+    "value": {
+      "user": "test",
+      "ai": "I'm here to help! Currently, I'm having trouble connecting to the AI. Please try again in a moment.",
+      "provider": "partner",
+      "context": "continuous_partner_mode",
+      "timestamp": "2026-05-10T16:52:23.549438"
+    },
+    "category": "conversation",
+    "timestamp": "2026-05-10T16:52:23.549450"
+  }
+]

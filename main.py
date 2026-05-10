@@ -821,7 +821,7 @@ class ImportSnippetRequest(BaseModel):
 @app.post("/documents/text")
 async def import_text_document(req: ImportTextRequest):
     """Import text content into memory."""
-    return await agents["documents"].import_text(
+    return await agents["document"].import_text(
         content=req.content,
         title=req.title,
         tags=req.tags,
@@ -832,7 +832,7 @@ async def import_text_document(req: ImportTextRequest):
 @app.post("/documents/url")
 async def import_url_document(req: ImportURLRequest):
     """Import content from a URL."""
-    return await agents["documents"].import_url(
+    return await agents["document"].import_url(
         url=req.url,
         title=req.title,
         tags=req.tags,
@@ -842,7 +842,7 @@ async def import_url_document(req: ImportURLRequest):
 @app.post("/documents/snippet")
 async def import_snippet(req: ImportSnippetRequest):
     """Import a quick snippet/clipboard."""
-    return await agents["documents"].import_snippet(
+    return await agents["document"].import_snippet(
         content=req.content,
         label=req.label,
     )
@@ -851,25 +851,25 @@ async def import_snippet(req: ImportSnippetRequest):
 @app.get("/documents")
 async def list_documents(category: str = None, limit: int = 20):
     """List all imported documents."""
-    return await agents["documents"].list_documents(category, limit)
+    return await agents["document"].list_documents(category, limit)
 
 
 @app.get("/documents/{doc_id}")
 async def get_document(doc_id: str):
     """Get a specific document."""
-    return await agents["documents"].get_document(doc_id)
+    return await agents["document"].get_document(doc_id)
 
 
 @app.delete("/documents/{doc_id}")
 async def delete_document(doc_id: str):
     """Delete a document."""
-    return await agents["documents"].delete_document(doc_id)
+    return await agents["document"].delete_document(doc_id)
 
 
 @app.get("/documents/search")
 async def search_documents(query: str, limit: int = 10):
     """Search within imported documents."""
-    return await agents["documents"].search_documents(query, limit)
+    return await agents["document"].search_documents(query, limit)
 
 
 @app.post("/documents/upload")
@@ -877,7 +877,7 @@ async def upload_document(file: UploadFile = File(...), title: str = "Untitled",
     """Upload a document file."""
     content = await file.read()
     content_text = content.decode("utf-8", errors="ignore")
-    return await agents["documents"].add_document(
+    return await agents["document"].add_document(
         title=title,
         content=content_text,
         doc_type=file.content_type or "text/plain",
@@ -1197,11 +1197,11 @@ async def websocket_session(websocket: WebSocket, session_id: str):
                 log.info(f"📄 Import document: {title or 'Untitled'}")
 
                 if doc_type == "url":
-                    result = await agents["documents"].import_url(content)
+                    result = await agents["document"].import_url(content)
                 elif doc_type == "snippet":
-                    result = await agents["documents"].import_snippet(content, title)
+                    result = await agents["document"].import_snippet(content, title)
                 else:
-                    result = await agents["documents"].import_text(content, title)
+                    result = await agents["document"].import_text(content, title)
 
                 await send(websocket, WSMessageType.SESSION_READY, {
                     "message": f"Document imported: {result.get('title', 'Done')}",
