@@ -4,6 +4,7 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>RasoSpeak — Your AI Partner</title>
+  <link rel="icon" type="image/png" href="logo.png"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=Inter:wght@400;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -116,8 +117,8 @@
 <!-- NavigationDrawer (Web) -->
 <nav class="hidden md:flex flex-col gap-unit p-4 bg-surface-container-low h-full w-64 border-r border-outline-variant shrink-0">
   <div class="mb-8">
-    <h2 class="text-headline-md font-headline-md text-primary">RasoSpeak</h2>
-    <p class="text-label-caps text-on-surface-variant">Secondary Brain</p>
+    <img src="logo.png" alt="RasoSpeak Logo" class="h-14 w-auto rounded-lg">
+    <p class="text-label-caps text-on-surface-variant mt-2">Secondary Brain</p>
   </div>
   <div class="flex flex-col gap-2">
     <a id="nav-live" onclick="switchView('live')" class="flex items-center gap-3 px-3 py-2 text-secondary hover:bg-surface-container-high transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
@@ -155,7 +156,7 @@
       <button class="md:hidden p-2 text-secondary hover:bg-surface-variant rounded-full" onclick="toggleSidebar()">
         <span class="material-symbols-outlined">menu</span>
       </button>
-      <span class="material-symbols-outlined text-primary">token</span>
+      <img src="logo.png" alt="Logo" class="h-8 w-8 rounded-md">
       <div class="flex flex-col">
         <h1 class="text-headline-sm font-headline-sm font-bold text-primary-container" id="page-title">Command Center</h1>
       </div>
@@ -322,21 +323,57 @@
 
       <!-- Documents View -->
       <div id="view-docs" class="view space-y-6">
-        <div class="max-w-3xl mx-auto space-y-6">
-          <div class="bg-surface-container-lowest border border-yc rounded-lg p-6">
-            <h3 class="text-headline-sm mb-4">Ingest Data</h3>
-            <div class="space-y-4">
-              <div>
-                <label class="text-label-caps text-on-surface-variant mb-2 block">Source URL</label>
+        <div class="max-w-4xl mx-auto space-y-8">
+          <!-- Ingest -->
+          <div class="bg-surface-container-lowest border border-yc rounded-lg p-6 shadow-sm">
+            <h3 class="text-headline-sm mb-4">Ingest Data Engram</h3>
+            <div class="grid md:grid-cols-2 gap-6">
+              <div class="space-y-4">
+                <label class="text-label-caps text-on-surface-variant block">Semantic URI</label>
                 <div class="flex gap-2">
-                  <input type="text" id="doc-url" class="flex-1 bg-surface-container-lowest border border-outline-variant rounded px-3 py-2 text-body-md focus:border-primary-container outline-none" placeholder="https://...">
-                  <button onclick="importUrl()" class="bg-primary text-on-primary px-4 py-2 rounded font-bold hover:opacity-90">Import</button>
+                  <input type="text" id="doc-url" class="flex-1 bg-surface-container-low border border-yc rounded px-3 py-2 text-body-sm focus:border-primary-container outline-none" placeholder="https://external.knowledge/node">
+                  <button onclick="importUrl()" class="bg-primary text-on-primary px-4 py-2 rounded font-bold hover:opacity-90">Ingest</button>
                 </div>
               </div>
-              <div>
-                <label class="text-label-caps text-on-surface-variant mb-2 block">Direct Text Injection</label>
-                <textarea id="doc-text" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-3 text-body-md focus:border-primary-container outline-none h-40 resize-none" placeholder="Paste knowledge here..."></textarea>
-                <button onclick="importText()" class="mt-2 bg-surface-container border border-outline-variant px-4 py-2 rounded text-label-caps font-bold hover:bg-surface-container-high transition-colors">Commit to Memory</button>
+              <div class="space-y-4">
+                <label class="text-label-caps text-on-surface-variant block">Direct Memory Injection</label>
+                <textarea id="doc-text" class="w-full bg-surface-container-low border border-yc rounded p-3 text-body-sm focus:border-primary-container outline-none h-32 resize-none" placeholder="Paste raw knowledge strings..."></textarea>
+                <button onclick="importText()" class="w-full bg-surface-block border border-yc py-2 rounded text-label-caps font-bold hover:bg-surface-container-high transition-colors">Commit to GPU Memory</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Library -->
+          <div>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-label-caps text-on-surface-variant font-bold">Active Knowledge Base</h3>
+                <span class="text-[10px] text-on-surface-variant opacity-50">3 NODES PERSISTED</span>
+            </div>
+            <div id="knowledge-dump" class="grid md:grid-cols-3 gap-4">
+              <!-- Sample Nodes -->
+              <div class="bg-surface-block border border-yc p-4 rounded hover:shadow-md transition-shadow cursor-pointer group">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="material-symbols-outlined text-primary text-sm">article</span>
+                    <span class="text-[9px] font-mono text-on-surface-variant opacity-50">#DOC_082</span>
+                </div>
+                <h4 class="text-body-sm font-bold text-on-surface mb-1 group-hover:text-primary">Startup Pitch Deck.pdf</h4>
+                <p class="text-[11px] text-on-surface-variant leading-tight line-clamp-2">Key metrics for YC W24 batch including growth, retention, and burn rates...</p>
+              </div>
+              <div class="bg-surface-block border border-yc p-4 rounded hover:shadow-md transition-shadow cursor-pointer group">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="material-symbols-outlined text-primary text-sm">database</span>
+                    <span class="text-[9px] font-mono text-on-surface-variant opacity-50">#MEM_104</span>
+                </div>
+                <h4 class="text-body-sm font-bold text-on-surface mb-1 group-hover:text-primary">Customer Interview Transcripts</h4>
+                <p class="text-[11px] text-on-surface-variant leading-tight line-clamp-2">Aggregated feedback from early adopters regarding the low-latency earpiece delivery...</p>
+              </div>
+              <div class="bg-surface-block border border-yc p-4 rounded hover:shadow-md transition-shadow cursor-pointer group">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="material-symbols-outlined text-primary text-sm">link</span>
+                    <span class="text-[9px] font-mono text-on-surface-variant opacity-50">#URL_019</span>
+                </div>
+                <h4 class="text-body-sm font-bold text-on-surface mb-1 group-hover:text-primary">Competitor Analysis Matrix</h4>
+                <p class="text-[11px] text-on-surface-variant leading-tight line-clamp-2">Comparison table with Speechelo, Descript, and traditional teleprompter hardware...</p>
               </div>
             </div>
           </div>
