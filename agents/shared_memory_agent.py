@@ -410,6 +410,21 @@ class SharedMemoryAgent(BaseAgent):
         log.info(f"Cleared {cleared} old conversations")
         return {"cleared": cleared}
 
+    async def clear_all(self) -> dict:
+        """Clear all memory entries."""
+        self._conversation_history = []
+        self._session_summaries = []
+        self._user_facts = {}
+        self._user_profile["preferences"] = {}
+        self._user_profile["weak_words"] = {}
+
+        await self._save_profile()
+        await self._save_facts()
+        await self._save_conversations()
+
+        log.info("All memory cleared")
+        return {"status": "cleared", "conversations": 0, "sessions": 0, "facts": 0}
+
     async def shutdown(self):
         await self._save_profile()
         await self._save_facts()

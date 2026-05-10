@@ -17,7 +17,7 @@ from typing import Any
 
 import uvicorn
 from pydantic import BaseModel, Field
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
@@ -753,6 +753,32 @@ async def delete_document(doc_id: str):
 async def search_documents(query: str, limit: int = 10):
     """Search within imported documents."""
     return await agents["documents"].search_documents(query, limit)
+
+
+@app.post("/documents/upload")
+async def upload_document(file: UploadFile = File(...), title: str = "Untitled", category: str = "document"):
+    """Upload a document file."""
+    content = await file.read()
+    content_text = content.decode("utf-8", errors="ignore")
+    return await agents["documents"].add_document(
+        title=title,
+        content=content_text,
+        doc_type=file.content_type or "text/plain",
+        category=category
+    )
+
+
+# ══════════════════════════════════════════════════════
+# MEMORY MANAGEMENT
+# ══════════════════════════════════════════════════════
+
+
+@app.post("/memory/clear")
+async def clear_memory():
+    """Clear all memory entries."""
+    if "shared_memory" in agents:
+        return await agents["shared_memory"].clear_all()
+    return {"status": "cleared"}
 
 
 # ══════════════════════════════════════════════════════

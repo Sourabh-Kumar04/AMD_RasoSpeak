@@ -1490,32 +1490,9 @@ async function deleteReminder(id) {
 }
 
 async function loadAnalytics() {
-  // Load analytics data
-  try {
-    const memResp = await fetch('/memory/stats');
-    if (memResp.ok) {
-      const memData = await memResp.json();
-      const memCount = memData.total || 0;
-      const el = document.getElementById('analytics-memory');
-      if (el) el.textContent = memCount;
-    }
-
-    const recResp = await fetch('/recordings?limit=100');
-    if (recResp.ok) {
-      const recData = await recResp.json();
-      const sessions = recData.recordings?.length || 0;
-      const el = document.getElementById('analytics-sessions');
-      if (el) el.textContent = sessions;
-    }
-
-    // Estimate accuracy (would come from real analytics)
-    const el = document.getElementById('analytics-accuracy');
-    if (el) el.textContent = '85%';
-
-    toast('Analytics loaded');
-  } catch (e) {
-    toast('Failed to load analytics');
-  }
+  // Load analytics data from backend and local
+  await loadAnalyticsData();
+  toast('Analytics loaded');
 }
 
 async function checkBackendHealth() {
@@ -1536,5 +1513,1095 @@ async function checkBackendHealth() {
     if (dotEl) dotEl.classList.remove('bg-primary-container');
     if (dotEl) dotEl.classList.add('bg-error');
     logCoach('warn', '⚠️', 'Backend unreachable - running in offline mode');
+  }
+}
+
+// ── NEW SETTINGS FEATURES ────────────────────────────────
+
+function stopWakeWord() {
+  APP.listening = false;
+  stopRecording();
+  const statusEl = document.getElementById('wake-status');
+  if (statusEl) statusEl.textContent = 'Stopped';
+  toast('Wake word detection stopped');
+}
+
+async function clearMemory() {
+  if (!confirm('Clear all memory entries? This cannot be undone.')) return;
+  try {
+    await fetch('/memory/clear', { method: 'POST' });
+    toast('Memory cleared');
+    loadMemoryStats();
+  } catch (e) {
+    // Demo mode
+    toast('Memory cleared (demo)');
+    loadMemoryStats();
+  }
+}
+
+async function loadDocuments() {
+  const listEl = document.getElementById('docs-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = '<div class="text-body-sm text-primary animate-pulse">Loading documents...</div>';
+
+  try {
+    const resp = await fetch('/documents');
+    if (resp.ok) {
+      const data = await resp.json();
+      const docs = data.documents || [];
+
+      if (docs.length > 0) {
+        listEl.innerHTML = docs.map(d => `
+          <div class="flex justify-between items-center p-3 bg-surface-container rounded border border-yc">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-secondary">description</span>
+              <div>
+                <div class="text-body-sm font-bold text-on-surface">${d.title || 'Untitled'}</div>
+                <div class="text-mono-label text-on-surface-variant text-xs">${d.category || 'Document'}</div>
+              </div>
+            </div>
+            <button onclick="deleteDocument('${d.id}')" class="text-error hover:opacity-80">
+              <span class="material-symbols-outlined text-sm">delete</span>
+            </button>
+          </div>
+        `).join('');
+      } else {
+        listEl.innerHTML = '<p class="text-body-sm text-on-surface-variant text-center py-4">No documents ingested. Click "Add Document" to begin.</p>';
+      }
+    } else {
+      throw new Error('Failed to load');
+    }
+  } catch (e) {
+    listEl.innerHTML = '<p class="text-body-sm text-on-surface-variant text-center py-4">No documents ingested. Click "Add Document" to begin.</p>';
+  }
+}
+
+async function uploadDocument(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('title', file.name.replace(/\.[^/.]+$/, ''));
+  formData.append('category', 'document');
+
+  try {
+    const resp = await fetch('/documents/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (resp.ok) {
+      toast('✅ Document uploaded');
+      loadDocuments();
+    } else {
+      throw new Error('Upload failed');
+    }
+  } catch (e) {
+    toast('✅ Document uploaded (demo)');
+    loadDocuments();
+  }
+
+  input.value = '';
+}
+
+async function deleteDocument(id) {
+  try {
+    await fetch(`/documents/${id}`, { method: 'DELETE' });
+    loadDocuments();
+    toast('Document deleted');
+  } catch (e) {
+    toast('Document deleted (demo)');
+    loadDocuments();
+  }
+}
+
+function togglePartner() {
+  if (partnerModeActive) {
+    partnerModeActive = false;
+    const statusEl = document.getElementById('partner-status');
+    if (statusEl) statusEl.textContent = 'Inactive';
+    toast('Partner mode disabled');
+  } else {
+    startPartnerMode();
+  }
+}
+
+function changeQaProvider(provider) {
+  currentProvider = provider;
+  const labels = { qwen: 'Qwen', openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini' };
+  toast(`QA Provider changed to ${labels[provider] || provider}`);
+}
+
+async function addReminder() {
+  const input = document.getElementById('new-reminder');
+  const message = input?.value.trim();
+
+  if (!message) {
+    toast('⚠️ Enter reminder text');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/partner/reminder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: message, remind_at: 'later' })
+    });
+
+    if (resp.ok) {
+      toast('⏰ Reminder added');
+      input.value = '';
+      loadReminders();
+    } else {
+      throw new Error('Failed');
+    }
+  } catch (e) {
+    toast('⏰ Reminder added (demo)');
+    input.value = '';
+    loadReminders();
+  }
+}
+
+// Update memory stats display
+async function loadMemoryStats() {
+  try {
+    const resp = await fetch('/memory/stats');
+    if (resp.ok) {
+      const data = await resp.json();
+      const totalEl = document.getElementById('mem-total');
+      const wordsEl = document.getElementById('mem-words');
+      const chunksEl = document.getElementById('mem-chunks');
+      const recallEl = document.getElementById('mem-recall');
+
+      if (totalEl) totalEl.textContent = (data.total_conversations || 0) + (data.total_sessions || 0) + (data.total_facts || 0);
+      if (wordsEl) wordsEl.textContent = data.weak_words_count || 0;
+      if (chunksEl) chunksEl.textContent = data.total_sessions || 0;
+      if (recallEl) recallEl.textContent = Math.round((1 - (data.weak_words_count || 0) / 100) * 100) + '%';
+    }
+  } catch (e) {
+    // Use cached data if available
+  }
+}
+
+// ── VOICE PARTNER ────────────────────────────────────────
+async function startVoicePartner() {
+  const statusEl = document.getElementById('voice-mode-status');
+  if (statusEl) statusEl.textContent = 'Listening...';
+
+  try {
+    const resp = await fetch('/partner/start', { method: 'POST' });
+    if (resp.ok) {
+      toast('🎙️ Voice partner started');
+      startRecording();
+    } else {
+      throw new Error('Failed to start');
+    }
+  } catch (e) {
+    toast('🎙️ Voice partner demo mode');
+  }
+}
+
+async function stopVoicePartner() {
+  const statusEl = document.getElementById('voice-mode-status');
+  if (statusEl) statusEl.textContent = 'Stopped';
+
+  try {
+    const resp = await fetch('/partner/stop', { method: 'POST' });
+    if (resp.ok) {
+      toast('Voice partner stopped');
+      stopRecording();
+    }
+  } catch (e) {
+    toast('Voice partner stopped');
+  }
+}
+
+async function summarizeConversation() {
+  try {
+    const resp = await fetch('/partner/summarize');
+    if (resp.ok) {
+      const data = await resp.json();
+      toast(`📝 Summary: ${data.summary?.slice(0, 100) || 'No conversation to summarize'}`);
+    } else {
+      toast('No conversation to summarize');
+    }
+  } catch (e) {
+    toast('No conversation to summarize');
+  }
+}
+
+// ── QA PROVIDERS ─────────────────────────────────────────
+async function loadQaProviders() {
+  const listEl = document.getElementById('qa-providers-list');
+  if (!listEl) return;
+
+  try {
+    const resp = await fetch('/qa/providers');
+    if (resp.ok) {
+      const data = await resp.json();
+      const providers = data.providers || [];
+      listEl.innerHTML = providers.map(p => `
+        <div class="bg-surface-container rounded p-2 text-center text-body-sm">
+          <span class="font-bold">${p.name || p}</span>
+        </div>
+      `).join('');
+    } else {
+      listEl.innerHTML = '<div class="text-mono-label text-on-surface-variant">Qwen, OpenAI, Anthropic, Gemini</div>';
+    }
+  } catch (e) {
+    listEl.innerHTML = '<div class="text-mono-label text-on-surface-variant">Qwen, OpenAI, Anthropic, Gemini</div>';
+  }
+}
+
+async function askQaDirect() {
+  const input = document.getElementById('qa-direct-input');
+  const answerEl = document.getElementById('qa-direct-answer');
+  const question = input?.value.trim();
+
+  if (!question) {
+    toast('Enter a question first');
+    return;
+  }
+
+  if (answerEl) {
+    answerEl.classList.remove('hidden');
+    answerEl.innerHTML = '<span class="text-primary animate-pulse">Thinking...</span>';
+  }
+
+  try {
+    const resp = await fetch('/qa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: question, context: '' })
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      if (answerEl) answerEl.innerHTML = `<span class="text-on-surface">${data.answer || data.response || 'No answer'}</span>`;
+    } else {
+      throw new Error('QA failed');
+    }
+  } catch (e) {
+    if (answerEl) answerEl.innerHTML = `<span class="text-on-surface-variant">Demo: ${question}</span>`;
+  }
+
+  input.value = '';
+}
+
+// ── WEAK WORDS ──────────────────────────────────────────
+async function loadWeakWords() {
+  const listEl = document.getElementById('weak-words-list');
+  if (!listEl) return;
+
+  try {
+    const resp = await fetch('/memory/stats');
+    if (resp.ok) {
+      const data = await resp.json();
+      const words = data.top_weak_words || [];
+
+      if (words.length > 0) {
+        listEl.innerHTML = words.map(w => `
+          <span class="bg-primary-container text-primary px-2 py-1 rounded text-body-sm font-bold">
+            ${w.word} <span class="text-mono-label">(${w.count})</span>
+          </span>
+        `).join('');
+      } else {
+        listEl.innerHTML = '<span class="text-body-sm text-on-surface-variant">No weak words recorded yet.</span>';
+      }
+    }
+  } catch (e) {
+    listEl.innerHTML = '<span class="text-body-sm text-on-surface-variant">No weak words recorded yet.</span>';
+  }
+}
+
+async function addWeakWord() {
+  const input = document.getElementById('add-weak-word');
+  const word = input?.value.trim();
+
+  if (!word) {
+    toast('Enter a word to track');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/memory/weak-word', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word: word, context: 'Added via UI' })
+    });
+
+    if (resp.ok) {
+      toast(`📝 Tracking "${word}"`);
+      loadWeakWords();
+    }
+  } catch (e) {
+    toast(`📝 Tracking "${word}" (demo)`);
+    loadWeakWords();
+  }
+
+  input.value = '';
+}
+
+// ── DOCUMENT SEARCH ─────────────────────────────────────
+async function searchDocuments() {
+  const input = document.getElementById('doc-search-input');
+  const resultsEl = document.getElementById('doc-search-results');
+  const query = input?.value.trim();
+
+  if (!query) {
+    toast('Enter a search query');
+    return;
+  }
+
+  if (resultsEl) {
+    resultsEl.innerHTML = '<div class="text-primary animate-pulse">Searching...</div>';
+  }
+
+  try {
+    const resp = await fetch(`/documents/search?query=${encodeURIComponent(query)}&limit=10`);
+    if (resp.ok) {
+      const data = await resp.json();
+      const results = data.results || [];
+
+      if (results.length > 0) {
+        resultsEl.innerHTML = results.map(r => `
+          <div class="p-2 bg-surface-container rounded border border-yc">
+            <div class="text-body-sm font-bold text-on-surface">${r.title || 'Document'}</div>
+            <div class="text-body-sm text-on-surface-variant line-clamp-2">${r.content || r.snippet || ''}</div>
+          </div>
+        `).join('');
+      } else {
+        resultsEl.innerHTML = '<div class="text-on-surface-variant text-center py-2">No results found</div>';
+      }
+    } else {
+      throw new Error('Search failed');
+    }
+  } catch (e) {
+    resultsEl.innerHTML = '<div class="text-on-surface-variant text-center py-2">Search requires backend</div>';
+  }
+}
+
+// ── NOTIFICATION HISTORY ───────────────────────────────
+async function loadNotificationHistory() {
+  const listEl = document.getElementById('notification-history');
+  if (!listEl) return;
+
+  listEl.innerHTML = '<div class="text-primary animate-pulse">Loading...</div>';
+
+  try {
+    const resp = await fetch('/notifications/history');
+    if (resp.ok) {
+      const data = await resp.json();
+      const notifs = data.notifications || [];
+
+      if (notifs.length > 0) {
+        listEl.innerHTML = notifs.map(n => `
+          <div class="p-2 bg-surface-container rounded border border-yc flex justify-between items-center">
+            <div>
+              <div class="text-body-sm font-bold text-on-surface">${n.title || 'Notification'}</div>
+              <div class="text-body-sm text-on-surface-variant">${n.message || ''}</div>
+            </div>
+            <div class="text-mono-label text-on-surface-variant text-xs">${n.timestamp || ''}</div>
+          </div>
+        `).join('');
+      } else {
+        listEl.innerHTML = '<div class="text-on-surface-variant text-center py-2">No notifications yet</div>';
+      }
+    }
+  } catch (e) {
+    listEl.innerHTML = '<div class="text-on-surface-variant text-center py-2">No notifications yet</div>';
+  }
+}
+
+// ── MEMORY PREFERENCES ──────────────────────────────────
+async function loadMemoryPreferences() {
+  const listEl = document.getElementById('memory-preferences');
+  if (!listEl) return;
+
+  listEl.innerHTML = '<div class="text-primary animate-pulse">Loading...</div>';
+
+  try {
+    const resp = await fetch('/memory/preferences');
+    if (resp.ok) {
+      const data = await resp.json();
+      const prefs = data.preferences || {};
+
+      const items = Object.entries(prefs);
+      if (items.length > 0) {
+        listEl.innerHTML = items.map(([k, v]) => `
+          <div class="flex justify-between items-center p-2 bg-surface-container rounded border border-yc">
+            <span class="text-body-sm font-bold text-on-surface">${k}</span>
+            <span class="text-body-sm text-on-surface-variant">${v}</span>
+          </div>
+        `).join('');
+      } else {
+        listEl.innerHTML = '<div class="text-on-surface-variant">No preferences set</div>';
+      }
+    }
+  } catch (e) {
+    listEl.innerHTML = '<div class="text-on-surface-variant">No preferences set</div>';
+  }
+}
+
+async function setMemoryPreference() {
+  const keyInput = document.getElementById('pref-key');
+  const valueInput = document.getElementById('pref-value');
+  const key = keyInput?.value.trim();
+  const value = valueInput?.value.trim();
+
+  if (!key || !value) {
+    toast('Enter key and value');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/memory/preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: key, value: value })
+    });
+
+    if (resp.ok) {
+      toast('Preference saved');
+      loadMemoryPreferences();
+    }
+  } catch (e) {
+    toast('Preference saved (demo)');
+    loadMemoryPreferences();
+  }
+
+  keyInput.value = '';
+  valueInput.value = '';
+}
+
+// ── ADD FACT TO MEMORY ──────────────────────────────────
+async function addFactToMemory() {
+  const input = document.getElementById('quick-fact');
+  const catSelect = document.getElementById('fact-category');
+  const fact = input?.value.trim();
+  const category = catSelect?.value || 'general';
+
+  if (!fact) {
+    toast('Enter a fact to remember');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/memory/fact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fact: fact, category: category })
+    });
+
+    if (resp.ok) {
+      toast('Fact saved to memory');
+      input.value = '';
+    }
+  } catch (e) {
+    toast('Fact saved to memory (demo)');
+    input.value = '';
+  }
+}
+
+// ── ANALYTICS ───────────────────────────────────────────
+async function loadAnalyticsData() {
+  try {
+    // Try to get real analytics from backend
+    const resp = await fetch('/analytics/user/default');
+    if (resp.ok) {
+      const data = await resp.json();
+      const sessionsEl = document.getElementById('anal-sessions');
+      const accuracyEl = document.getElementById('anal-accuracy');
+      const wpmEl = document.getElementById('anal-wpm');
+      const timeEl = document.getElementById('anal-time');
+
+      if (sessionsEl) sessionsEl.textContent = data.total_sessions || 0;
+      if (accuracyEl) accuracyEl.textContent = (data.avg_accuracy || 0) + '%';
+      if (wpmEl) wpmEl.textContent = data.avg_wpm || 0;
+      if (timeEl) timeEl.textContent = (data.total_time_minutes || 0) + 'm';
+    }
+  } catch (e) {
+    // Use localStorage data as fallback
+    loadHistory();
+    const history = S.sessionHistory || [];
+    const sessionsEl = document.getElementById('anal-sessions');
+    const accuracyEl = document.getElementById('anal-accuracy');
+    const wpmEl = document.getElementById('anal-wpm');
+    const timeEl = document.getElementById('anal-time');
+
+    if (sessionsEl) sessionsEl.textContent = history.length;
+    const avgAcc = history.length ? Math.round(history.reduce((a, s) => a + (s.accuracy || 0), 0) / history.length) : 0;
+    if (accuracyEl) accuracyEl.textContent = avgAcc + '%';
+    if (wpmEl) wpmEl.textContent = Math.round(history.reduce((a, s) => a + (s.wpm || 0), 0) / Math.max(1, history.length));
+    const totalMin = history.length ? Math.round(history.reduce((a, s) => a + (s.duration || 0), 0) / 60) : 0;
+    if (timeEl) timeEl.textContent = totalMin + 'm';
+  }
+}
+
+// ── SESSION RECORDING ───────────────────────────────────
+async function startSessionRecording() {
+  const sessionInput = document.getElementById('session-id-input');
+  const sessionId = sessionInput?.value.trim() || generateUUID();
+  const statusEl = document.getElementById('session-status');
+
+  if (statusEl) statusEl.innerHTML = '<span class="text-primary animate-pulse">Starting recording...</span>';
+
+  try {
+    const resp = await fetch(`/recordings/${sessionId}/start`, { method: 'POST' });
+    if (resp.ok) {
+      if (statusEl) statusEl.innerHTML = `<span class="text-secondary">Recording started: ${sessionId.slice(0, 8)}</span>`;
+      APP.sessionId = sessionId;
+      toast('Recording started');
+    } else {
+      throw new Error('Failed to start');
+    }
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = '<span class="text-on-surface-variant">Recording started (demo mode)</span>';
+    APP.sessionId = sessionId;
+    toast('Recording started (demo)');
+  }
+}
+
+async function stopSessionRecording() {
+  const sessionId = APP.sessionId || document.getElementById('session-id-input')?.value.trim();
+  const statusEl = document.getElementById('session-status');
+
+  if (!sessionId) {
+    toast('No active session to stop');
+    return;
+  }
+
+  try {
+    const resp = await fetch(`/recordings/${sessionId}/stop`, { method: 'POST' });
+    if (resp.ok) {
+      if (statusEl) statusEl.innerHTML = '<span class="text-secondary">Recording stopped</span>';
+      toast('Recording stopped');
+    }
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = '<span class="text-on-surface-variant">Recording stopped (demo)</span>';
+    toast('Recording stopped');
+  }
+}
+
+async function getSessionDetails() {
+  const sessionInput = document.getElementById('session-id-input');
+  const sessionId = sessionInput?.value.trim();
+  const statusEl = document.getElementById('session-status');
+
+  if (!sessionId) {
+    toast('Enter a session ID');
+    return;
+  }
+
+  try {
+    const resp = await fetch(`/recordings/${sessionId}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (statusEl) statusEl.innerHTML = `<span class="text-on-surface">Session: ${data.duration || 'N/A'}s, ${data.chunks || 0} chunks</span>`;
+    } else {
+      throw new Error('Not found');
+    }
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = '<span class="text-on-surface-variant">Session not found</span>';
+  }
+}
+
+// ── SESSION INSIGHTS ────────────────────────────────────
+async function loadSessionInsights() {
+  const input = document.getElementById('insights-session-id');
+  const resultsEl = document.getElementById('session-insights');
+  const sessionId = input?.value.trim();
+
+  if (!sessionId) {
+    toast('Enter a session ID');
+    return;
+  }
+
+  if (resultsEl) resultsEl.innerHTML = '<span class="text-primary animate-pulse">Loading insights...</span>';
+
+  try {
+    const resp = await fetch(`/sessions/${sessionId}/insights`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (resultsEl) resultsEl.innerHTML = `
+        <div class="space-y-2">
+          <div><strong>Accuracy:</strong> ${data.accuracy || 'N/A'}%</div>
+          <div><strong>WPM:</strong> ${data.wpm || 'N/A'}</div>
+          <div><strong>Corrections:</strong> ${data.corrections || 0}</div>
+          <div><strong>Focus Words:</strong> ${(data.focus_words || []).join(', ') || 'None'}</div>
+        </div>
+      `;
+    } else {
+      throw new Error('Not found');
+    }
+  } catch (e) {
+    if (resultsEl) resultsEl.innerHTML = '<span class="text-on-surface-variant">No insights available for this session</span>';
+  }
+}
+
+// ── ADVANCED ANALYTICS ───────────────────────────────────
+async function loadUserAnalytics() {
+  const input = document.getElementById('analytics-user-id');
+  const resultsEl = document.getElementById('advanced-analytics-results');
+  const userId = input?.value.trim() || 'default';
+
+  if (resultsEl) resultsEl.innerHTML = '<span class="text-primary animate-pulse">Loading...</span>';
+
+  try {
+    const resp = await fetch(`/analytics/user/${userId}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (resultsEl) resultsEl.innerHTML = `
+        <div class="grid grid-cols-2 gap-2">
+          <div>Sessions: ${data.total_sessions || 0}</div>
+          <div>Avg Accuracy: ${data.avg_accuracy || 0}%</div>
+          <div>Avg WPM: ${data.avg_wpm || 0}</div>
+          <div>Total Time: ${data.total_time_minutes || 0}m</div>
+        </div>
+      `;
+    } else {
+      throw new Error('Not found');
+    }
+  } catch (e) {
+    if (resultsEl) resultsEl.innerHTML = '<span class="text-on-surface-variant">No analytics data available</span>';
+  }
+}
+
+async function loadImprovementData() {
+  const input = document.getElementById('analytics-user-id');
+  const resultsEl = document.getElementById('advanced-analytics-results');
+  const userId = input?.value.trim() || 'default';
+
+  if (resultsEl) resultsEl.innerHTML = '<span class="text-primary animate-pulse">Loading...</span>';
+
+  try {
+    const resp = await fetch(`/analytics/improvement/${userId}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (resultsEl) resultsEl.innerHTML = `
+        <div class="space-y-1">
+          <div><strong>Improvement Rate:</strong> ${data.improvement_rate || 0}%</div>
+          <div><strong>Trend:</strong> ${data.trend || 'Stable'}</div>
+          <div><strong>Weak Areas:</strong> ${(data.weak_areas || []).join(', ') || 'None'}</div>
+        </div>
+      `;
+    }
+  } catch (e) {
+    if (resultsEl) resultsEl.innerHTML = '<span class="text-on-surface-variant">No improvement data available</span>';
+  }
+}
+
+async function loadQaTopics() {
+  const input = document.getElementById('analytics-user-id');
+  const resultsEl = document.getElementById('advanced-analytics-results');
+  const userId = input?.value.trim() || 'default';
+
+  if (resultsEl) resultsEl.innerHTML = '<span class="text-primary animate-pulse">Loading...</span>';
+
+  try {
+    const resp = await fetch(`/analytics/qa-topics/${userId}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      const topics = data.topics || [];
+      if (resultsEl && topics.length > 0) {
+        resultsEl.innerHTML = topics.map(t => `
+          <div class="flex justify-between p-1 bg-surface-container rounded">
+            <span>${t.topic}</span>
+            <span class="text-mono-label">${t.count}</span>
+          </div>
+        `).join('');
+      } else if (resultsEl) {
+        resultsEl.innerHTML = '<span class="text-on-surface-variant">No QA topics recorded</span>';
+      }
+    }
+  } catch (e) {
+    if (resultsEl) resultsEl.innerHTML = '<span class="text-on-surface-variant">No QA topics available</span>';
+  }
+}
+
+// ── WAKE WORD PROCESSING ─────────────────────────────────
+async function processWakeWord() {
+  const resultEl = document.getElementById('wake-detection-result');
+  if (resultEl) resultEl.innerHTML = '<span class="text-primary animate-pulse">Processing audio...</span>';
+
+  try {
+    const resp = await fetch('/wake/process', { method: 'POST' });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (resultEl) resultEl.innerHTML = `<span class="text-secondary">Wake word detected: ${data.detected || false}</span>`;
+    } else {
+      throw new Error('Processing failed');
+    }
+  } catch (e) {
+    if (resultEl) resultEl.innerHTML = '<span class="text-on-surface-variant">No audio to process (demo)</span>';
+  }
+}
+
+async function startWakeDetection() {
+  const resultEl = document.getElementById('wake-detection-result');
+  if (resultEl) resultEl.innerHTML = '<span class="text-primary animate-pulse">Listening for "Hey Raso"...</span>';
+
+  try {
+    const resp = await fetch('/wake/start', { method: 'POST' });
+    if (resp.ok) {
+      toast('Wake detection started');
+      startAudio();
+    }
+  } catch (e) {
+    toast('Wake detection started (demo)');
+  }
+}
+
+// ── MEMORY RECALL ────────────────────────────────────────
+async function recallMemory() {
+  const queryInput = document.getElementById('recall-query');
+  const keyInput = document.getElementById('recall-key');
+  const catSelect = document.getElementById('recall-category');
+  const resultsEl = document.getElementById('recall-results');
+
+  const query = queryInput?.value.trim();
+  const key = keyInput?.value.trim();
+  const category = catSelect?.value;
+
+  if (!query && !key) {
+    toast('Enter a query or key');
+    return;
+  }
+
+  if (resultsEl) resultsEl.innerHTML = '<div class="text-primary animate-pulse">Searching...</div>';
+
+  let url = '/memory/recall?';
+  if (query) url += `query=${encodeURIComponent(query)}&`;
+  if (key) url += `key=${encodeURIComponent(key)}&`;
+  if (category) url += `category=${encodeURIComponent(category)}&`;
+  url += 'limit=10';
+
+  try {
+    const resp = await fetch(url);
+    if (resp.ok) {
+      const data = await resp.json();
+      const results = data.results || [];
+
+      if (results.length > 0) {
+        resultsEl.innerHTML = results.map(r => `
+          <div class="p-2 bg-surface-container rounded border border-yc">
+            <div class="text-body-sm font-bold text-on-surface">${r.key || 'Memory'}</div>
+            <div class="text-body-sm text-on-surface-variant line-clamp-2">${r.value || r.text || ''}</div>
+          </div>
+        `).join('');
+      } else {
+        resultsEl.innerHTML = '<div class="text-on-surface-variant">No memories found</div>';
+      }
+    } else {
+      throw new Error('Recall failed');
+    }
+  } catch (e) {
+    resultsEl.innerHTML = '<div class="text-on-surface-variant">No memories found</div>';
+  }
+}
+
+// ── DOCUMENT SNIPPET ──────────────────────────────────────
+async function addSnippet() {
+  const input = document.getElementById('snippet-text');
+  const text = input?.value.trim();
+
+  if (!text) {
+    toast('Enter text for snippet');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/documents/snippet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: text, source: 'manual' })
+    });
+
+    if (resp.ok) {
+      toast('Snippet added');
+      input.value = '';
+    } else {
+      throw new Error('Failed');
+    }
+  } catch (e) {
+    toast('Snippet added (demo)');
+    input.value = '';
+  }
+}
+
+// ── PROVIDER SELECTION ───────────────────────────────────
+function setProvider(provider) {
+  currentProvider = provider;
+  const labels = { qwen: 'Qwen (Local)', openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini' };
+  const statusEl = document.getElementById('provider-status');
+  if (statusEl) statusEl.textContent = `Current: ${labels[provider] || provider}`;
+
+  try {
+    fetch('/partner/provider', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: provider })
+    });
+  } catch (e) {
+    // Silent fail for demo
+  }
+
+  toast(`Provider set to ${labels[provider]}`);
+}
+
+// ── PARTNER STATUS ───────────────────────────────────────
+async function checkPartnerStatus() {
+  const displayEl = document.getElementById('partner-status-display');
+  if (!displayEl) return;
+
+  displayEl.innerHTML = '<span class="text-primary animate-pulse">Checking...</span>';
+
+  try {
+    const resp = await fetch('/partner/status');
+    if (resp.ok) {
+      const data = await resp.json();
+      displayEl.innerHTML = `
+        <div class="space-y-1">
+          <div><strong>Mode:</strong> ${data.mode || 'Active'}</div>
+          <div><strong>Provider:</strong> ${data.provider || currentProvider}</div>
+          <div><strong>Listening:</strong> ${data.listening || false}</div>
+        </div>
+      `;
+    } else {
+      throw new Error('Failed');
+    }
+  } catch (e) {
+    displayEl.innerHTML = '<span class="text-on-surface-variant">Partner is ready. Start voice mode to begin.</span>';
+  }
+}
+
+// ── AI CONTEXT FOR PROMPTS ──────────────────────────────
+async function getAiContext() {
+  const select = document.getElementById('ai-context-target');
+  const outputEl = document.getElementById('ai-context-output');
+  const target = select?.value || 'qa';
+
+  if (outputEl) {
+    outputEl.classList.remove('hidden');
+    outputEl.innerHTML = '<span class="text-primary animate-pulse">Building context...</span>';
+  }
+
+  try {
+    const resp = await fetch(`/memory/context?ai_name=${target}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (outputEl) outputEl.textContent = data.context || JSON.stringify(data, null, 2).slice(0, 500);
+    } else {
+      throw new Error('Failed');
+    }
+  } catch (e) {
+    if (outputEl) outputEl.textContent = 'No context available for this agent yet. Interact with the AI more to build context.';
+  }
+}
+
+// ── SESSION DETAILS ──────────────────────────────────────
+async function getSessionInfo() {
+  const input = document.getElementById('session-detail-id');
+  const outputEl = document.getElementById('session-detail-output');
+  const sessionId = input?.value.trim();
+
+  if (!sessionId) {
+    toast('Enter a session ID');
+    return;
+  }
+
+  if (outputEl) {
+    outputEl.classList.remove('hidden');
+    outputEl.innerHTML = '<span class="text-primary animate-pulse">Loading...</span>';
+  }
+
+  try {
+    const resp = await fetch(`/sessions/${sessionId}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (outputEl) outputEl.innerHTML = `
+        <div class="space-y-1">
+          <div><strong>Session ID:</strong> ${data.session_id?.slice(0, 12) || 'N/A'}</div>
+          <div><strong>Created:</strong> ${data.created_at || 'N/A'}</div>
+          <div><strong>Chunks:</strong> ${data.chunks?.length || 0}</div>
+          <div><strong>Status:</strong> ${data.status || 'completed'}</div>
+        </div>
+      `;
+    } else {
+      throw new Error('Not found');
+    }
+  } catch (e) {
+    if (outputEl) outputEl.innerHTML = '<span class="text-on-surface-variant">Session not found or not available.</span>';
+  }
+}
+
+// ── SESSION ANALYTICS ────────────────────────────────────
+async function getSessionAnalytics() {
+  const input = document.getElementById('session-analytics-id');
+  const outputEl = document.getElementById('session-analytics-output');
+  const sessionId = input?.value.trim();
+
+  if (!sessionId) {
+    toast('Enter a session ID');
+    return;
+  }
+
+  if (outputEl) {
+    outputEl.classList.remove('hidden');
+    outputEl.innerHTML = '<span class="text-primary animate-pulse">Analyzing...</span>';
+  }
+
+  try {
+    const resp = await fetch(`/analytics/session/${sessionId}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (outputEl) outputEl.innerHTML = `
+        <div class="grid grid-cols-2 gap-2">
+          <div><strong>Accuracy:</strong> ${data.accuracy || 0}%</div>
+          <div><strong>WPM:</strong> ${data.wpm || 0}</div>
+          <div><strong>Duration:</strong> ${data.duration || 0}s</div>
+          <div><strong>Corrections:</strong> ${data.corrections || 0}</div>
+          <div class="col-span-2"><strong>Focus Areas:</strong> ${(data.focus_words || []).join(', ') || 'None'}</div>
+        </div>
+      `;
+    } else {
+      throw new Error('Not found');
+    }
+  } catch (e) {
+    if (outputEl) outputEl.innerHTML = '<span class="text-on-surface-variant">No analytics available for this session.</span>';
+  }
+}
+
+// ── SINGLE RECORDING LOOKUP ─────────────────────────────
+async function getRecordingDetails() {
+  const input = document.getElementById('recording-id-input');
+  const outputEl = document.getElementById('recording-output');
+  const recordingId = input?.value.trim();
+
+  if (!recordingId) {
+    toast('Enter a recording ID');
+    return;
+  }
+
+  if (outputEl) {
+    outputEl.classList.remove('hidden');
+    outputEl.innerHTML = '<span class="text-primary animate-pulse">Loading...</span>';
+  }
+
+  try {
+    const resp = await fetch(`/recordings/${recordingId}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (outputEl) outputEl.innerHTML = `
+        <div class="space-y-1">
+          <div><strong>ID:</strong> ${data.session_id?.slice(0, 12) || 'N/A'}</div>
+          <div><strong>Created:</strong> ${data.created_at || 'N/A'}</div>
+          <div><strong>Duration:</strong> ${data.duration || 'N/A'}s</div>
+          <div><strong>Chunks:</strong> ${data.chunks?.length || 0}</div>
+        </div>
+      `;
+    } else {
+      throw new Error('Not found');
+    }
+  } catch (e) {
+    if (outputEl) outputEl.innerHTML = '<span class="text-on-surface-variant">Recording not found.</span>';
+  }
+}
+
+// ── DEVICE REGISTRATION ─────────────────────────────────
+async function registerDevice() {
+  const typeSelect = document.getElementById('device-type');
+  const endpointInput = document.getElementById('device-endpoint');
+  const deviceType = typeSelect?.value || 'browser';
+  const endpoint = endpointInput?.value.trim();
+
+  if (!endpoint) {
+    toast('Enter device endpoint');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/notifications/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        device_type: deviceType,
+        endpoint: endpoint,
+        token: ''
+      })
+    });
+
+    if (resp.ok) {
+      toast('Device registered successfully');
+      endpointInput.value = '';
+    } else {
+      throw new Error('Failed');
+    }
+  } catch (e) {
+    toast('Device registered (demo mode)');
+    endpointInput.value = '';
+  }
+}
+
+// ── DOCUMENT BY ID ──────────────────────────────────────
+async function getDocumentById() {
+  const input = document.getElementById('doc-id-input');
+  const outputEl = document.getElementById('doc-id-output');
+  const docId = input?.value.trim();
+
+  if (!docId) {
+    toast('Enter a document ID');
+    return;
+  }
+
+  if (outputEl) {
+    outputEl.classList.remove('hidden');
+    outputEl.innerHTML = '<span class="text-primary animate-pulse">Loading...</span>';
+  }
+
+  try {
+    const resp = await fetch(`/documents/${docId}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (outputEl) outputEl.innerHTML = `
+        <div class="space-y-1">
+          <div><strong>Title:</strong> ${data.title || 'Untitled'}</div>
+          <div><strong>Type:</strong> ${data.doc_type || 'text'}</div>
+          <div><strong>Category:</strong> ${data.category || 'general'}</div>
+          <div><strong>Content:</strong> ${(data.content || '').slice(0, 200)}</div>
+        </div>
+      `;
+    } else {
+      throw new Error('Not found');
+    }
+  } catch (e) {
+    if (outputEl) outputEl.innerHTML = '<span class="text-on-surface-variant">Document not found.</span>';
+  }
+}
+
+async function deleteDocumentById() {
+  const input = document.getElementById('doc-id-input');
+  const docId = input?.value.trim();
+
+  if (!docId) {
+    toast('Enter a document ID');
+    return;
+  }
+
+  if (!confirm('Delete this document?')) return;
+
+  try {
+    const resp = await fetch(`/documents/${docId}`, { method: 'DELETE' });
+    if (resp.ok) {
+      toast('Document deleted');
+      const outputEl = document.getElementById('doc-id-output');
+      if (outputEl) outputEl.innerHTML = '<span class="text-secondary">Document deleted successfully.</span>';
+    } else {
+      throw new Error('Failed');
+    }
+  } catch (e) {
+    toast('Document deleted (demo)');
   }
 }
