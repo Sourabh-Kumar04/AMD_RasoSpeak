@@ -142,10 +142,14 @@ from pathlib import Path
 # Download logo.png from HF Hub if not present (for Docker container)
 if not os.path.exists("logo.png"):
     try:
-        from huggingface_hub import hf_hub_download
-        logo_path = hf_hub_download(repo_id="lablab-ai-amd-developer-hackathon/RasoSpeak", filename="logo.png")
-        import shutil
-        shutil.copy(logo_path, "logo.png")
+        import httpx
+        token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        url = "https://huggingface.co/lablab-ai-amd-developer-hackathon/RasoSpeak/resolve/main/logo.png"
+        r = httpx.get(url, headers=headers, timeout=30)
+        if r.status_code == 200:
+            with open("logo.png", "wb") as f:
+                f.write(r.content)
     except Exception:
         pass
 
