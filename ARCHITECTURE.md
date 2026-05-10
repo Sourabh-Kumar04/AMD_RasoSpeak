@@ -1,70 +1,124 @@
-# RasoSpeak v2 — Agentic Architecture on AMD GPU
-## Technical Deep-Dive for AMD Developer Hackathon (lablab.ai)
+# RasoSpeak v2 — Agentic Architecture
+## Your Secondary Brain — 14 AI Agents Sharing Memory
 
 ---
 
-## 1. Why We Upgraded: The AMD Requirement
+## The Vision: Your Inner Self
 
-The AMD Developer Hackathon specifically requires projects to:
+**RasoSpeak is your secondary brain — the inner version of you that:**
 
-- Run AI workloads on **AMD Instinct MI300X GPUs** via AMD Developer Cloud
-- Use **ROCm** (Radeon Open Compute) as the software stack
-- Build **AI Agents & Agentic Workflows** — not just rule-based apps
-- Demonstrate real model inference, not just browser Web APIs
+1. **Has perfect memory** — remembers everything you've ever said
+2. **Searches the web** — "Hey Raso, what is the latest on AMD?"
+3. **Chats with you** like you do yourself — continuous conversation
+4. **Coaches your speeches** — practice and improve delivery
+5. **Gives live information** — instant answers when you ask
+6. **Imports documents into memory** — PDFs, URLs, notes
+7. **Switches between multiple AIs** through voice activation
+8. **Records what you hear** — and analyzes it when you want
+9. **All 14 AIs share the same memory** — unified knowledge
 
-**RasoSpeak v1 problem:** 100% browser-based, used Web Speech API + simple Levenshtein NLP.
-No AMD GPU. No LLM. No agents. Would not qualify.
-
-**RasoSpeak v2 solution:** Multi-agent backend running on AMD GPU,
-with the browser as a thin UI client only.
-
----
-
-## 2. The Old vs. New Architecture
-
-### v1 — Browser-Only (Does NOT qualify)
-
-```
-Browser
-├── Web Speech API  →  TTS (earpiece delivery)
-├── Web Speech API  →  STT (speech capture)
-├── Levenshtein NLP →  Word matching (rule-based)
-└── Vanilla JS      →  All logic, all UI
-```
-
-Problems:
-- No AMD GPU usage
-- NLP is rule-based, not AI
-- No agents
-- Would not pass hackathon criteria
+### Activate with: "Hey Raso, tell me what is AMD"
+### Ask anything: "Hey Raso, what did I say about X?"
+### Learn from recordings: Analytics on your voice and speech patterns
 
 ---
 
-### v2 — Agentic on AMD GPU (QUALIFIES)
+## 1. The Problem
+
+You use AI assistants but they don't remember:
+- What you asked last week
+- What you said about your project
+- What documents you shared
+- What questions you asked in past sessions
+
+**Every conversation starts from scratch.**
+
+### The Solution: RasoSpeak
+
+Your secondary brain that:
+- Listens to everything you say
+- Remembers it all (shared memory across 14 agents)
+- Answers questions about your own conversations
+- Imports documents and makes them searchable
+- Analyzes your voice and speech patterns
+
+---
+
+## 2. Architecture Overview
+
+### The Complete System
 
 ```
-Browser (thin client)
-    │  WebSocket + REST API (real-time)
-    ▼
-FastAPI Backend  ←─── AMD MI300X GPU + ROCm
-    │
-    ├── TranscriptionAgent   (Whisper Large v3 on ROCm)
-    ├── ScoringAgent         (Qwen2.5-7B-Instruct on vLLM)
-    ├── CoachingAgent        (Qwen2.5-7B-Instruct on vLLM)
-    ├── SegmentationAgent    (Qwen2.5-3B on vLLM)
-    ├── QAAgent               (GPT/Claude/Gemini/Qwen)
-    ├── SearchAgent           (Tavily/DuckDuckGo)
-    ├── PartnerAgent          (AI partner, continuous listening)
-    ├── SharedMemoryAgent     (Unified brain for all AIs)
-    ├── WakeWordAgent         (Hey Raso detection)
-    ├── DocumentAgent         (PDF/URL/text import)
-    ├── NotificationAgent     (SMS/Telegram/Push)
-    ├── RecordingAgent        (Audio recording)
-    ├── SessionMemoryAgent    (Session state)
-    └── AnalyticsAgent        (Insights & analytics)
+┌─────────────────────────────────────────────────────────────┐
+│                         YOU                                  │
+│           (Speaking / Listening / Asking)                  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   BROWSER / APP                             │
+│   🎤 Mic → "Hey Raso..." ──────────────────────────────┐    │
+│   🎧 Speaker ← AI response ───────────────────────────┐    │
+└───────────────────────────────────────────────────────│────┘
+                                                       │
+                    Wake Word: "Hey Raso"               │
+                                                       ▼
+┌────────────────────────────────────────────────────────────▼┐
+│              FastAPI Backend — 14 AI Agents                 │
+│                                                             │
+│   ┌────────────────────────────────────────────────────┐   │
+│   │           SharedMemoryAgent (UNIFIED BRAIN)         │   │
+│   │    All 14 agents read/write to the same memory      │   │
+│   └────────────────────────────────────────────────────┘   │
+│                          │                                 │
+│   ┌──────────────┐  ┌────────────┐  ┌──────────────────┐   │
+│   │ PartnerAgent │  │ QAAgent    │  │ DocumentAgent    │   │
+│   │ Continuous  │  │ Multi-    │  │ Import PDFs/URLs │   │
+│   │ Chat        │  │ provider  │  │ to memory        │   │
+│   └──────────────┘  └────────────┘  └──────────────────┘   │
+│                                                             │
+│   ┌──────────────┐  ┌────────────┐  ┌──────────────────┐   │
+│   │SearchAgent   │  │ Recording  │  │ AnalyticsAgent   │   │
+│   │ Web Search   │  │ Agent      │  │ Voice & Speech   │   │
+│   └──────────────┘  └────────────┘  └──────────────────┘   │
+│                                                             │
+│   ┌──────────────┐  ┌────────────┐  ┌──────────────────┐   │
+│   │WakeWordAgent│  │Transcrip- │  │ ScoringAgent    │   │
+│   │"Hey Raso"   │  │tionAgent  │  │ Evaluate speech  │   │
+│   └──────────────┘  └───────────┘  └──────────────────┘   │
+│                                                             │
+│   ┌──────────────┐  ┌────────────┐  ┌──────────────────┐   │
+│   │CoachingAgent│  │Segmenta-   │  │NotificationAgent│   │
+│   │ Corrections │  │tionAgent   │  │ SMS/Telegram     │   │
+│   └──────────────┘  └────────────┘  └──────────────────┘   │
+│                                                             │
+│   ┌────────────────────────────────────────────────────┐   │
+│   │           SessionMemoryAgent                        │   │
+│   │    Tracks session state and conversation history   │   │
+│   └────────────────────────────────────────────────────┘   │
+│                                                             │
+│   💾 All agents share memory via SharedMemoryAgent          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Every inference call touches AMD hardware. Every coaching decision is LLM-generated.
+### Key Innovation: Shared Memory
+
+```
+Traditional AI:
+  User → ChatGPT → "What did I ask yesterday?" → "I don't know"
+
+RasoSpeak:
+  User → "Hey Raso, what did I ask yesterday?"
+         │
+         ▼
+    WakeWordAgent detects "Hey Raso"
+         │
+         ▼
+    SharedMemoryAgent searches memory
+         │
+         ▼
+    "You asked about ROCm installation on Tuesday"
+```
 
 ---
 
