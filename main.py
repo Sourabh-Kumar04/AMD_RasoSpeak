@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from agents.transcription_agent import TranscriptionAgent
 from agents.scoring_agent import ScoringAgent
@@ -156,12 +157,13 @@ async def state_js(): return FileResponse("state.js")
 async def styles_css(): return FileResponse("styles.css")
 @app.get("/index.html")
 async def index_html(): return FileResponse("index.html")
+@app.get("/logo.png")
+async def logo_png(): return FileResponse("logo.png")
 
 
 # ── ROOT ROUTE ─────────────────────────────────────────
 @app.get("/")
 async def root():
-    from fastapi.responses import FileResponse
     return FileResponse("index.html")
 
 
