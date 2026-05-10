@@ -6,6 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
+# Binary files (use hf upload for these)
+logo.png
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.pdf
+
 # Distribution / packaging
 .Python
 build/
