@@ -14,7 +14,7 @@ tags:
   - vllm
 ---
 
-# 🎙️ RasoSpeak — Your Secondary Brain & AI Partner
+# 🎙️ RasoSpeak — Meet Raso, Your AI Companion
 ### Built for AMD Developer Hackathon × lablab.ai × Hugging Face
 
 <div align="center">
@@ -26,7 +26,7 @@ tags:
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**Your inner self. With memory. With search. With answers.**
+**Your friendly AI companion with perfect memory.**
 **"Hey Raso, what did I say about AMD?"**
 
 **[Live Demo](https://lablab-ai-amd-developer-hackathon-rasospeak.hf.space)** • [Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start)
@@ -119,11 +119,32 @@ You: "Hey Raso, analyze my last 5 sessions"
 
 ---
 
-## 🤖 14 AI Agents — All Sharing Memory
+## 🤖 Raso — Your AI Companion
+
+Raso is your personal AI friend with a personality:
+- **Friendly & helpful** — always ready to assist
+- **Curious & witty** — engages in meaningful conversations
+- **Perfect memory** — remembers everything you've ever said
+- **Always learning** — gets smarter from your interactions
+
+### "Hey Raso" — Your Wake Word
+
+```
+You: "Hey Raso, tell me what is AMD"
+Raso: "AMD (Advanced Micro Devices) is a semiconductor company..."
+
+You: "Hey Raso, what did I say about AI last week?"
+Raso: "You mentioned that AI models need GPU acceleration..."
+
+You: "Hey Raso, remind me to mention the AMD partnership"
+Raso: "Got it! I'll remember that for your presentation."
+```
+
+### All 14 AI Agents Share Memory with Raso
 
 | Agent | Function | What It Does |
 |-------|----------|--------------|
-| **PartnerAgent** | Your AI self | Continuous listening, chat, memory |
+| **RasoAgent** | Your AI friend | Chat, memory, personality, companions |
 | **SharedMemoryAgent** | Unified brain | All AIs share this memory |
 | **WakeWordAgent** | "Hey Raso" | Voice activation detection |
 | **TranscriptionAgent** | Whisper | Speech-to-text for all audio |
@@ -161,6 +182,8 @@ You: "Hey Raso, analyze my last 5 sessions"
 │              HuggingFace Space · GPU                        │
 │                                                              │
 │  "Hey Raso" ───────────► WakeWordAgent                      │
+│                              │                             │
+│  Your chat ────────────► RasoAgent (Your AI companion)      │
 │                              │                             │
 │  Your speech ───────────► TranscriptionAgent (Whisper)    │
 │                              │                             │
@@ -225,9 +248,9 @@ rasospeak-v2/
 ├── main.py                     ← FastAPI backend + WebSocket
 ├── app.py                      ← Gradio interface
 │
-├── agents/                     ← 14 AI agents
+├── agents/                     ← 14 AI agents + Raso
 │   ├── base_agent.py          ← Abstract base class
-│   ├── partner_agent.py        ← Your AI partner
+│   ├── partner_agent.py      ← RasoAgent (Your AI companion)
 │   ├── shared_memory_agent.py  ← Unified brain (ALL agents share)
 │   ├── wake_word_agent.py      ← "Hey Raso" detection
 │   ├── transcription_agent.py ← Whisper STT
@@ -354,9 +377,9 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**RasoSpeak v2 — Your Secondary Brain & AI Partner.**
+**RasoSpeak v2 — Your AI Companion.**
 
-*Your inner self. With memory. With search. With answers.*
+*Meet Raso — your friendly AI friend with perfect memory.*
 *"Hey Raso, what did I say about...?"*
 
 </div>

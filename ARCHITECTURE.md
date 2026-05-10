@@ -1,5 +1,5 @@
 # RasoSpeak v2 — Agentic Architecture
-## Your Secondary Brain — 14 AI Agents Sharing Memory
+## Meet Raso — Your AI Companion with Memory
 
 ---
 
@@ -33,11 +33,19 @@ You use AI assistants but they don't remember:
 
 **Every conversation starts from scratch.**
 
-### The Solution: RasoSpeak
+### The Solution: Raso
 
-Your secondary brain that:
+**Raso is your AI companion** with its own personality:
+- **Friendly & helpful** — always ready to assist
+- **Curious & witty** — engages in meaningful conversations
+- **Perfect memory** — remembers everything you've ever said
+- **Always learning** — gets smarter from your interactions
+
+RasoSpeak gives you:
+- Raso (your AI friend) with 14 specialized agents
+- All 14 agents share memory with Raso
 - Listens to everything you say
-- Remembers it all (shared memory across 14 agents)
+- Remembers it all
 - Answers questions about your own conversations
 - Imports documents and makes them searchable
 - Analyzes your voice and speech patterns
@@ -68,13 +76,13 @@ Your secondary brain that:
 │                                                             │
 │   ┌────────────────────────────────────────────────────┐   │
 │   │           SharedMemoryAgent (UNIFIED BRAIN)         │   │
-│   │    All 14 agents read/write to the same memory      │   │
+│   │    All 15 agents share memory with Raso              │   │
 │   └────────────────────────────────────────────────────┘   │
 │                          │                                 │
 │   ┌──────────────┐  ┌────────────┐  ┌──────────────────┐   │
-│   │ PartnerAgent │  │ QAAgent    │  │ DocumentAgent    │   │
-│   │ Continuous  │  │ Multi-    │  │ Import PDFs/URLs │   │
-│   │ Chat        │  │ provider  │  │ to memory        │   │
+│   │ RasoAgent 🤝 │  │ QAAgent    │  │ DocumentAgent    │   │
+│   │ Your AI     │  │ Multi-    │  │ Import PDFs/URLs │   │
+│   │ Companion   │  │ provider  │  │ to memory        │   │
 │   └──────────────┘  └────────────┘  └──────────────────┘   │
 │                                                             │
 │   ┌──────────────┐  ┌────────────┐  ┌──────────────────┐   │
@@ -122,18 +130,22 @@ RasoSpeak:
 
 ---
 
-## 3. The 14 Agents — Detailed
+## 3. The 15 Agents + Raso — Detailed
 
-### Agent 1: PartnerAgent 🤝
+### Agent 1: RasoAgent 🤝
 **Model:** Qwen2.5-7B-Instruct via vLLM on ROCm
 **AMD Hardware:** MI300X GPU
+**Personality:** Friendly, curious, witty, always helpful
 
 **What it does:**
-- Your AI partner — continuous listening and memory
+- Your AI companion — continuous listening and memory
+- Has its own personality and character
 - Maintains conversation context across the session
 - Answers follow-up questions based on previous exchanges
 - Provides reminders and contextual suggestions
-- Acts as the central coordinator for user interactions
+- Greeting: "Hey there! I'm Raso, your AI companion."
+- Remembers: "Got it! I'll remember that."
+- Farewell: "Talk to you later! Remember, I've got your back."
 
 **Input:** User messages, session context, memory context
 **Output:** Natural language response, action suggestions
@@ -145,7 +157,7 @@ RasoSpeak:
 **AMD Hardware:** MI300X GPU
 
 **What it does:**
-- Unified brain — all 14 agents share this memory
+- Unified brain — all 15 agents share this memory
 - Stores facts, preferences, context across sessions
 - Enables cross-agent context sharing
 - Maintains persistent user profiles
