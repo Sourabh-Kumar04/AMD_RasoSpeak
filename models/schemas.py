@@ -35,6 +35,7 @@ class WSMessageType(str, Enum):
     PARTNER_READY  = "PARTNER_READY"  # Partner mode active
     PARTNER_RESPONSE = "PARTNER_RESPONSE" # Partner's response
     REMINDER       = "REMINDER"       # Reminder notification
+    TTS_READY      = "TTS_READY"      # Text ready for TTS (earpiece)
     ERROR          = "ERROR"
 
 

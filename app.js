@@ -700,6 +700,16 @@ function clearAll() {
 }
 
 // ── UTILS ─────────────────────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = Math.random() * 16 | 0;
@@ -734,11 +744,48 @@ function startPartnerMode() {
 }
 
 function testWakeWord() {
-  toast('🧪 Say "Hey Raso" to test wake word detection');
-  // Simulate wake word detection for demo
-  setTimeout(() => {
-    toast('👂 Wake word "Hey Raso" detected!');
-  }, 2000);
+  // Test the complete "Hey Raso" flow via REST API
+  const testPhrases = [
+    "Hey Raso, what is AMD?",
+    "Hey Raso, tell me about machine learning",
+    "Hey Raso, what did I say about AI?"
+  ];
+
+  const testPhrase = testPhrases[Math.floor(Math.random() * testPhrases.length)];
+  toast(`🧪 Testing: "${testPhrase}"`);
+
+  fetch('/partner/wake', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(testPhrase)
+  })
+  .then(resp => resp.json())
+  .then(data => {
+    if (data.wake_detected) {
+      toast(`✅ Wake word detected! Command: "${data.command || 'none'}"`);
+      if (data.answer) {
+        toast(`🤖 Answer: ${data.answer.substring(0, 50)}...`);
+        // Speak the answer via TTS
+        speakText(data.answer);
+      }
+    } else {
+      toast('⚠️ Wake word not detected in test phrase');
+    }
+  })
+  .catch(e => {
+    toast('⚠️ Wake test failed: ' + e.message);
+  });
+}
+
+function speakText(text) {
+  if (!text || !APP.synth) return;
+  APP.synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.0;
+  u.pitch = 1.0;
+  u.volume = 0.8;
+  u.onend = () => console.log('TTS done');
+  APP.synth.speak(u);
 }
 
 function selectProvider(provider) {
@@ -1048,6 +1095,48 @@ async function sendMessage() {
   thinking.innerHTML = '<div class="text-label-caps text-primary mb-1 font-bold italic">Partner</div><div class="text-on-surface-variant italic">Thinking...</div>';
   messagesEl.appendChild(thinking);
   messagesEl.scrollTop = messagesEl.scrollHeight;
+
+  // Check if user is using wake word activation
+  const wakeWordPattern = /hey\s+raso[,\s]*(.*)/i;
+  const wakeMatch = text.match(wakeWordPattern);
+
+  if (wakeMatch) {
+    // "Hey Raso, tell me X" flow
+    const command = wakeMatch[1].trim();
+
+    const thinking = document.createElement('div');
+    thinking.className = 'bg-surface-container-lowest border border-yc rounded-lg p-3 text-body-sm shadow-sm mr-auto max-w-[80%] animate-pulse';
+    thinking.innerHTML = '<div class="text-label-caps text-primary mb-1 font-bold">🎙️ Raso</div><div class="text-on-surface-variant italic">Listening...</div>';
+    messagesEl.appendChild(thinking);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    fetch('/wake/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: text })
+    })
+    .then(resp => resp.json())
+    .then(data => {
+      thinking.classList.remove('animate-pulse');
+      if (data.wake_detected && data.answer) {
+        thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">🎙️ Raso</div><div class="text-on-surface leading-relaxed">${escHtml(data.answer)}</div>`;
+        // Speak the answer via TTS
+        speakText(data.answer);
+      } else if (data.wake_detected) {
+        thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">🎙️ Raso</div><div class="text-on-surface leading-relaxed">I'm here! What would you like to know?</div>`;
+        speakText("I'm here! What would you like to know?");
+      } else {
+        thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Raso</div><div class="text-on-surface leading-relaxed">Say "Hey Raso" first to activate me.</div>`;
+      }
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    })
+    .catch(e => {
+      thinking.classList.remove('animate-pulse');
+      thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Raso</div><div class="text-on-surface">I heard you but couldn't process. Try again.</div>`;
+    });
+
+    return;
+  }
 
   // Check if user wants to add something to memory
   const addToMemoryPattern = /add\s+(.+?)\s+(to\s+)?memory/i;

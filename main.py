@@ -102,6 +102,14 @@ async def lifespan(app: FastAPI):
                 except Exception as e:
                     log.warning(f"⚠️ {agent_name} shared_memory setup failed: {e}")
 
+    # Connect PartnerAgent to SearchAgent for web search capability
+    if agents.get("partner") and agents.get("search"):
+        try:
+            agents["partner"].set_search_agent(agents["search"])
+            log.info("✅ PartnerAgent connected to SearchAgent")
+        except Exception as e:
+            log.warning(f"⚠️ PartnerAgent search agent setup failed: {e}")
+
     # Store agent health for /health endpoint
     app.state.agent_health = agent_health
 
@@ -680,6 +688,115 @@ async def process_wake_audio(req: WakeAudioRequest):
 
 
 # ══════════════════════════════════════════════════════
+# WAKE WORD + ANSWER — Complete "Hey Raso, tell me X" flow
+# ══════════════════════════════════════════════════════
+
+class WakeAskRequest(BaseModel):
+    """Combined wake word + question request."""
+    transcript: str = Field(..., min_length=1, max_length=2000)
+    audio_b64: str = None
+
+
+@app.post("/wake/ask")
+async def wake_word_answer(req: WakeAskRequest):
+    """
+    Complete flow: "Hey Raso, tell me what is AMD"
+
+    1. Detect wake word in transcript
+    2. Extract command after "Hey Raso"
+    3. Route to PartnerAgent
+    4. Return answer for TTS
+
+    This is the main endpoint for voice-activated Q&A.
+    """
+    from agents.wake_word_agent import check_for_wake_word, extract_command_after_wake
+
+    log.info(f"🔔 Wake/ask request: {req.transcript[:50]}...")
+
+    # Check if wake word is present
+    if not check_for_wake_word(req.transcript):
+        return {
+            "wake_detected": False,
+            "answer": None,
+            "message": "Wake word not detected. Say 'Hey Raso' first."
+        }
+
+    # Extract command after wake word
+    command = extract_command_after_wake(req.transcript)
+
+    if not command:
+        # Wake word detected but no command - just activate
+        result = await agents["partner"].start_continuous_mode()
+        return {
+            "wake_detected": True,
+            "command": None,
+            "answer": "I'm here! What would you like to know?",
+            "message": result.get("message"),
+            "activated": True,
+        }
+
+    # Process the command through PartnerAgent
+    log.info(f"🎯 Processing command: {command[:50]}...")
+
+    result = await agents["partner"].ask_partner(command)
+
+    # Store in memory for future recall
+    await agents["partner"].listen_and_remember(
+        user_input=req.transcript,
+        audio_b64=req.audio_b64,
+        timestamp=datetime.utcnow().isoformat()
+    )
+
+    return {
+        "wake_detected": True,
+        "command": command,
+        "answer": result.get("answer", ""),
+        "provider": result.get("provider", "unknown"),
+        "processing_ms": result.get("processing_ms", 0),
+        "web_info_used": result.get("web_info_used", False),
+        "past_context_used": result.get("past_context_used", False),
+    }
+
+
+@app.post("/partner/wake")
+async def partner_wake_request(message: str):
+    """
+    Alternative endpoint for "Hey Raso" style queries via REST API.
+
+    Usage:
+        POST /partner/wake
+        Body: "Hey Raso, tell me what is AMD"
+    """
+    from agents.wake_word_agent import check_for_wake_word, extract_command_after_wake
+
+    if not check_for_wake_word(message):
+        return {
+            "wake_detected": False,
+            "answer": None,
+            "message": "Wake word 'Hey Raso' not detected."
+        }
+
+    command = extract_command_after_wake(message)
+
+    if not command:
+        result = await agents["partner"].start_continuous_mode()
+        return {
+            "wake_detected": True,
+            "answer": "I'm here! What would you like to know?",
+            "message": result.get("message"),
+        }
+
+    result = await agents["partner"].ask_partner(command)
+
+    return {
+        "wake_detected": True,
+        "command": command,
+        "answer": result.get("answer", ""),
+        "processing_ms": result.get("processing_ms", 0),
+    }
+
+
+# ══════════════════════════════════════════════════════
 # DOCUMENT IMPORT — Import files to memory
 # ══════════════════════════════════════════════════════
 
@@ -1006,28 +1123,70 @@ async def websocket_session(websocket: WebSocket, session_id: str):
 
             # ── WAKE_DETECTED ───────────────────────────────
             elif msg.type == WSMessageType.WAKE_DETECTED:
-                transcript = msg.data.get("transcript", "")
-                command = msg.data.get("command", "")
+                """
+                Complete "Hey Raso, tell me what is AMD" flow via WebSocket.
 
+                Browser sends: WAKE_DETECTED { transcript: "Hey Raso, what is AMD?" }
+                Backend processes and sends back: PARTNER_RESPONSE { response: "AMD is..." }
+                """
+                from agents.wake_word_agent import check_for_wake_word, extract_command_after_wake
+
+                transcript = msg.data.get("transcript", "")
                 log.info(f"🔔 Wake word detected: {transcript[:50]}...")
 
-                # Activate partner
-                result = await agents["partner"].start_continuous_mode(session_id)
+                # Check if wake word is present
+                if not check_for_wake_word(transcript):
+                    await send(websocket, WSMessageType.ERROR, {
+                        "message": "Wake word not detected. Say 'Hey Raso' first."
+                    })
+                    continue
 
-                # If there's a command after wake word, process it
-                if command:
+                # Activate partner
+                await agents["partner"].start_continuous_mode(session_id)
+
+                # Extract command after wake word
+                command = extract_command_after_wake(transcript)
+
+                if not command:
+                    # Wake word detected but no command
                     await send(websocket, WSMessageType.PARTNER_READY, {
                         "status": "active",
-                        "command": command,
-                        "message": "I'm here! Processing your request...",
+                        "wake_detected": True,
+                        "message": "I'm here! What would you like to know?",
                     })
+                    log.info("✅ Wake word activated (no command)")
+                    continue
 
-                    # Process the command
-                    result = await agents["partner"].ask_partner(command)
-                    await send(websocket, WSMessageType.PARTNER_RESPONSE, {
-                        "response": result.get("answer", ""),
-                        "command": command,
-                    })
+                # Process the command
+                log.info(f"🎯 Processing command: {command[:50]}...")
+
+                result = await agents["partner"].ask_partner(command)
+
+                # Send answer back to browser for TTS
+                await send(websocket, WSMessageType.PARTNER_RESPONSE, {
+                    "wake_detected": True,
+                    "command": command,
+                    "response": result.get("answer", ""),
+                    "provider": result.get("provider", "unknown"),
+                    "processing_ms": result.get("processing_ms", 0),
+                    "tts_ready": True,  # Signal to frontend to speak this
+                })
+
+                # Store in memory for future recall
+                await agents["partner"].listen_and_remember(
+                    user_input=transcript,
+                    timestamp=datetime.utcnow().isoformat()
+                )
+
+                # Record Q&A interaction
+                await agents["recording"].record_qa_interaction(
+                    session_id=session_id,
+                    question=command,
+                    answer=result.get("answer", ""),
+                    provider=result.get("provider", "unknown"),
+                )
+
+                log.info(f"✅ Wake word answer sent: {result.get('answer', '')[:50]}...")
 
             # ── IMPORT_DOCUMENT ────────────────────────────
             elif msg.type == WSMessageType.IMPORT_DOCUMENT:
