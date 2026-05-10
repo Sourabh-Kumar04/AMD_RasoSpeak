@@ -158,6 +158,7 @@ async def styles_css(): return FileResponse("styles.css")
 @app.get("/index.html")
 async def index_html(): return FileResponse("index.html")
 @app.get("/logo.png")
+@app.get("/favicon.ico")
 async def logo_png():
     # Try to serve logo.png from file system, fallback to SVG if not found
     import os
