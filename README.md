@@ -27,7 +27,7 @@ tags:
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 **Your friendly AI companion with perfect memory.**
-**"Hey Raso, what did I say about AMD?"**
+
 
 **[Live Demo](https://lablab-ai-amd-developer-hackathon-rasospeak.hf.space)** • [Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start)
 
@@ -377,7 +377,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**RasoSpeak v2 — Your AI Companion.**
+**RasoSpeak — Your AI Companion.**
 
 *Meet Raso — your friendly AI friend with perfect memory.*
 *"Hey Raso, what did I say about...?"*
