@@ -5,7 +5,7 @@
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 python-multipart==0.0.12
-websockets==13.1
+websockets>=10.0,<13.0
 
 # ── PYDANTIC ───────────────────────────────────────────
 pydantic==2.9.2
