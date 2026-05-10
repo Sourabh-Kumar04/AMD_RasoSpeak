@@ -29,7 +29,6 @@ COPY state.js .
 COPY ui.js .
 COPY speech.js .
 COPY nlp.js .
-COPY logo.png .
 
 # Copy directories
 COPY agents/ ./agents/
