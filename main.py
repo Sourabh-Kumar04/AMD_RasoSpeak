@@ -142,16 +142,18 @@ from pathlib import Path
 # Download logo.png from HF Hub if not present (for Docker container)
 if not os.path.exists("logo.png"):
     try:
-        import httpx
-        token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
-        headers = {"Authorization": f"Bearer {token}"} if token else {}
-        url = "https://huggingface.co/lablab-ai-amd-developer-hackathon/RasoSpeak/resolve/main/logo.png"
-        r = httpx.get(url, headers=headers, timeout=30)
-        if r.status_code == 200:
-            with open("logo.png", "wb") as f:
-                f.write(r.content)
-    except Exception:
-        pass
+        from huggingface_hub import hf_hub_download
+        # For Spaces, the token is automatically available
+        logo_path = hf_hub_download(
+            repo_id="lablab-ai-amd-developer-hackathon/RasoSpeak",
+            filename="logo.png",
+            repo_type="space",
+            token=True  # Use token from environment
+        )
+        import shutil
+        shutil.copy(logo_path, "logo.png")
+    except Exception as e:
+        print(f"Logo download failed: {e}")
 
 # Serve static files (js, css) from current directory
 app.mount("/static", StaticFiles(directory="."), name="static")
