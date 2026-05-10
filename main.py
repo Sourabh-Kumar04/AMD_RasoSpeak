@@ -139,24 +139,24 @@ app.add_middleware(
 import os
 from pathlib import Path
 
-# Download logo.png from HF Hub if not present (for Docker container)
+# Attempt to ensure logo.png is present (fallback for transient build issues)
 if not os.path.exists("logo.png"):
     try:
         import httpx
-        # For public Space files, try with HF_TOKEN if available
         token = os.environ.get("HF_TOKEN")
         headers = {"Authorization": f"Bearer {token}"} if token else {}
-        # Try the raw URL first (works for public repos)
-        url = "https://huggingface.co/lablab-ai-amd-developer-hackathon/RasoSpeak/resolve/main/logo.png"
-        r = httpx.get(url, headers=headers, timeout=30, follow_redirects=True)
-        if r.status_code == 200:
-            with open("logo.png", "wb") as f:
-                f.write(r.content)
-            print("Logo downloaded successfully")
-        else:
-            print(f"Logo download failed: {r.status_code}")
+        # Try to fetch from the local space assets if available, or the hub
+        url = "https://huggingface.co/spaces/lablab-ai-amd-developer-hackathon/RasoSpeak/resolve/main/logo.png"
+        with httpx.Client(follow_redirects=True) as client:
+            r = client.get(url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                with open("logo.png", "wb") as f:
+                    f.write(r.content)
+                print("Logo recovered from Hub")
+            else:
+                print(f"Logo recovery skipped (Status {r.status_code})")
     except Exception as e:
-        print(f"Logo download failed: {e}")
+        print(f"Logo recovery error: {e}")
 
 # Serve static files (js, css) from current directory
 app.mount("/static", StaticFiles(directory="."), name="static")
@@ -177,12 +177,17 @@ async def styles_css(): return FileResponse("styles.css")
 @app.get("/index.html")
 async def index_html(): return FileResponse("index.html")
 @app.get("/logo.png")
-async def logo_png():
-    return FileResponse("logo.png")
-
 @app.get("/favicon.ico")
-async def favicon():
-    return FileResponse("logo.png")
+async def logo_png():
+    if os.path.exists("logo.png"):
+        return FileResponse("logo.png")
+    # Fallback SVG if file is missing (prevents 500 error)
+    svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="45" fill="#FF6600"/>
+      <path d="M30 50 Q50 20 70 50 T110 50" stroke="white" stroke-width="8" fill="none"/>
+      <text x="50" y="85" font-size="12" fill="white" text-anchor="middle" font-family="sans-serif" font-weight="bold">RASOSPEAK</text>
+    </svg>'''
+    return Response(content=svg, media_type="image/svg+xml")
 
 
 # ── ROOT ROUTE ─────────────────────────────────────────
