@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Any
 
 import uvicorn
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

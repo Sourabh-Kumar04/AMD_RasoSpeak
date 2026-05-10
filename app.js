@@ -1051,4 +1051,102 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') webSearch();
     });
   }
+
+  // New HTML interface handlers
+  const chatInput = document.getElementById('chat-input');
+  if (chatInput) {
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  }
+
+  const memorySearch = document.getElementById('memory-search');
+  if (memorySearch) {
+    memorySearch.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') searchMemory();
+    });
+  }
 });
+
+// ── WRAPPER FUNCTIONS FOR NEW UI ────────────────────────
+// Alias functions to match HTML element IDs and function names
+
+function startPartner() {
+  startPartnerMode();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const messagesEl = document.getElementById('chat-messages');
+  if (!input || !messagesEl) return;
+
+  const text = input.value.trim();
+  if (!text) return;
+
+  // Add user message
+  const userMsg = document.createElement('div');
+  userMsg.className = 'text-sm p-2 bg-white rounded border';
+  userMsg.textContent = text;
+  messagesEl.appendChild(userMsg);
+  input.value = '';
+
+  // Show thinking
+  const thinking = document.createElement('div');
+  thinking.className = 'text-sm p-2 text-gray-500';
+  thinking.textContent = 'Thinking...';
+  messagesEl.appendChild(thinking);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+
+  try {
+    const resp = await fetch('/partner/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    const data = await resp.json();
+    thinking.remove();
+
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'text-sm p-2 bg-gray-100 rounded border';
+    aiMsg.textContent = data.response || data.error || 'No response';
+    messagesEl.appendChild(aiMsg);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  } catch (err) {
+    thinking.textContent = 'Error: ' + err.message;
+  }
+}
+
+async function searchMemory() {
+  const input = document.getElementById('memory-search');
+  const resultsEl = document.getElementById('memory-results');
+  if (!input || !resultsEl) return;
+
+  const query = input.value.trim();
+  if (!query) return;
+
+  resultsEl.innerHTML = '<p class="text-sm text-gray-500">Searching...</p>';
+
+  try {
+    const resp = await fetch(`/partner/query?query=${encodeURIComponent(query)}`);
+    const data = await resp.json();
+
+    if (data.results && data.results.length > 0) {
+      resultsEl.innerHTML = data.results.map(r =>
+        `<div class="p-2 bg-gray-50 rounded text-sm">${r.text || JSON.stringify(r)}</div>`
+      ).join('');
+    } else {
+      resultsEl.innerHTML = '<p class="text-sm text-gray-500">No results found</p>';
+    }
+  } catch (err) {
+    resultsEl.innerHTML = '<p class="text-sm text-red-500">Error: ' + err.message + '</p>';
+  }
+}
+
+function importDoc() {
+  // Switch to documents view
+  switchView('docs');
+}
+
+function importText() {
+  importTextNote();
+}
