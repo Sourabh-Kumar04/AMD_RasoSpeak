@@ -6,7 +6,7 @@
   <title>RasoSpeak — Your AI Partner</title>
   <link rel="icon" type="image/png" href="logo.png"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=Inter:wght@400;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <script id="tailwind-config">
     tailwind.config = {
@@ -76,23 +76,23 @@
             "unit": "4px"
           },
           "fontFamily": {
-            "headline-md": ["Plus Jakarta Sans"],
+            "headline-md": ["Hanken Grotesk"],
             "body-sm": ["Inter"],
             "label-caps": ["Inter"],
             "body-md": ["Inter"],
-            "headline-lg": ["Plus Jakarta Sans"],
+            "headline-lg": ["Hanken Grotesk"],
             "mono-label": ["JetBrains Mono"],
-            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-sm": ["Hanken Grotesk"],
             "body-lg": ["Inter"]
           },
           "fontSize": {
-            "headline-md": ["28px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
-            "body-sm": ["13px", { "lineHeight": "1.5", "fontWeight": "400" }],
-            "label-caps": ["11px", { "lineHeight": "1", "letterSpacing": "0.08em", "fontWeight": "600" }],
-            "body-md": ["14px", { "lineHeight": "1.6", "fontWeight": "400" }],
-            "headline-lg": ["36px", { "lineHeight": "1.1", "letterSpacing": "-0.03em", "fontWeight": "800" }],
+            "headline-md": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["13px", { "lineHeight": "1.4", "fontWeight": "400" }],
+            "label-caps": ["11px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+            "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
             "mono-label": ["12px", { "lineHeight": "1", "fontWeight": "400" }],
-            "headline-sm": ["20px", { "lineHeight": "1.3", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-sm": ["18px", { "lineHeight": "1.4", "fontWeight": "600" }],
             "body-lg": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }]
           }
         },
@@ -106,71 +106,53 @@
     .view { display: none; }
     .view.active { display: block; }
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    .active-nav { background-color: #18181b !important; color: white !important; font-weight: 600; }
-
-    /* Premium accent styles */
-    .premium-btn {
-      background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
-      transition: all 0.2s ease;
-    }
-    .premium-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
+    .active-nav { background-color: #ff6600 !important; color: white !important; font-weight: bold; }
 
     /* Accuracy badge dynamic colors */
     #acc-badge { transition: color 0.3s; }
 
-    /* Premium card styling */
-    .premium-card {
-      background: white;
-      border: 1px solid rgba(0,0,0,0.06);
-      transition: all 0.2s ease;
-    }
-    .premium-card:hover {
-      border-color: rgba(0,0,0,0.1);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-    }
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #E0E0E0; }
   </style>
 </head>
 <body class="text-on-surface antialiased flex h-screen overflow-hidden">
 
 <!-- NavigationDrawer (Web) -->
-<nav class="hidden md:flex flex-col gap-unit p-5 bg-white h-full w-64 border-r border-gray-200 shrink-0">
-  <div class="mb-8">
-    <div class="flex items-center gap-3 mb-1">
-      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm">
-        <span class="text-white font-bold text-sm">R</span>
-      </div>
-      <div>
-        <h2 class="text-lg font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">RasoSpeak</h2>
-      </div>
+<nav class="hidden md:flex flex-col gap-unit p-4 bg-surface-container-low border-r border-outline-variant h-full w-64 shrink-0">
+  <div class="mb-6 px-2">
+    <p class="font-label-caps text-label-caps text-on-surface-variant opacity-60 mb-2">SECONDARY BRAIN</p>
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="RasoSpeak" class="h-8 w-8 object-contain">
+      <h2 class="text-headline-md font-headline-md text-on-surface font-bold tracking-tight">RasoSpeak</h2>
     </div>
-    <p class="text-xs text-gray-400 font-medium tracking-wide" style="font-family: 'Inter', sans-serif;">Secondary Brain</p>
   </div>
   <div class="flex flex-col gap-1">
-    <a id="nav-live" onclick="switchView('live')" class="flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors rounded-lg text-sm font-medium cursor-pointer" href="#">
-      <span class="material-symbols-outlined text-lg">hub</span>
+    <a id="nav-live" onclick="switchView('live')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
+      <span class="material-symbols-outlined">account_tree</span>
       Topology
     </a>
-    <a id="nav-partner" onclick="switchView('partner')" class="flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors rounded-lg text-sm font-medium cursor-pointer" href="#">
-      <span class="material-symbols-outlined text-lg">chat</span>
+    <a id="nav-partner" onclick="switchView('partner')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
+      <span class="material-symbols-outlined">psychology_alt</span>
       AI Partner
     </a>
-    <a id="nav-script" onclick="switchView('script')" class="flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors rounded-lg text-sm font-medium cursor-pointer" href="#">
-      <span class="material-symbols-outlined text-lg">edit_note</span>
+    <a id="nav-script" onclick="switchView('script')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
+      <span class="material-symbols-outlined">description</span>
       Script Studio
     </a>
-    <a id="nav-memory" onclick="switchView('memory')" class="flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors rounded-lg text-sm font-medium cursor-pointer" href="#">
-      <span class="material-symbols-outlined text-lg">database</span>
+    <a id="nav-memory" onclick="switchView('memory')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
+      <span class="material-symbols-outlined">psychology</span>
       Memory
     </a>
-    <a id="nav-docs" onclick="switchView('docs')" class="flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors rounded-lg text-sm font-medium cursor-pointer" href="#">
-      <span class="material-symbols-outlined text-lg">folder</span>
+    <a id="nav-docs" onclick="switchView('docs')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
+      <span class="material-symbols-outlined">folder</span>
       Documents
     </a>
-    <a id="nav-settings" onclick="switchView('settings')" class="flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors rounded-lg text-sm font-medium cursor-pointer mt-auto" href="#">
-      <span class="material-symbols-outlined text-lg">settings</span>
+  </div>
+  <div class="mt-auto pt-4 border-t border-outline-variant">
+    <a id="nav-settings" onclick="switchView('settings')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
+      <span class="material-symbols-outlined">settings</span>
       Settings
     </a>
   </div>
@@ -179,24 +161,22 @@
 <!-- Main Content Area -->
 <main class="flex-1 flex flex-col h-full overflow-hidden">
   <!-- TopAppBar -->
-  <header class="bg-surface border-b border-outline-variant flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-unit sticky top-0 z-10 h-16 shrink-0">
+  <header class="bg-surface border-b border-outline-variant flex items-center justify-between w-full px-margin-mobile md:px-margin-desktop py-unit sticky top-0 z-10 h-14 shrink-0">
     <div class="flex items-center gap-3">
-      <div class="w-7 h-7 rounded-md bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm">
-        <span class="text-white font-bold text-xs">R</span>
+      <img src="logo.png" alt="RasoSpeak" class="h-8 w-8">
+      <span class="font-headline-md text-headline-md text-on-surface font-bold">RasoSpeak</span>
+    </div>
+    <div class="hidden md:flex items-center gap-6">
+      <div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded border border-outline-variant">
+        <span class="material-symbols-outlined text-primary text-sm">memory</span>
+        <span class="font-mono-label text-mono-label">GPU Ready</span>
       </div>
-      <div class="flex flex-col">
-        <div class="text-[9px] font-semibold text-orange-600 tracking-[0.15em] uppercase leading-none mb-0.5">RasoSpeak</div>
-        <h1 class="text-base font-bold text-gray-800 leading-none tracking-tight" id="page-title" style="font-family: 'Plus Jakarta Sans', sans-serif;">Command Center</h1>
+      <div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded border border-outline-variant">
+        <div class="w-2 h-2 rounded-full bg-primary-container"></div>
+        <span class="font-mono-label text-mono-label">Status: Online</span>
       </div>
     </div>
-    <div class="flex items-center gap-4">
-      <div id="header-timer" class="text-mono-label font-bold text-on-surface bg-surface-container px-3 py-1 rounded border border-yc hidden">00:00</div>
-      <span class="bg-surface-container text-on-surface-variant text-label-caps font-label-caps px-2 py-1 rounded">GPU Ready</span>
-      <div class="flex items-center gap-2">
-        <div id="status-dot" class="w-2 h-2 rounded-full bg-primary-container"></div>
-        <span id="status-text" class="text-label-caps font-label-caps text-primary">Status: Online</span>
-      </div>
-    </div>
+    <span class="material-symbols-outlined text-on-surface-variant">account_circle</span>
   </header>
 
   <!-- Content Containers -->
