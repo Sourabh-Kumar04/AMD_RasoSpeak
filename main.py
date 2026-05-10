@@ -159,8 +159,11 @@ async def styles_css(): return FileResponse("styles.css")
 async def index_html(): return FileResponse("index.html")
 @app.get("/logo.png")
 async def logo_png():
-    # Return a simple SVG logo since HF doesn't support binary files via git
-    from fastapi.responses import Response
+    # Try to serve logo.png from file system, fallback to SVG if not found
+    import os
+    if os.path.exists("logo.png"):
+        return FileResponse("logo.png")
+    # Fallback SVG
     svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
       <circle cx="50" cy="50" r="45" fill="#6366f1"/>
       <text x="50" y="60" font-size="40" fill="white" text-anchor="middle" font-family="sans-serif">R</text>
