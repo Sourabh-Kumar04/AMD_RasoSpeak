@@ -226,6 +226,11 @@ logs/
 temp/
 .cache/
 
+# Extra documentation files
+HF_*.md
+RUN_*.md
+hf_*.md
+
 # OS
 .DS_Store
 Thumbs.db
