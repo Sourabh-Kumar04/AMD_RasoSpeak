@@ -1,10 +1,12 @@
 """
-RasoSpeak v2 — Partner Agent (Your Secondary Brain)
-An AI partner that continuously listens, remembers everything,
-answers questions based on past conversations, and acts as your
-personal AI companion.
-
-This is the "brain" that makes RasoSpeak feel like a real partner.
+RasoSpeak v2 — Raso Agent (Your AI Companion with Memory)
+Raso is your personal AI companion who:
+- Remembers everything you say
+- Has its own personality: helpful, witty, curious
+- Knows your preferences and context
+- Can search the web for you
+- Sets reminders and follows up
+- Acts like a real friend, not just a tool
 """
 
 import json
@@ -21,28 +23,49 @@ from .base_agent import BaseAgent
 from .shared_memory_agent import SharedMemoryAgent
 from config.settings import settings
 
-log = logging.getLogger("rasospeak.partner")
+log = logging.getLogger("rasospeak.raso")
 
 
-class PartnerAgent(BaseAgent):
+# ══════════════════════════════════════════════════════
+# RASO'S PERSONALITY & VOICE
+# ══════════════════════════════════════════════════════
+
+RASO_PERSONALITY = {
+    "name": "Raso",
+    "greeting": "Hey there! I'm Raso, your AI companion. What can I help you with today?",
+    "thinking": "Hmm, let me think about that...",
+    "remembering": "Got it! I'll remember that.",
+    "searching": "Let me look that up for you!",
+    "not_understanding": "I'm not sure I follow. Can you explain that differently?",
+    "goodbye": "Talk to you later! Remember, I've got your back.",
+    "style": "friendly, curious, slightly witty, always helpful",
+    "tells_jokes": True,
+    "asks_follow_up": True,
+}
+
+# Response templates that give Raso its voice
+def rasos_voice():
+    """Returns Raso's current personality settings."""
+    return RASO_PERSONALITY.copy()
+
+
+class RasoAgent(BaseAgent):
     """
-    Agent 0.5: Your AI Partner / Secondary Brain
+    Agent 0.5: Raso — Your AI Companion with Memory
 
-    Unlike other agents that respond to specific tasks, this agent
-    is always "listening" and ready to help as your AI companion.
+    Raso is not just a tool or a chatbot. It's a companion who:
+    - Remembers everything you say (perfect memory)
+    - Knows your preferences, goals, interests
+    - Can answer questions based on past conversations
+    - Searches the web for new information
+    - Sets reminders and follows up on them
+    - Has its own personality (helpful, curious, slightly witty)
+    - Makes you feel like you're talking to a real friend
 
-    Features:
-    - Continuous memory: Remembers everything you say
-    - Context-aware: Knows your preferences, goals, interests
-    - Query past: "What did I say about X?" "When did I talk about Y?"
-    - Smart recall: Finds relevant past conversations
-    - Web search: Can search for new information
-    - Summarization: Auto-summarizes important discussions
-    - Reminders: Remembers things you want to be reminded of
-    - Relationship: Acts like a helpful partner, not a tool
+    Wake word: "Hey Raso"
     """
 
-    name = "PartnerAgent"
+    name = "RasoAgent"
 
     def __init__(self):
         self._client: Optional[httpx.AsyncClient] = None
@@ -50,16 +73,18 @@ class PartnerAgent(BaseAgent):
         self._continuous_mode = False
         self._current_session_id = None
         self._reminders: list = []
+        self._personality = RASO_PERSONALITY.copy()
+        self._conversation_count = 0
 
     async def initialize(self):
-        """Initialize partner agent."""
+        """Initialize Raso agent."""
         if settings.VLLM_BASE_URL:
             self._client = httpx.AsyncClient(
                 base_url=settings.VLLM_BASE_URL,
                 timeout=60.0,
             )
 
-        log.info("✅ PartnerAgent (Your AI Partner) initialized")
+        log.info("✅ Raso (Your AI Companion) initialized with personality")
 
         # Load existing reminders
         self._load_reminders()
@@ -67,7 +92,30 @@ class PartnerAgent(BaseAgent):
     def set_shared_memory(self, shared_memory: SharedMemoryAgent):
         """Connect to shared memory for persistent storage."""
         self._shared_memory = shared_memory
-        log.info("PartnerAgent connected to SharedMemoryAgent")
+        log.info("Raso connected to SharedMemoryAgent")
+
+    def set_search_agent(self, search_agent):
+        """Connect to search agent for web search capability."""
+        self._search_agent = search_agent
+        log.info("Raso connected to SearchAgent")
+
+    # ══════════════════════════════════════════════════════
+    # RASO'S CORE METHODS
+    # ══════════════════════════════════════════════════════
+
+    def greet(self) -> str:
+        """Raso's greeting."""
+        return self._personality["greeting"]
+
+    def think(self) -> str:
+        """Raso's thinking message."""
+        self._conversation_count += 1
+        return self._personality["thinking"]
+
+    def remember(self, content: str) -> str:
+        """Raso acknowledging memory storage."""
+        log.debug(f"🧠 Raso remembering: {content[:50]}...")
+        return self._personality["remembering"]
 
     # ══════════════════════════════════════════════════════
     # CONTINUOUS LISTENING MODE
@@ -75,26 +123,26 @@ class PartnerAgent(BaseAgent):
 
     async def start_continuous_mode(self, session_id: str = None) -> dict:
         """
-        Start continuous listening mode - partner is always "awake".
+        Start continuous listening mode - Raso is always "awake".
         Records everything for later recall.
         """
         self._continuous_mode = True
-        self._current_session_id = session_id or f"continuous_{int(time.time())}"
+        self._current_session_id = session_id or f"raso_continuous_{int(time.time())}"
 
-        log.info(f"🎧 Partner mode STARTED: {self._current_session_id}")
+        log.info(f"🎧 Raso mode STARTED: {self._current_session_id}")
 
         # Store in memory
         if self._shared_memory:
             await self._shared_memory.store(
                 f"continuous_session_{self._current_session_id}",
-                {"started_at": datetime.utcnow().isoformat(), "mode": "continuous"},
+                {"started_at": datetime.utcnow().isoformat(), "mode": "continuous", "agent": "Raso"},
                 category="session"
             )
 
         return {
             "status": "continuous_mode_started",
             "session_id": self._current_session_id,
-            "message": "I'm listening! Ask me anything or just talk to me."
+            "message": self.greet()
         }
 
     async def stop_continuous_mode(self) -> dict:
@@ -102,12 +150,12 @@ class PartnerAgent(BaseAgent):
         self._continuous_mode = False
         session_id = self._current_session_id
 
-        log.info(f"🎧 Partner mode STOPPED: {session_id}")
+        log.info(f"🎧 Raso mode STOPPED: {session_id}")
 
         return {
             "status": "continuous_mode_stopped",
             "session_id": session_id,
-            "message": "Continuous mode ended. Your memories are saved."
+            "message": self._personality["goodbye"]
         }
 
     def is_continuous_mode(self) -> bool:

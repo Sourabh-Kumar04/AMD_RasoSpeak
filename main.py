@@ -32,7 +32,7 @@ from agents.search_agent import SearchAgent
 from agents.recording_agent import RecordingAgent
 from agents.analytics_agent import AnalyticsAgent
 from agents.shared_memory_agent import SharedMemoryAgent
-from agents.partner_agent import PartnerAgent
+from agents.partner_agent import RasoAgent
 from agents.wake_word_agent import WakeWordAgent
 from agents.document_agent import DocumentAgent
 from agents.notification_agent import NotificationAgent
@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI):
         ("search", SearchAgent, "Tavily/DuckDuckGo"),
         ("recording", RecordingAgent, "Audio recording"),
         ("analytics", AnalyticsAgent, "Performance analytics"),
-        ("partner", PartnerAgent, "Your AI companion"),
+        ("raso", RasoAgent, "Your AI companion with memory"),
         ("wake_word", WakeWordAgent, "'Hey Raso' detection"),
         ("document", DocumentAgent, "PDF/URL import"),
         ("notification", NotificationAgent, "Phone notifications"),
@@ -95,20 +95,20 @@ async def lifespan(app: FastAPI):
 
     # Set shared memory references for agents that need it
     if agents.get("shared_memory"):
-        for agent_name in ["qa", "search", "recording", "analytics", "partner", "document"]:
+        for agent_name in ["qa", "search", "recording", "analytics", "raso", "document"]:
             if agents.get(agent_name):
                 try:
                     agents[agent_name].set_shared_memory(agents["shared_memory"])
                 except Exception as e:
                     log.warning(f"⚠️ {agent_name} shared_memory setup failed: {e}")
 
-    # Connect PartnerAgent to SearchAgent for web search capability
-    if agents.get("partner") and agents.get("search"):
+    # Connect Raso to SearchAgent for web search capability
+    if agents.get("raso") and agents.get("search"):
         try:
-            agents["partner"].set_search_agent(agents["search"])
-            log.info("✅ PartnerAgent connected to SearchAgent")
+            agents["raso"].set_search_agent(agents["search"])
+            log.info("✅ Raso connected to SearchAgent")
         except Exception as e:
-            log.warning(f"⚠️ PartnerAgent search agent setup failed: {e}")
+            log.warning(f"⚠️ Raso search agent setup failed: {e}")
 
     # Store agent health for /health endpoint
     app.state.agent_health = agent_health
@@ -507,7 +507,7 @@ async def add_weak_word(req: WeakWordRequest, session_id: str = None):
 
 
 # ══════════════════════════════════════════════════════
-# AI PARTNER — Your Secondary Brain / Conversational AI
+# RASO — Your AI Companion with Memory & Personality
 # ══════════════════════════════════════════════════════
 
 class PartnerAskRequest(BaseModel):
@@ -520,22 +520,22 @@ class ReminderRequest(BaseModel):
     remind_at: str | None  # ISO timestamp or "in 1 hour"
 
 
-@app.post("/ai-partner/start")
+@app.post("/raso/start")
 async def start_partner_mode(session_id: str = None):
-    """Start continuous AI partner mode - always listening for your commands."""
-    return await agents["partner"].start_continuous_mode(session_id)
+    """Start continuous Raso mode - your AI companion is always listening for your commands."""
+    return await agents["raso"].start_continuous_mode(session_id)
 
 
-@app.post("/ai-partner/stop")
+@app.post("/raso/stop")
 async def stop_partner_mode():
-    """Stop continuous AI partner mode."""
-    return await agents["partner"].stop_continuous_mode()
+    """Stop continuous Raso mode."""
+    return await agents["raso"].stop_continuous_mode()
 
 
-@app.get("/ai-partner/status")
+@app.get("/raso/status")
 async def get_partner_status():
-    """Get AI partner status."""
-    current_provider = await agents["partner"].get_current_provider()
+    """Get Raso companion status."""
+    current_provider = await agents["raso"].get_current_provider()
 
     # Get preference info
     prefs = await agents["shared_memory"].get_user_preferences()
@@ -543,21 +543,21 @@ async def get_partner_status():
     temp_provider = prefs.get("temporary_ai_provider")
 
     return {
-        "continuous_mode": agents["partner"].is_continuous_mode(),
+        "continuous_mode": agents["raso"].is_continuous_mode(),
         "current_provider": current_provider,
         "default_provider": default_provider,
         "temporary_provider": temp_provider,
     }
 
 
-@app.post("/ai-partner/provider")
+@app.post("/raso/provider")
 async def set_partner_provider(provider: str, temporary: bool = False):
     """
-    Set the AI provider for the partner.
+    Set the AI provider for Raso.
 
     Examples:
-    - POST /ai-partner/provider?provider=openai (permanent)
-    - POST /ai-partner/provider?provider=google&temporary=true (one question)
+    - POST /raso/provider?provider=openai (permanent)
+    - POST /raso/provider?provider=google&temporary=true (one question)
     """
     if temporary:
         await agents["shared_memory"].set_user_preference("temporary_ai_provider", provider)
@@ -581,54 +581,54 @@ async def set_partner_provider(provider: str, temporary: bool = False):
     }
 
 
-@app.post("/ai-partner/ask")
+@app.post("/raso/ask")
 async def ask_partner(req: PartnerAskRequest):
     """
     Ask your AI partner anything.
     Uses past conversations + web search + knowledge.
     """
-    return await agents["partner"].ask_partner(req.message, req.provider)
+    return await agents["raso"].ask_partner(req.message, req.provider)
 
 
-@app.post("/ai-partner/listen")
+@app.post("/raso/listen")
 async def partner_listen(user_input: str, audio_b64: str = None):
     """
     In continuous mode, let partner listen and remember.
     """
-    return await agents["partner"].listen_and_remember(user_input, audio_b64)
+    return await agents["raso"].listen_and_remember(user_input, audio_b64)
 
 
-@app.get("/ai-partner/query")
+@app.get("/raso/query")
 async def query_past_conversations(query: str):
     """
     Query past conversations.
     Example: "What did I say about AI?" "When did I talk about X?"
     """
-    return await agents["partner"].query_past(query)
+    return await agents["raso"].query_past(query)
 
 
-@app.post("/ai-partner/reminder")
+@app.post("/raso/reminder")
 async def set_partner_reminder(req: ReminderRequest):
     """Set a reminder."""
-    return await agents["partner"].set_reminder(req.message, req.remind_at)
+    return await agents["raso"].set_reminder(req.message, req.remind_at)
 
 
-@app.get("/ai-partner/reminders")
+@app.get("/raso/reminders")
 async def get_partner_reminders():
     """Get all reminders."""
-    return await agents["partner"].get_reminders()
+    return await agents["raso"].get_reminders()
 
 
-@app.delete("/ai-partner/reminder/{reminder_id}")
+@app.delete("/raso/reminder/{reminder_id}")
 async def delete_partner_reminder(reminder_id: str):
     """Delete a reminder."""
-    return await agents["partner"].delete_reminder(reminder_id)
+    return await agents["raso"].delete_reminder(reminder_id)
 
 
-@app.get("/ai-partner/summarize")
+@app.get("/raso/summarize")
 async def summarize_partner_conversations(days: int = 7):
     """Summarize conversations over past N days."""
-    return await agents["partner"].summarize_conversations(days)
+    return await agents["raso"].summarize_conversations(days)
 
 
 # ══════════════════════════════════════════════════════
@@ -726,7 +726,7 @@ async def wake_word_answer(req: WakeAskRequest):
 
     if not command:
         # Wake word detected but no command - just activate
-        result = await agents["partner"].start_continuous_mode()
+        result = await agents["raso"].start_continuous_mode()
         return {
             "wake_detected": True,
             "command": None,
@@ -738,10 +738,10 @@ async def wake_word_answer(req: WakeAskRequest):
     # Process the command through PartnerAgent
     log.info(f"🎯 Processing command: {command[:50]}...")
 
-    result = await agents["partner"].ask_partner(command)
+    result = await agents["raso"].ask_partner(command)
 
     # Store in memory for future recall
-    await agents["partner"].listen_and_remember(
+    await agents["raso"].listen_and_remember(
         user_input=req.transcript,
         audio_b64=req.audio_b64,
         timestamp=datetime.utcnow().isoformat()
@@ -758,13 +758,13 @@ async def wake_word_answer(req: WakeAskRequest):
     }
 
 
-@app.post("/ai-partner/wake")
+@app.post("/raso/wake")
 async def partner_wake_request(message: str):
     """
     Alternative endpoint for "Hey Raso" style queries via REST API.
 
     Usage:
-        POST /ai-partner/wake
+        POST /raso/wake
         Body: "Hey Raso, tell me what is AMD"
     """
     from agents.wake_word_agent import check_for_wake_word, extract_command_after_wake
@@ -779,14 +779,14 @@ async def partner_wake_request(message: str):
     command = extract_command_after_wake(message)
 
     if not command:
-        result = await agents["partner"].start_continuous_mode()
+        result = await agents["raso"].start_continuous_mode()
         return {
             "wake_detected": True,
             "answer": "I'm here! What would you like to know?",
             "message": result.get("message"),
         }
 
-    result = await agents["partner"].ask_partner(command)
+    result = await agents["raso"].ask_partner(command)
 
     return {
         "wake_detected": True,
@@ -1075,7 +1075,7 @@ async def websocket_session(websocket: WebSocket, session_id: str):
 
             # ── PARTNER_START ────────────────────────────────
             elif msg.type == WSMessageType.PARTNER_START:
-                result = await agents["partner"].start_continuous_mode(session_id)
+                result = await agents["raso"].start_continuous_mode(session_id)
                 await send(websocket, WSMessageType.PARTNER_READY, {
                     "status": "active",
                     "session_id": session_id,
@@ -1085,7 +1085,7 @@ async def websocket_session(websocket: WebSocket, session_id: str):
 
             # ── PARTNER_STOP ────────────────────────────────
             elif msg.type == WSMessageType.PARTNER_STOP:
-                result = await agents["partner"].stop_continuous_mode()
+                result = await agents["raso"].stop_continuous_mode()
                 await send(websocket, WSMessageType.PARTNER_READY, {
                     "status": "stopped",
                     "message": result.get("message", "Partner mode stopped"),
@@ -1100,7 +1100,7 @@ async def websocket_session(websocket: WebSocket, session_id: str):
                 log.info(f"💬 Partner message: {message[:50]}...")
 
                 # Get response from partner
-                result = await agents["partner"].ask_partner(
+                result = await agents["raso"].ask_partner(
                     question=message,
                     provider=provider,
                 )
@@ -1114,7 +1114,7 @@ async def websocket_session(websocket: WebSocket, session_id: str):
                 })
 
                 # Also remember this conversation
-                await agents["partner"].listen_and_remember(
+                await agents["raso"].listen_and_remember(
                     user_input=message,
                     timestamp=datetime.utcnow().isoformat()
                 )
@@ -1142,7 +1142,7 @@ async def websocket_session(websocket: WebSocket, session_id: str):
                     continue
 
                 # Activate partner
-                await agents["partner"].start_continuous_mode(session_id)
+                await agents["raso"].start_continuous_mode(session_id)
 
                 # Extract command after wake word
                 command = extract_command_after_wake(transcript)
@@ -1160,7 +1160,7 @@ async def websocket_session(websocket: WebSocket, session_id: str):
                 # Process the command
                 log.info(f"🎯 Processing command: {command[:50]}...")
 
-                result = await agents["partner"].ask_partner(command)
+                result = await agents["raso"].ask_partner(command)
 
                 # Send answer back to browser for TTS
                 await send(websocket, WSMessageType.PARTNER_RESPONSE, {
@@ -1173,7 +1173,7 @@ async def websocket_session(websocket: WebSocket, session_id: str):
                 })
 
                 # Store in memory for future recall
-                await agents["partner"].listen_and_remember(
+                await agents["raso"].listen_and_remember(
                     user_input=transcript,
                     timestamp=datetime.utcnow().isoformat()
                 )
