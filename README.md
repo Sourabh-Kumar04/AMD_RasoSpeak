@@ -20,14 +20,14 @@ tags:
 <div align="center">
 
 ![RasoSpeak](https://img.shields.io/badge/RasoSpeak-v2.0-7c6af5?style=for-the-badge)
-![AMD MI300X](https://img.shields.io/badge/AMD-MI300X%20GPU-e8294a?style=for-the-badge&logo=amd)
+![GPU](https://img.shields.io/badge/GPU-MI300X-e8294a?style=for-the-badge&logo=amd)
 ![ROCm](https://img.shields.io/badge/ROCm-6.1-e8294a?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.11-3776ab?style=for-the-badge&logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**An invisible AI speech coach that whispers your script through your earpiece,
-listens to your delivery, evaluates it with LLMs on AMD GPUs, and corrects you in real time.**
+**Your inner self. With memory. With search. With answers.**
+**"Hey Raso, what did I say about AMD?"**
 
 **[Live Demo](https://lablab-ai-amd-developer-hackathon-rasospeak.hf.space)** • [Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start)
 
@@ -37,59 +37,106 @@ listens to your delivery, evaluates it with LLMs on AMD GPUs, and corrects you i
 
 ## 🧠 What is RasoSpeak?
 
-RasoSpeak is your **AI Partner / Secondary Brain** — an intelligent system that:
+**RasoSpeak is your secondary brain — the inner version of you that:**
+- Has **perfect memory** — remembers everything you've ever said
+- Can **search the web** — "Hey Raso, what is the latest news on AI?"
+- **Chats with you** like you do yourself — continuous conversation
+- Is your **speech coach / presentation partner** — practice and improve
+- Gives you **live information** — instant answers when you ask
+- **Imports documents into memory** — PDFs, URLs, notes
+- **Switches between multiple AI providers** through voice activation
+- **Records what you hear** — and analyzes it when you want
+- **All 14 AIs share the same memory** — unified knowledge
 
-1. **Listens 24/7** and remembers everything you say
-2. **Whispers your script** through your earpiece during presentations
-3. **Evaluates your delivery** in real-time with LLM-powered analysis
-4. **Corrects you silently** without the audience knowing
-5. **Answers questions** on the fly (GPT/Claude/Gemini/Qwen)
-
-### Use Cases
-- 🎤 **Presentation Practice** — Practice speeches with real-time AI coaching
-- ❓ **Instant Q&A** — Ask questions during practice (like ChatGPT in your ear)
-- 🔍 **Live Information** — Search for facts, news, or definitions
-- 📊 **Progress Tracking** — Analytics on your speech improvement
-- 📝 **Document Memory** — Import PDFs, web pages, notes to your memory
+**Activate with:** "Hey Raso, tell me what is AMD"
+**Ask anything:** "Hey Raso, what did I say about X?"
+**Learn from recordings:** Analytics on your voice and speech patterns
 
 ---
 
-## ✨ Features
+## ✨ The Complete Vision
 
-### 🤖 14 Specialized AI Agents
+### 🎧 Your Inner Self — Always Listening
 
-| Agent | Function |
-|-------|----------|
-| **PartnerAgent** | Your AI partner — continuous listening, memory, reminders |
-| **SharedMemoryAgent** | Unified brain — all AIs share this memory |
-| **WakeWordAgent** | "Hey Raso" — voice wake word detection |
-| **DocumentAgent** | Import docs — PDFs, URLs, text to memory |
-| **NotificationAgent** | Phone notifications — SMS, Telegram, Push |
-| **TranscriptionAgent** | Speech-to-text (Whisper Large v3) |
-| **ScoringAgent** | Semantic speech evaluation (Qwen2.5-7B) |
-| **CoachingAgent** | Personalized corrections (Qwen2.5-7B) |
-| **SegmentationAgent** | Script chunking (Qwen2.5-3B) |
-| **SessionMemoryAgent** | Session state & history |
-| **QAAgent** | Real-time Q&A (GPT/Claude/Gemini/Qwen) |
-| **SearchAgent** | Web search (Tavily/DuckDuckGo) |
-| **RecordingAgent** | Audio & conversation recording |
-| **AnalyticsAgent** | Session & user insights |
+```
+You: "Hey Raso, remind me to mention the AMD partnership"
+Raso: "Got it! I'll remind you when you start your presentation."
 
-### 🎙️ Speech Coaching Loop
-- Real-time audio streaming via WebSocket
-- Three correction modes: **Silent** · **Hint** · **Full**
-- Three strictness levels: **Lenient** · **Normal** · **Strict**
-- Auto-skip after 4 failed attempts
-- Early advance at 82% coverage
+You: "Hey Raso, what did I say about machine learning?"
+Raso: "Last week you mentioned ML models need GPU acceleration..."
 
-### ❓ Real-time Q&A
-- Connect to **5 AI providers**: OpenAI GPT, Anthropic Claude, Google Gemini, Local Qwen
-- Context-aware (uses your script as context)
-- Multi-turn conversation support
+You: "Hey Raso, use Claude for this"
+Raso: "Switched to Claude. What's your question?"
+```
 
-### 🔍 Web Search
-- Real-time information lookup via Tavily or DuckDuckGo
-- Results + AI summary
+### 🧠 Perfect Memory — Ask Anything
+
+```
+You: "Hey Raso, what was my question about last Tuesday?"
+Raso: "You asked about ROCm installation on MI300X..."
+
+You: "Did I mention any competitors?"
+Raso: "Yes, during the demo you mentioned NVIDIA and Intel..."
+```
+
+### 📄 Documents Into Memory
+
+```
+You: "Hey Raso, import this PDF"
+→ Upload quarterly report
+→ Instantly searchable: "Hey Raso, what were our Q3 revenue numbers?"
+
+You: "Hey Raso, import this URL"
+→ Fetch article
+→ "Hey Raso, summarize what this article says about AI"
+```
+
+### 🎤 Speech Coach / Presentation Partner
+
+```
+You: "Hey Raso, let's practice my pitch"
+Raso: "Ready. Say your opening line."
+You: "We help companies build faster with AMD"
+Raso: "Great delivery! 92% accuracy. Try emphasizing 'faster' more."
+```
+
+### 🔍 Live Web Search
+
+```
+You: "Hey Raso, what's the latest on AMD's new GPU?"
+Raso: "AMD just announced..."
+```
+
+### 📊 Analytics on Your Voice & Recordings
+
+```
+You: "Hey Raso, analyze my last 5 sessions"
+→ Performance trends
+→ Words you stumble on
+→ Pacing improvements
+→ Confidence scores over time
+```
+
+---
+
+## 🤖 14 AI Agents — All Sharing Memory
+
+| Agent | Function | What It Does |
+|-------|----------|--------------|
+| **PartnerAgent** | Your AI self | Continuous listening, chat, memory |
+| **SharedMemoryAgent** | Unified brain | All AIs share this memory |
+| **WakeWordAgent** | "Hey Raso" | Voice activation detection |
+| **TranscriptionAgent** | Whisper | Speech-to-text for all audio |
+| **ScoringAgent** | Qwen | Evaluates your speech delivery |
+| **CoachingAgent** | Qwen | Personalized corrections |
+| **SegmentationAgent** | Qwen | Chunks scripts for practice |
+| **SessionMemoryAgent** | State | Session tracking & history |
+| **QAAgent** | Multi-provider | ChatGPT, Claude, Gemini, Qwen |
+| **SearchAgent** | Web search | Tavily, DuckDuckGo |
+| **DocumentAgent** | Import | PDFs, URLs, text to memory |
+| **NotificationAgent** | Alerts | SMS, Telegram |
+| **RecordingAgent** | Record | Audio & conversation capture |
+| **AnalyticsAgent** | Insights | Voice & speech analytics |
 
 ---
 
@@ -97,23 +144,43 @@ RasoSpeak is your **AI Partner / Secondary Brain** — an intelligent system tha
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    BROWSER (index.html)                     │
-│  js/app.js ──── WebSocket ──────────────────────────────┐   │
+│                    YOU (Speaking / Listening)               │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    BROWSER (index.html)                      │
+│  🎤 Microphone → WebSocket ───────────────────────────────┐   │
+│  🎧 Speaker ← TTS ───────────────────────────────────────┐   │
 └─────────────────────────────────────────────────────────│───┘
-                                                         │
-                    WebSocket / HTTP API                   │
-                                                         │
-┌────────────────────────────────────────────────────────▼───┐
-│              FastAPI Backend  (main.py)                    │
-│         Hugging Face Space · AMD MI300X GPU                │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │              AGENT PIPELINE (14 Agents)             │   │
-│  │   PartnerAgent ← WakeWordAgent ← DocumentAgent       │   │
-│  │   TranscriptionAgent ← ScoringAgent ← CoachingAgent   │   │
-│  │   QAAgent ← SearchAgent ← SharedMemoryAgent           │   │
-│  │   RecordingAgent ← AnalyticsAgent                    │   │
-│  └─────────────────────────────────────────────────────┘   │
+                                                          │
+                    WebSocket / HTTP API                    │
+                                                          ▼
+┌────────────────────────────────────────────────────────────▼┐
+│              FastAPI Backend — 14 AI Agents                │
+│              HuggingFace Space · GPU                        │
+│                                                              │
+│  "Hey Raso" ───────────► WakeWordAgent                      │
+│                              │                             │
+│  Your speech ───────────► TranscriptionAgent (Whisper)    │
+│                              │                             │
+│  Scoring ─────────────────► ScoringAgent (Qwen)             │
+│                              │                             │
+│  Coaching ────────────────► CoachingAgent (Qwen)           │
+│                              │                             │
+│  Questions ─────────────► QAAgent (GPT/Claude/Gemini/Qwen) │
+│                              │                             │
+│  Memory ────────────────► SharedMemoryAgent ◄─────────┐    │
+│                              │                        │    │
+│  Web Search ─────────────► SearchAgent                 │    │
+│                              │                        │    │
+│  Documents ─────────────► DocumentAgent ──────────────┤    │
+│                              │                        │    │
+│  Recordings ────────────► RecordingAgent ──────────────┤    │
+│                              │                        │    │
+│  Analytics ─────────────► AnalyticsAgent ◄───────────┘    │
+│                                                              │
+│  ALL 14 AGENTS SHARE THE SAME MEMORY (SharedMemoryAgent)    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -121,7 +188,7 @@ RasoSpeak is your **AI Partner / Secondary Brain** — an intelligent system tha
 
 ## 🚀 Quick Start
 
-### Hugging Face Space (Recommended)
+### HuggingFace Space (Recommended)
 
 The app is deployed at: **https://lablab-ai-amd-developer-hackathon-rasospeak.hf.space**
 
@@ -150,39 +217,39 @@ open http://localhost:7860
 
 ```
 rasospeak-v2/
-├── index.html                  ← Frontend entry point
-├── styles.css                  ← Styling
-├── app.js, ui.js, speech.js    ← Frontend JavaScript
+├── index.html                  ← Frontend UI
+├── styles.css                  ← Material Design 3 styling
+├── app.js, ui.js, speech.js   ← Frontend JavaScript
 ├── nlp.js, state.js            ← NLP and state management
 │
 ├── main.py                     ← FastAPI backend + WebSocket
 ├── app.py                      ← Gradio interface
 │
 ├── agents/                     ← 14 AI agents
-│   ├── base_agent.py
+│   ├── base_agent.py          ← Abstract base class
 │   ├── partner_agent.py        ← Your AI partner
-│   ├── shared_memory_agent.py  ← Unified brain
+│   ├── shared_memory_agent.py  ← Unified brain (ALL agents share)
 │   ├── wake_word_agent.py      ← "Hey Raso" detection
-│   ├── transcription_agent.py ← Whisper
+│   ├── transcription_agent.py ← Whisper STT
 │   ├── scoring_agent.py        ← Qwen scoring
-│   ├── coaching_agent.py       ← Qwen coaching
+│   ├── coaching_agent.py      ← Qwen coaching
 │   ├── segmentation_agent.py   ← Qwen chunking
-│   ├── session_memory_agent.py
+│   ├── session_memory_agent.py ← Session state
 │   ├── document_agent.py       ← Import docs
 │   ├── notification_agent.py   ← SMS/Telegram
 │   ├── qa_agent.py             ← Multi-provider Q&A
 │   ├── search_agent.py         ← Web search
 │   ├── recording_agent.py      ← Audio recording
-│   └── analytics_agent.py     ← Insights
+│   └── analytics_agent.py      ← Voice analytics
 │
 ├── config/
-│   ├── settings.py             ← Configuration
+│   ├── settings.py            ← Configuration
 │   └── prompts.py             ← LLM prompts
 │
 ├── models/
-│   └── schemas.py              ← Pydantic schemas
+│   └── schemas.py             ← Pydantic schemas
 │
-├── requirements.txt            ← Python dependencies
+├── requirements.txt             ← Python dependencies
 ├── Dockerfile                  ← Docker deployment
 └── .env.example               ← Environment template
 ```
@@ -260,8 +327,8 @@ TAVILY_API_KEY=...
 - **Track:** AI Agents & Agentic Workflows
 
 ### Submit on lablab.ai
-1. Project Title: RasoSpeak v2 - AI Speech Coach
-2. Demo URL: Hugging Face Space
+1. Project Title: RasoSpeak v2 - AI Secondary Brain
+2. Demo URL: HuggingFace Space
 3. GitHub Repo: Push code
 4. Video: 2-3 minute demo
 
@@ -281,7 +348,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — Whisper acceleration
 - [Qwen](https://huggingface.co/Qwen) — Alibaba's open-source LLM family
 - [lablab.ai](https://lablab.ai) — Hackathon platform
-- [Hugging Face](https://huggingface.co) — Spaces hosting
+- [Hugging Face](https://huggingface.com) — Spaces hosting
 
 ---
 
@@ -289,6 +356,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 **RasoSpeak v2 — Your Secondary Brain & AI Partner.**
 
-*Every great speaker deserves an invisible coach.*
+*Your inner self. With memory. With search. With answers.*
+*"Hey Raso, what did I say about...?"*
 
 </div>
