@@ -139,6 +139,16 @@ app.add_middleware(
 import os
 from pathlib import Path
 
+# Download logo.png from HF Hub if not present (for Docker container)
+if not os.path.exists("logo.png"):
+    try:
+        from huggingface_hub import hf_hub_download
+        logo_path = hf_hub_download(repo_id="lablab-ai-amd-developer-hackathon/RasoSpeak", filename="logo.png")
+        import shutil
+        shutil.copy(logo_path, "logo.png")
+    except Exception:
+        pass
+
 # Serve static files (js, css) from current directory
 app.mount("/static", StaticFiles(directory="."), name="static")
 
