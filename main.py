@@ -57,7 +57,7 @@ agents: dict[str, Any] = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load all agents on startup, clean up on shutdown."""
-    log.info("🚀 RasoSpeak v2 starting — loading agents on AMD MI300X...")
+    log.info("🚀 RasoSpeak v2 starting — loading agents on GPU Accelerator...")
 
     # Agent registry with initialization logic
     agent_init_order = [
@@ -122,7 +122,7 @@ async def lifespan(app: FastAPI):
 # ── APP ────────────────────────────────────────────────
 app = FastAPI(
     title="RasoSpeak — Your Secondary Brain & AI Partner",
-    description="A multi-agent AI system with wake word activation, perfect memory, document import, phone notifications, and real-time speech coaching. Powered by AMD MI300X.",
+    description="A multi-agent AI system with wake word activation, perfect memory, document import, phone notifications, and real-time speech coaching. Powered by GPU Accelerator.",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -840,7 +840,7 @@ async def websocket_session(websocket: WebSocket, session_id: str):
                 await agents["memory"].update_config(session_id, config)
                 await send(websocket, WSMessageType.SESSION_READY, {
                     "session_id": session_id,
-                    "message": "Session initialized — agents ready on AMD MI300X"
+                    "message": "Session initialized — agents ready on GPU Accelerator"
                 })
                 log.info(f"✅ Session {session_id} started | mode={config.mode} strict={config.strict}")
 
@@ -1041,7 +1041,7 @@ async def handle_audio_chunk(
     """
     Full pipeline for one audio chunk:
     audio bytes → Whisper → Qwen scoring → Qwen coaching (if needed)
-    All inference on AMD MI300X via ROCm.
+    All inference on GPU Accelerator via ROCm.
     """
     session = await agents["memory"].get_session(session_id)
     config  = session.get("config", {})

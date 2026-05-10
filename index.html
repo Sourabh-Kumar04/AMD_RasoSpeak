@@ -1,506 +1,388 @@
 <!DOCTYPE html>
-<html class="light" lang="en">
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>RasoSpeak — Your AI Partner</title>
   <link rel="icon" type="image/png" href="logo.png"/>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=Inter:wght@400;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-  <script id="tailwind-config">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script>
     tailwind.config = {
-      darkMode: "class",
       theme: {
         extend: {
-          "colors": {
-            "inverse-surface": "#303030",
-            "outline": "#8e7164",
-            "surface-container-highest": "#e2e2e2",
-            "on-secondary-fixed": "#1a1c18",
-            "secondary-fixed": "#e3e3dc",
-            "error-container": "#ffdad6",
-            "tertiary-fixed": "#e2e2e2",
-            "surface-bright": "#f9f9f9",
-            "on-primary-fixed": "#360f00",
-            "on-background": "#1b1b1b",
-            "surface-container": "#eeeeee",
-            "primary-fixed": "#ffdbcd",
-            "primary-container": "#ff6600",
-            "outline-variant": "#e3bfb1",
-            "primary": "#a33e00",
-            "on-secondary-container": "#636560",
-            "on-error": "#ffffff",
-            "on-surface-variant": "#5a4136",
-            "on-tertiary-container": "#2e3030",
-            "background": "#f9f9f9",
-            "on-tertiary-fixed": "#1a1c1c",
-            "primary-fixed-dim": "#ffb596",
-            "on-primary": "#ffffff",
-            "inverse-primary": "#ffb596",
-            "error": "#ba1a1a",
-            "on-surface": "#1b1b1b",
-            "tertiary-container": "#969797",
-            "surface-container-high": "#e8e8e8",
-            "surface-dim": "#dadada",
-            "on-primary-fixed-variant": "#7c2e00",
-            "tertiary-fixed-dim": "#c6c6c6",
-            "inverse-on-surface": "#f1f1f1",
-            "surface-tint": "#a33e00",
-            "surface-variant": "#e2e2e2",
-            "on-tertiary-fixed-variant": "#454747",
-            "on-primary-container": "#561d00",
-            "secondary-container": "#e3e3dc",
-            "secondary": "#5d5f5a",
-            "surface-container-lowest": "#ffffff",
-            "on-tertiary": "#ffffff",
-            "secondary-fixed-dim": "#c6c7c0",
-            "surface": "#f9f9f9",
-            "tertiary": "#5d5f5f",
-            "on-secondary-fixed-variant": "#464743",
-            "on-error-container": "#93000a",
-            "surface-container-low": "#f3f3f3",
-            "on-secondary": "#ffffff"
+          colors: {
+            brand: '#ff6600',
+            surface: '#ffffff',
+            muted: '#f8f9fa',
+            border: '#e5e7eb'
           },
-          "borderRadius": {
-            "DEFAULT": "0.125rem",
-            "lg": "0.25rem",
-            "xl": "0.5rem",
-            "full": "0.75rem"
-          },
-          "spacing": {
-            "margin-desktop": "32px",
-            "gutter": "16px",
-            "max-width": "1280px",
-            "margin-mobile": "16px",
-            "unit": "4px"
-          },
-          "fontFamily": {
-            "headline-md": ["Hanken Grotesk"],
-            "body-sm": ["Inter"],
-            "label-caps": ["Inter"],
-            "body-md": ["Inter"],
-            "headline-lg": ["Hanken Grotesk"],
-            "mono-label": ["JetBrains Mono"],
-            "headline-sm": ["Hanken Grotesk"],
-            "body-lg": ["Inter"]
-          },
-          "fontSize": {
-            "headline-md": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700" }],
-            "body-sm": ["13px", { "lineHeight": "1.4", "fontWeight": "400" }],
-            "label-caps": ["11px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700" }],
-            "body-md": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
-            "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
-            "mono-label": ["12px", { "lineHeight": "1", "fontWeight": "400" }],
-            "headline-sm": ["18px", { "lineHeight": "1.4", "fontWeight": "600" }],
-            "body-lg": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }]
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
           }
-        },
-      },
+        }
+      }
     }
   </script>
   <style>
-    body { background-color: #FFFFFF; min-height: 100vh; }
-    .border-yc { border-color: #E0E0E0; }
-    .bg-surface-block { background-color: #F6F6EF; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111827; }
     .view { display: none; }
     .view.active { display: block; }
-    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    .active-nav { background-color: #ff6600 !important; color: white !important; font-weight: bold; }
-    
-    /* Accuracy badge dynamic colors */
-    #acc-badge { transition: color 0.3s; }
+    .btn-primary { background: #111827; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; transition: all 0.2s; }
+    .btn-primary:hover { background: #374151; }
+    .btn-secondary { background: #f3f4f6; color: #111827; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; transition: all 0.2s; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .input-field { border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.625rem 0.875rem; font-size: 0.875rem; width: 100%; transition: border-color 0.2s; }
+    .input-field:focus { outline: none; border-color: #111827; }
+    .card { border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1.25rem; }
+    .tab-active { background: #111827; color: white; }
   </style>
 </head>
-<body class="text-on-surface antialiased flex h-screen overflow-hidden">
+<body class="h-screen flex overflow-hidden">
 
-<!-- NavigationDrawer (Web) -->
-<nav class="hidden md:flex flex-col gap-unit p-4 bg-surface-container-low h-full w-64 border-r border-outline-variant shrink-0">
-  <div class="mb-8">
-    <div class="flex items-center gap-3 mb-2">
-      <img src="logo.png" alt="Logo" class="h-10 w-10 rounded-lg">
-      <h2 class="text-headline-md font-headline-md text-primary">RasoSpeak</h2>
+<!-- Sidebar -->
+<aside class="w-64 border-r border-gray-200 bg-gray-50 flex flex-col hidden md:flex">
+  <div class="p-6 border-b border-gray-200">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo" class="h-8 w-8 rounded">
+      <h1 class="text-lg font-semibold">RasoSpeak</h1>
     </div>
-    <p class="text-label-caps text-on-surface-variant">Secondary Brain</p>
+    <p class="text-xs text-gray-500 mt-2">Your AI Partner</p>
   </div>
-  <div class="flex flex-col gap-2">
-    <a id="nav-live" onclick="switchView('live')" class="flex items-center gap-3 px-3 py-2 text-secondary hover:bg-surface-container-high transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">hub</span>
-      Topology
-    </a>
-    <a id="nav-partner" onclick="switchView('partner')" class="flex items-center gap-3 px-3 py-2 text-secondary hover:bg-surface-container-high transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">chat</span>
+
+  <nav class="flex-1 p-4 space-y-1">
+    <a href="#" onclick="switchView('partner')" id="nav-partner" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
       AI Partner
     </a>
-    <a id="nav-script" onclick="switchView('script')" class="flex items-center gap-3 px-3 py-2 text-secondary hover:bg-surface-container-high transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">edit_note</span>
+    <a href="#" onclick="switchView('script')" id="nav-script" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
       Script Studio
     </a>
-    <a id="nav-memory" onclick="switchView('memory')" class="flex items-center gap-3 px-3 py-2 text-secondary hover:bg-surface-container-high transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">database</span>
+    <a href="#" onclick="switchView('live')" id="nav-live" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+      Live Coaching
+    </a>
+    <a href="#" onclick="switchView('memory')" id="nav-memory" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
       Memory
     </a>
-    <a id="nav-docs" onclick="switchView('docs')" class="flex items-center gap-3 px-3 py-2 text-secondary hover:bg-surface-container-high transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">folder</span>
+    <a href="#" onclick="switchView('docs')" id="nav-docs" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
       Documents
     </a>
-    <a id="nav-settings" onclick="switchView('settings')" class="flex items-center gap-3 px-3 py-2 text-secondary hover:bg-surface-container-high transition-colors rounded-lg text-body-md font-body-md cursor-pointer mt-auto" href="#">
-      <span class="material-symbols-outlined">settings</span>
+    <a href="#" onclick="switchView('settings')" id="nav-settings" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 mt-auto">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       Settings
     </a>
-  </div>
-</nav>
+  </nav>
 
-<!-- Main Content Area -->
-<main class="flex-1 flex flex-col h-full overflow-hidden">
-  <!-- TopAppBar -->
-  <header class="bg-surface border-b border-outline-variant flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-unit sticky top-0 z-10 h-16 shrink-0">
-    <div class="flex items-center gap-3">
-      <button class="md:hidden p-2 text-secondary hover:bg-surface-variant rounded-full" onclick="toggleSidebar()">
-        <span class="material-symbols-outlined">menu</span>
+  <div class="p-4 border-t border-gray-200">
+    <div class="flex items-center gap-2 text-xs text-gray-500">
+      <span class="w-2 h-2 rounded-full bg-green-500"></span>
+      <span>System ready</span>
+    </div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-hidden">
+  <!-- Header -->
+  <header class="h-14 border-b border-gray-200 flex items-center justify-between px-6 bg-white">
+    <div class="flex items-center gap-4">
+      <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
-      <img src="logo.png" alt="Logo" class="h-8 w-8 rounded-md">
-      <div class="flex flex-col">
-        <div class="text-[10px] font-bold text-primary tracking-widest uppercase leading-none mb-1">RasoSpeak</div>
-        <h1 class="text-headline-sm font-headline-sm font-bold text-primary-container leading-none" id="page-title">Command Center</h1>
-      </div>
+      <h2 class="text-lg font-semibold" id="page-title">AI Partner</h2>
     </div>
     <div class="flex items-center gap-4">
-      <div id="header-timer" class="text-mono-label font-bold text-on-surface bg-surface-container px-3 py-1 rounded border border-yc hidden">00:00</div>
-      <span class="bg-surface-container text-on-surface-variant text-label-caps font-label-caps px-2 py-1 rounded">GPU Ready</span>
-      <div class="flex items-center gap-2">
-        <div id="status-dot" class="w-2 h-2 rounded-full bg-primary-container"></div>
-        <span id="status-text" class="text-label-caps font-label-caps text-primary">Status: Online</span>
-      </div>
+      <button onclick="startWakeWord()" class="btn-secondary flex items-center gap-2 text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+        Hey Raso
+      </button>
+      <span class="text-sm text-gray-500">GPU Ready</span>
     </div>
   </header>
 
-  <!-- Content Containers -->
-  <div class="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop bg-background">
-    <div class="max-w-max-width mx-auto w-full h-full">
+  <!-- Content -->
+  <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
 
-      <!-- AI Partner View -->
-      <div id="view-partner" class="view space-y-6">
-        <div class="bg-surface-container-lowest border border-yc rounded-lg p-6 max-w-3xl mx-auto shadow-sm">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-headline-sm font-headline-sm text-on-surface">Consult AI Partner</h3>
-            <select id="provider-select" class="text-body-sm bg-surface-container border border-outline-variant rounded px-3 py-1.5 focus:ring-0 outline-none">
+    <!-- AI Partner View -->
+    <div id="view-partner" class="view space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Chat -->
+        <div class="card max-w-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Chat with AI Partner</h3>
+            <select id="provider-select" class="text-sm border border-gray-300 rounded-lg px-3 py-1.5">
               <option value="qwen">Qwen (Local)</option>
-              <option value="openai">ChatGPT-4</option>
-              <option value="anthropic">Claude 3.5</option>
-              <option value="gemini">Gemini 1.5</option>
+              <option value="openai">ChatGPT</option>
+              <option value="anthropic">Claude</option>
+              <option value="gemini">Gemini</option>
             </select>
           </div>
-          <div id="chat-messages" class="h-96 overflow-y-auto space-y-4 mb-6 p-4 bg-surface-container-low rounded-lg border border-yc">
-            <div class="text-body-sm text-on-surface-variant text-center py-12">
-              Systems initialized. Query the partner engram.
+          <div id="chat-messages" class="h-80 overflow-y-auto space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
+            <div class="text-sm text-gray-500 text-center py-8">
+              Start a conversation...<br>
+              <span class="text-xs text-gray-400">Type "add X to memory" to save knowledge, or paste a URL to save it</span>
             </div>
           </div>
-          <div class="flex gap-3">
-            <input type="text" id="chat-input" class="flex-1 bg-surface-container-lowest border border-outline-variant rounded px-4 py-2.5 text-body-md focus:border-primary-container outline-none transition-colors" placeholder="Type your query..." onkeypress="if(event.key==='Enter')sendMessage()">
-            <button onclick="sendMessage()" class="bg-primary text-on-primary px-4 py-2 rounded font-bold hover:opacity-90 transition-opacity">
-              <span class="material-symbols-outlined">send</span>
+          <div class="flex gap-2">
+            <input type="text" id="chat-input" class="input-field flex-1" placeholder="Ask anything..." onkeypress="if(event.key==='Enter')sendMessage()">
+            <button onclick="sendMessage()" class="btn-primary">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
             </button>
           </div>
         </div>
-      </div>
 
-      <!-- Script Studio View -->
-      <div id="view-script" class="view space-y-6">
-        <div class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden flex flex-col h-[calc(100vh-200px)]">
-          <div class="bg-surface-block px-4 py-3 border-b border-yc flex justify-between items-center">
-            <h3 class="text-label-caps font-label-caps text-on-surface">Script Synthesis Studio</h3>
-            <div class="flex gap-2">
-              <button onclick="loadSample()" class="text-label-caps font-label-caps px-3 py-1.5 bg-surface-container border border-outline-variant rounded hover:bg-surface-container-high transition-colors">Load Sample</button>
-              <button onclick="processAndGo()" class="text-label-caps font-label-caps px-4 py-1.5 bg-primary text-on-primary rounded font-bold hover:opacity-90 shadow-sm">Process Script</button>
-            </div>
+        <!-- Web Search -->
+        <div class="card max-w-2xl">
+          <h3 class="font-semibold mb-4">Web Search</h3>
+          <div class="flex gap-2 mb-4">
+            <input type="text" id="search-input" class="input-field" placeholder="Search the web..." onkeypress="if(event.key==='Enter')doWebSearch()">
+            <button onclick="doWebSearch()" class="btn-secondary">Search</button>
           </div>
-          <textarea id="script-ta" class="flex-1 p-6 font-mono-label text-body-md bg-transparent resize-none outline-none" placeholder="Enter raw script for engram extraction..."></textarea>
-          <div class="bg-surface-block px-4 py-2 border-t border-yc text-mono-label text-on-surface-variant flex justify-between">
-            <span id="wc">0 words · 0 chunks · ~0 min</span>
-            <span>UTF-8 Encoding</span>
+          <div id="search-results" class="h-80 overflow-y-auto p-4 bg-gray-50 rounded-lg text-sm">
+            <div class="text-gray-500 text-center py-8">Search results will appear here</div>
           </div>
         </div>
       </div>
-
-      <!-- Live Coaching (Topology) View -->
-      <div id="view-live" class="view space-y-gutter">
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
-          <!-- Metrics -->
-          <div class="md:col-span-4 bg-surface-block border border-yc rounded flex flex-col p-4 gap-3">
-            <h3 class="text-label-caps font-label-caps text-on-surface">Compute Telemetry</h3>
-            <div class="flex justify-between items-baseline border-b border-yc pb-2">
-              <span class="text-body-sm text-secondary">Corrections</span>
-              <span class="text-headline-sm text-on-surface" id="m-corr">0</span>
-            </div>
-            <div class="flex justify-between items-baseline border-b border-yc pb-2">
-              <span class="text-body-sm text-secondary">Accuracy</span>
-              <span class="text-headline-sm text-on-surface" id="acc-badge">0%</span>
-              <span id="m-acc" class="hidden">0%</span>
-            </div>
-            <div class="flex justify-between items-baseline">
-              <span class="text-body-sm text-secondary">Completed</span>
-              <span class="text-headline-sm text-on-surface" id="m-done">0</span>
-            </div>
-          </div>
-          <!-- Controls -->
-          <div class="md:col-span-8 bg-surface-container-lowest border border-yc rounded p-4 flex items-center justify-between">
-            <div class="flex items-center gap-6">
-              <div class="flex flex-col">
-                <span class="text-label-caps text-on-surface-variant">Session Progress</span>
-                <span class="text-headline-sm"><span id="seg-num">0</span> / <span id="seg-total">0</span> chunks</span>
-                <span id="progress-text" class="hidden">0 / 0 chunks</span>
-              </div>
-              <div class="w-48 h-2 bg-surface-container rounded-full overflow-hidden">
-                <div id="progress-bar" class="h-full bg-primary-container transition-all" style="width: 0%"></div>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <button onclick="prevChunk()" class="p-2 border border-yc rounded hover:bg-surface-container transition-colors">
-                <span class="material-symbols-outlined">skip_previous</span>
-              </button>
-              <button id="btn-main" onclick="toggleSession()" class="w-12 h-12 bg-primary text-on-primary rounded-full flex items-center justify-center hover:opacity-90 shadow-lg">
-                <span class="material-symbols-outlined text-2xl" id="play-icon">play_arrow</span>
-              </button>
-              <button onclick="nextChunk()" class="p-2 border border-yc rounded hover:bg-surface-container transition-colors">
-                <span class="material-symbols-outlined">skip_next</span>
-              </button>
-              <button id="btn-end" onclick="stopSession()" class="p-2 border border-yc rounded hover:bg-error-container text-error transition-colors hidden">
-                <span class="material-symbols-outlined">stop_circle</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
-          <!-- Current Chunk Display -->
-          <div class="md:col-span-8 bg-surface-container-lowest border border-yc rounded flex flex-col h-[400px]">
-            <div class="bg-surface-block border-b border-yc p-3">
-              <h3 class="text-label-caps font-label-caps text-on-surface">Active Engram</h3>
-            </div>
-            <div id="current-chunk" class="flex-1 p-8 flex items-center justify-center text-center text-headline-md font-headline-md text-on-surface-variant leading-relaxed">
-              Load a script to begin live coaching
-            </div>
-            <div id="stage-ambient" class="absolute inset-0 pointer-events-none transition-all duration-1000"></div>
-          </div>
-          <!-- Live Logs -->
-          <div class="md:col-span-4 bg-surface-container-lowest border border-yc rounded flex flex-col h-[400px] overflow-hidden">
-            <div class="bg-surface-block border-b border-yc p-3 flex justify-between items-center">
-              <h3 class="text-label-caps font-label-caps text-on-surface">Event Logs</h3>
-              <button onclick="clearLog()" class="text-[10px] uppercase font-bold text-on-surface-variant hover:text-primary">Clear</button>
-            </div>
-            <div id="live-transcript" class="flex-1 overflow-y-auto p-4 space-y-2 font-mono-label text-body-sm bg-[#FCFCFC]">
-              <!-- Logs will be injected here -->
-            </div>
-          </div>
-        </div>
-        
-        <!-- Live Transcription Bar -->
-        <div class="bg-surface-block border border-yc rounded p-3 flex items-center gap-4">
-            <span class="text-label-caps text-on-surface-variant font-bold">Whisper Live:</span>
-            <div id="live-tx" class="flex-1 text-mono-label text-on-surface-variant truncate">
-                Awaiting voice input...
-            </div>
-        </div>
-      </div>
-
-      <!-- Memory Index View -->
-      <div id="view-memory" class="view space-y-6">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
-          <div>
-            <h2 class="text-headline-lg font-headline-lg text-on-surface mb-2">Memory Index</h2>
-            <p class="text-body-lg text-on-surface-variant">Conceptual nodes and semantic engrams recorded by the Agent.</p>
-          </div>
-          <div class="flex flex-col sm:row gap-4 w-full md:w-auto">
-            <div class="relative w-full sm:w-64">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-              <input id="memory-search" onkeyup="if(event.key==='Enter')searchMemory()" class="w-full pl-9 pr-3 py-2 bg-surface-container-lowest border border-outline-variant focus:border-primary-container rounded-lg text-body-sm outline-none transition-colors" placeholder="Query memory..." type="text"/>
-            </div>
-          </div>
-        </div>
-        <div id="memory-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-          <div class="md:col-span-full py-20 text-center text-on-surface-variant border border-yc border-dashed rounded-lg">
-            No memories retrieved. Initialize search.
-          </div>
-        </div>
-      </div>
-
-      <!-- Documents View -->
-      <div id="view-docs" class="view space-y-6">
-        <div class="max-w-4xl mx-auto space-y-8">
-          <!-- Ingest -->
-          <div class="bg-surface-container-lowest border border-yc rounded-lg p-6 shadow-sm">
-            <h3 class="text-headline-sm mb-4">Ingest Data Engram</h3>
-            <div class="grid md:grid-cols-2 gap-6">
-              <div class="space-y-4">
-                <label class="text-label-caps text-on-surface-variant block">Semantic URI</label>
-                <div class="flex gap-2">
-                  <input type="text" id="doc-url" class="flex-1 bg-surface-container-low border border-yc rounded px-3 py-2 text-body-sm focus:border-primary-container outline-none" placeholder="https://external.knowledge/node">
-                  <button onclick="importUrl()" class="bg-primary text-on-primary px-4 py-2 rounded font-bold hover:opacity-90">Ingest</button>
-                </div>
-              </div>
-              <div class="space-y-4">
-                <label class="text-label-caps text-on-surface-variant block">Direct Memory Injection</label>
-                <textarea id="doc-text" class="w-full bg-surface-container-low border border-yc rounded p-3 text-body-sm focus:border-primary-container outline-none h-32 resize-none" placeholder="Paste raw knowledge strings..."></textarea>
-                <button onclick="importText()" class="w-full bg-surface-block border border-yc py-2 rounded text-label-caps font-bold hover:bg-surface-container-high transition-colors">Commit to GPU Memory</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Library -->
-          <div>
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-label-caps text-on-surface-variant font-bold">Active Knowledge Base</h3>
-                <span class="text-[10px] text-on-surface-variant opacity-50">3 NODES PERSISTED</span>
-            </div>
-            <div id="knowledge-dump" class="grid md:grid-cols-3 gap-4">
-              <!-- Sample Nodes -->
-              <div class="bg-surface-block border border-yc p-4 rounded hover:shadow-md transition-shadow cursor-pointer group">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="material-symbols-outlined text-primary text-sm">article</span>
-                    <span class="text-[9px] font-mono text-on-surface-variant opacity-50">#DOC_082</span>
-                </div>
-                <h4 class="text-body-sm font-bold text-on-surface mb-1 group-hover:text-primary">Startup Pitch Deck.pdf</h4>
-                <p class="text-[11px] text-on-surface-variant leading-tight line-clamp-2">Key metrics for YC W24 batch including growth, retention, and burn rates...</p>
-              </div>
-              <div class="bg-surface-block border border-yc p-4 rounded hover:shadow-md transition-shadow cursor-pointer group">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="material-symbols-outlined text-primary text-sm">database</span>
-                    <span class="text-[9px] font-mono text-on-surface-variant opacity-50">#MEM_104</span>
-                </div>
-                <h4 class="text-body-sm font-bold text-on-surface mb-1 group-hover:text-primary">Customer Interview Transcripts</h4>
-                <p class="text-[11px] text-on-surface-variant leading-tight line-clamp-2">Aggregated feedback from early adopters regarding the low-latency earpiece delivery...</p>
-              </div>
-              <div class="bg-surface-block border border-yc p-4 rounded hover:shadow-md transition-shadow cursor-pointer group">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="material-symbols-outlined text-primary text-sm">link</span>
-                    <span class="text-[9px] font-mono text-on-surface-variant opacity-50">#URL_019</span>
-                </div>
-                <h4 class="text-body-sm font-bold text-on-surface mb-1 group-hover:text-primary">Competitor Analysis Matrix</h4>
-                <p class="text-[11px] text-on-surface-variant leading-tight line-clamp-2">Comparison table with Speechelo, Descript, and traditional teleprompter hardware...</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Settings View -->
-      <div id="view-settings" class="view space-y-6">
-        <div class="max-w-3xl mx-auto">
-          <h2 class="text-headline-lg font-headline-lg mb-6">Configuration</h2>
-          <div id="stats-container" class="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-12"></div>
-          <div class="space-y-6">
-            <!-- Hardware -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Hardware Allocation</span>
-              </div>
-              <div class="p-4 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                  <span class="material-symbols-outlined text-secondary">memory</span>
-                  <div>
-                    <div class="text-body-md font-bold">GPU Accelerator</div>
-                    <div class="text-mono-label text-on-surface-variant">Compute Node • 192GB VRAM</div>
-                  </div>
-                </div>
-                <span class="bg-primary-fixed text-primary px-2 py-1 rounded text-mono-label border border-outline-variant">Active</span>
-              </div>
-            </section>
-            
-            <!-- Agent Protocols -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Agent Protocols</span>
-              </div>
-              <div class="divide-y divide-yc">
-                <div class="p-4 flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-on-surface-variant">mic</span>
-                    <div>
-                      <div class="text-body-md">Whisper Ingest Agent</div>
-                      <div class="text-mono-label text-on-surface-variant">Speech-to-Text inference</div>
-                    </div>
-                  </div>
-                  <div class="w-10 h-6 bg-primary-container rounded-full flex items-center px-1 justify-end">
-                    <div class="w-4 h-4 bg-white rounded-full"></div>
-                  </div>
-                </div>
-                <div class="p-4 flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-on-surface-variant">psychology</span>
-                    <div>
-                      <div class="text-body-md">Qwen Scoring Agent</div>
-                      <div class="text-mono-label text-on-surface-variant">Real-time reasoning heuristic</div>
-                    </div>
-                  </div>
-                  <div class="w-10 h-6 bg-primary-container rounded-full flex items-center px-1 justify-end">
-                    <div class="w-4 h-4 bg-white rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- TTS Settings -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-                <div class="p-4 border-b border-yc bg-surface-block">
-                  <span class="text-label-caps font-bold">In-Ear Monitoring (TTS)</span>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="flex flex-col gap-1">
-                            <label class="text-body-sm text-on-surface-variant">Voice Engram</label>
-                            <select id="sel-voice" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm outline-none">
-                                <option value="">Auto (best English)</option>
-                            </select>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-body-sm text-on-surface-variant">Delivery Speed</label>
-                            <select id="sel-speed" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm outline-none">
-                                <option value="0.7">0.7x (Slow)</option>
-                                <option value="0.85" selected>0.85x (Default)</option>
-                                <option value="1.0">1.0x (Normal)</option>
-                                <option value="1.15">1.15x (Fast)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </section>
-          </div>
-        </div>
-      </div>
-
     </div>
+
+    <!-- Script Studio View -->
+    <div id="view-script" class="view space-y-6">
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold">Script Studio</h3>
+          <div class="flex gap-2">
+            <button onclick="loadSample()" class="btn-secondary text-sm">Load Sample</button>
+            <button onclick="processAndGo()" class="btn-primary text-sm">Process Script</button>
+          </div>
+        </div>
+        <textarea id="script-ta" class="input-field h-96 font-mono text-sm" placeholder="Paste your script here..."></textarea>
+        <div class="mt-2 text-xs text-gray-500">
+          <span id="wc">0 words · 0 chunks</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Coaching View -->
+    <div id="view-live" class="view space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Stats -->
+        <div class="card">
+          <h3 class="font-semibold mb-4">Session Stats</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Corrections</span>
+              <span class="font-semibold" id="m-corr">0</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Accuracy</span>
+              <span class="font-semibold" id="acc-badge">0%</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Completed</span>
+              <span class="font-semibold" id="m-done">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card col-span-2">
+          <h3 class="font-semibold mb-4">Playback Controls</h3>
+          <div class="flex items-center justify-center gap-4 mb-4">
+            <button onclick="prevChunk()" class="p-2 hover:bg-gray-100 rounded-full">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+            </button>
+            <button onclick="toggleSession()" id="btn-main" class="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-800">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" id="play-icon"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button onclick="nextChunk()" class="p-2 hover:bg-gray-100 rounded-full">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="text-sm text-gray-600">Progress:</span>
+            <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div id="progress-bar" class="h-full bg-black transition-all" style="width: 0%"></div>
+            </div>
+            <span class="text-sm" id="progress-text">0 / 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Chunk -->
+      <div class="card">
+        <h3 class="font-semibold mb-4">Current Chunk</h3>
+        <div id="current-chunk" class="h-32 flex items-center justify-center text-gray-500 text-center text-lg">
+          Process a script to start coaching
+        </div>
+      </div>
+
+      <!-- Live Transcript -->
+      <div class="card">
+        <h3 class="font-semibold mb-4">Live Transcript</h3>
+        <div id="live-transcript" class="h-40 overflow-y-auto p-4 bg-gray-50 rounded-lg text-sm font-mono">
+          Waiting for speech...
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory View -->
+    <div id="view-memory" class="view space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-semibold">Memory</h2>
+          <p class="text-sm text-gray-500">Your AI partner's knowledge base</p>
+        </div>
+        <div class="flex gap-2">
+          <input type="text" id="memory-search" class="input-field w-64" placeholder="Search memory..." onkeypress="if(event.key==='Enter')searchMemory()">
+        </div>
+      </div>
+
+      <!-- Recordings -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold">Session Recordings</h3>
+          <button onclick="loadRecordings()" class="text-sm text-gray-500 hover:text-black">Refresh</button>
+        </div>
+        <div id="recordings-list" class="space-y-2">
+          <div class="text-sm text-gray-500 text-center py-4">No recordings yet</div>
+        </div>
+      </div>
+
+      <!-- Memory Results -->
+      <div id="memory-results" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="col-span-full text-center py-12 text-gray-500 border border-dashed border-gray-300 rounded-lg">
+          Search memory to see results
+        </div>
+      </div>
+    </div>
+
+    <!-- Documents View -->
+    <div id="view-docs" class="view space-y-6">
+      <div class="card max-w-2xl">
+        <h3 class="font-semibold mb-4">Import Documents</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="text-sm font-medium mb-2 block">Import from URL</label>
+            <div class="flex gap-2">
+              <input type="text" id="doc-url" class="input-field flex-1" placeholder="https://...">
+              <button onclick="importUrl()" class="btn-primary">Import</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-sm font-medium mb-2 block">Paste Text</label>
+            <textarea id="doc-text" class="input-field h-32" placeholder="Paste your notes..."></textarea>
+            <button onclick="importText()" class="btn-secondary text-sm mt-2">Save to Memory</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings View -->
+    <div id="view-settings" class="view space-y-6">
+      <div class="max-w-2xl">
+        <h2 class="text-xl font-semibold mb-6">Settings</h2>
+
+        <!-- TTS Settings -->
+        <div class="card mb-6">
+          <h3 class="font-semibold mb-4">Voice Settings (TTS)</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm text-gray-600 mb-2 block">Voice</label>
+              <select id="sel-voice" class="input-field">
+                <option value="">Auto (best English)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-2 block">Speed</label>
+              <select id="sel-speed" class="input-field">
+                <option value="0.7">0.7x (Slow)</option>
+                <option value="0.85" selected>0.85x (Default)</option>
+                <option value="1.0">1.0x (Normal)</option>
+                <option value="1.15">1.15x (Fast)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="card mb-6">
+          <h3 class="font-semibold mb-4">Notifications</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm text-gray-600 mb-2 block">Title</label>
+              <input type="text" id="notif-title" class="input-field" placeholder="Reminder title...">
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-2 block">Message</label>
+              <textarea id="notif-message" class="input-field h-20" placeholder="Your message..."></textarea>
+            </div>
+            <button onclick="sendNotification()" class="btn-primary">Send Notification</button>
+          </div>
+        </div>
+
+        <!-- Reminders -->
+        <div class="card mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">Active Reminders</h3>
+            <button onclick="loadReminders()" class="text-sm text-gray-500 hover:text-black">Refresh</button>
+          </div>
+          <div id="reminders-list" class="space-y-2">
+            <div class="text-sm text-gray-500 text-center py-4">No active reminders</div>
+          </div>
+        </div>
+
+        <!-- Analytics -->
+        <div class="card">
+          <h3 class="font-semibold mb-4">Analytics</h3>
+          <div class="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div class="text-2xl font-bold" id="analytics-sessions">0</div>
+              <div class="text-sm text-gray-500">Sessions</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold" id="analytics-accuracy">85%</div>
+              <div class="text-sm text-gray-500">Avg Accuracy</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold" id="analytics-memory">0</div>
+              <div class="text-sm text-gray-500">Memories</div>
+            </div>
+          </div>
+          <button onclick="loadAnalytics()" class="btn-secondary text-sm mt-4 w-full">Load Analytics</button>
+        </div>
+      </div>
+    </div>
+
   </div>
-  
-  <!-- Footer Controls (Mobile/Pinned) -->
-  <footer class="h-12 border-t border-yc bg-surface-block px-4 flex items-center justify-between shrink-0">
-    <div id="footer-timer" class="text-mono-label text-on-surface-variant hidden">00:00</div>
-    <div id="agent-indicator-label" class="text-mono-label text-primary font-bold text-[10px] uppercase tracking-widest">System Ready</div>
-    <div id="prog-pct" class="text-mono-label text-on-surface-variant">0%</div>
-  </footer>
 </main>
 
-<!-- Mobile Nav -->
-<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-16 bg-surface-container-lowest border-t border-outline-variant z-50">
-  <button onclick="switchView('live')" class="flex flex-col items-center justify-center text-secondary w-1/4">
-    <span class="material-symbols-outlined">hub</span>
-    <span class="text-[10px] font-label-caps">Topology</span>
+<!-- Mobile Bottom Nav -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3 z-50">
+  <button onclick="switchView('script')" class="flex flex-col items-center text-xs">
+    <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+    <span>Script</span>
   </button>
-  <button onclick="switchView('partner')" class="flex flex-col items-center justify-center text-secondary w-1/4">
-    <span class="material-symbols-outlined">chat</span>
-    <span class="text-[10px] font-label-caps">Partner</span>
+  <button onclick="switchView('live')" class="flex flex-col items-center text-xs">
+    <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+    <span>Live</span>
   </button>
-  <button onclick="switchView('memory')" class="flex flex-col items-center justify-center text-secondary w-1/4">
-    <span class="material-symbols-outlined">database</span>
-    <span class="text-[10px] font-label-caps">Memory</span>
+  <button onclick="switchView('partner')" class="flex flex-col items-center text-xs">
+    <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+    <span>Partner</span>
   </button>
-  <button onclick="switchView('settings')" class="flex flex-col items-center justify-center text-secondary w-1/4">
-    <span class="material-symbols-outlined">settings</span>
-    <span class="text-[10px] font-label-caps">Settings</span>
+  <button onclick="switchView('memory')" class="flex flex-col items-center text-xs">
+    <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+    <span>Memory</span>
   </button>
 </nav>
 
-<div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-on-surface text-on-primary px-6 py-2 rounded-full text-body-sm font-bold shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-[1000]"></div>
+<div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-2 rounded-full text-sm font-medium opacity-0 transition-opacity pointer-events-none z-50"></div>
 
 <script src="state.js"></script>
 <script src="nlp.js"></script>
@@ -510,42 +392,21 @@
 
 <script>
   function switchView(view) {
-    // Update view visibility
-    document.querySelectorAll('.view').forEach(v => {
-      v.classList.remove('active');
-    });
-    const targetView = document.getElementById('view-' + view);
-    if (targetView) targetView.classList.add('active');
+    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+    document.getElementById('view-' + view).classList.remove('hidden');
 
-    // Update navigation styles
-    document.querySelectorAll('nav a, nav button').forEach(el => {
-      el.classList.remove('active-nav');
-    });
-    const navItem = document.getElementById('nav-' + view);
-    if (navItem) navItem.classList.add('active-nav');
+    // Update nav
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('bg-gray-100'));
+    const nav = document.getElementById('nav-' + view);
+    if (nav) nav.classList.add('bg-gray-100');
 
-    // Update header title
-    const titles = { 
-      partner: 'AI Partner Engram', 
-      script: 'Script Studio', 
-      live: 'Command Center', 
-      memory: 'Memory Index', 
-      docs: 'Knowledge Ingestion',
-      settings: 'System Configuration'
-    };
+    // Update title
+    const titles = { partner: 'AI Partner', script: 'Script Studio', live: 'Live Coaching', memory: 'Memory', docs: 'Documents', settings: 'Settings' };
     document.getElementById('page-title').textContent = titles[view] || 'RasoSpeak';
-    
-    if (view === 'live' && typeof renderLiveChunkList === 'function') renderLiveChunkList();
   }
 
-  function toggleSidebar() {
-    const sb = document.getElementById('sidebar');
-    sb.classList.toggle('-translate-x-full');
-  }
-
-  // Initialize
   window.addEventListener('load', () => {
-    switchView('live');
+    switchView('partner');
   });
 </script>
 

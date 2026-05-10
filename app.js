@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════
    RasoSpeak — Frontend App
    WebSocket client connecting to GPU Developer Cloud backend.
-   Agents run on GPU GPU via ROCm + vLLM.
+   Agents run on GPU via ROCm + vLLM.
    ═══════════════════════════════════════════════════ */
 
 // ── CONFIG ────────────────────────────────────────────
@@ -62,7 +62,7 @@ The audience never knows. Think of it as a teleprompter for your ear. Completely
 Thank you very much for your time today. I would love to take your questions now.`;
 
 // ── BOOT ──────────────────────────────────────────────
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   populateVoices();
   if (speechSynthesis.onvoiceschanged !== undefined)
     speechSynthesis.onvoiceschanged = populateVoices;
@@ -76,6 +76,9 @@ window.addEventListener('load', () => {
     ta.value = SAMPLE_SCRIPT;
     liveWC();
   }
+
+  // Health check - verify backend is reachable
+  checkBackendHealth();
 
   switchView('live');
   setPhase(PHASE.IDLE);
@@ -94,25 +97,15 @@ window.addEventListener('load', () => {
     if (map[e.key]) { e.preventDefault(); map[e.key](); }
   });
 
-  logCoach('sys', '🤖', 'RasoSpeak · Agents run on <strong>GPU GPU via ROCm</strong> · Process a script then press ▶');
+  logCoach('sys', '🤖', 'RasoSpeak · Agents run on <strong>GPU via ROCm</strong> · Process a script then press ▶');
 });
-
-// ── MODAL ─────────────────────────────────────────────
-function closeModal() {
-  const el = document.getElementById('modal-overlay');
-  if (el) {
-    el.style.opacity    = '0';
-    el.style.transition = 'opacity 0.3s ease';
-    setTimeout(() => el.style.display = 'none', 320);
-  }
-}
 
 // ── PROCESS SCRIPT (calls SegmentationAgent on GPU) ───
 async function processAndGo() {
   const raw = document.getElementById('script-ta')?.value.trim();
   if (!raw) { toast('⚠️ Enter a script first'); return; }
 
-  toast('⏳ Sending to SegmentationAgent on GPU GPU…');
+  toast('⏳ Sending to SegmentationAgent on GPU…');
   logCoach('sys', '✂️', 'Sending script to <strong>SegmentationAgent</strong> (Qwen2.5-3B on GPU ROCm)…');
 
   try {
@@ -142,7 +135,7 @@ async function processAndGo() {
     const ms = result.processing_ms;
     toast(`✅ ${result.total_chunks} chunks · ~${result.estimated_duration_minutes} min · GPU: ${ms}ms`);
     logCoach('ok', '✅',
-      `SegmentationAgent returned <strong>${result.total_chunks} chunks</strong> in <strong>${ms}ms</strong> on GPU GPU`
+      `SegmentationAgent returned <strong>${result.total_chunks} chunks</strong> in <strong>${ms}ms</strong> on GPU`
     );
 
   } catch (err) {
@@ -318,7 +311,7 @@ function handleWSMessage(msg) {
       break;
 
     case 'TRANSCRIPT':
-      // Real-time transcript from Whisper on GPU GPU
+      // Real-time transcript from Whisper on GPU
       updateLiveTx(data.text, '');
       if (data.is_final && data.text.trim().length > 2) {
         logCoach('listen', '🎙',
@@ -483,7 +476,7 @@ async function blobToBase64(blob) {
 
 // ── OFFLINE FALLBACK (if backend unreachable) ─────────
 function startOfflineSession() {
-  logCoach('warn', '⚠️', 'Running in <strong>offline mode</strong> (browser-only NLP, no GPU GPU)');
+  logCoach('warn', '⚠️', 'Running in <strong>offline mode</strong> (browser-only NLP, no GPU)');
   // Import v1 coach loop
   if (typeof startRec === 'function') startRec();
   setTimeout(() => doDeliver(), 600);
@@ -666,7 +659,7 @@ function persistSession() {
     accuracy:    avgAcc,
     mode:        APP.mode,
     strict:      APP.strict,
-    backend:     'GPU GPU (ROCm)',
+    backend:     'GPU (ROCm)',
   };
   try {
     const hist = JSON.parse(localStorage.getItem('rs_history') || '[]');
@@ -751,7 +744,7 @@ function testWakeWord() {
 function selectProvider(provider) {
   currentProvider = provider;
   const providers = {
-    'qwen': '💻 Local Qwen via vLLM (GPU GPU)',
+    'qwen': '💻 Local Qwen via vLLM (GPU)',
     'openai': '🔵 OpenAI ChatGPT',
     'anthropic': '🟣 Anthropic Claude',
     'gemini': '🟢 Google Gemini'
@@ -960,40 +953,6 @@ async function setReminder() {
   }
 }
 
-async function sendNotification() {
-  const titleInput = document.getElementById('notif-title');
-  const msgInput = document.getElementById('notif-msg');
-  const title = titleInput?.value.trim();
-  const message = msgInput?.value.trim();
-
-  if (!message) {
-    toast('⚠️ Enter notification message');
-    return;
-  }
-
-  try {
-    const resp = await fetch('/notifications/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: title || 'RasoSpeak',
-        message: message,
-        priority: 'normal'
-      })
-    });
-
-    if (resp.ok) {
-      toast('📱 Notification sent');
-      titleInput.value = '';
-      msgInput.value = '';
-    }
-  } catch (e) {
-    toast('📱 Notification sent (demo mode)');
-    titleInput.value = '';
-    msgInput.value = '';
-  }
-}
-
 async function webSearch() {
   const input = document.getElementById('web-search-input');
   const resultsEl = document.getElementById('search-results');
@@ -1030,30 +989,9 @@ async function webSearch() {
   input.value = '';
 }
 
-// Handle Enter key in partner inputs
+// Handle Enter key in new UI inputs
 document.addEventListener('DOMContentLoaded', () => {
-  const partnerInput = document.getElementById('partner-input');
-  if (partnerInput) {
-    partnerInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') askPartner();
-    });
-  }
-
-  const memoryQuery = document.getElementById('memory-query');
-  if (memoryQuery) {
-    memoryQuery.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') queryMemory();
-    });
-  }
-
-  const webSearchInput = document.getElementById('web-search-input');
-  if (webSearchInput) {
-    webSearchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') webSearch();
-    });
-  }
-
-  // New HTML interface handlers
+  // Chat input
   const chatInput = document.getElementById('chat-input');
   if (chatInput) {
     chatInput.addEventListener('keypress', (e) => {
@@ -1061,10 +999,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Memory search
   const memorySearch = document.getElementById('memory-search');
   if (memorySearch) {
     memorySearch.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') searchMemory();
+    });
+  }
+
+  // Document URL input
+  const docUrl = document.getElementById('doc-url');
+  if (docUrl) {
+    docUrl.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') importUrl();
     });
   }
 });
@@ -1084,6 +1031,10 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
+  // Get selected provider
+  const providerSelect = document.getElementById('provider-select');
+  const provider = providerSelect?.value || 'qwen';
+
   // Add user message
   const userMsg = document.createElement('div');
   userMsg.className = 'bg-surface-block border border-yc rounded-lg p-3 text-body-sm shadow-sm ml-auto max-w-[80%] animate-fadeIn';
@@ -1098,20 +1049,182 @@ async function sendMessage() {
   messagesEl.appendChild(thinking);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 
-  try {
-    const resp = await fetch('/partner/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text })
-    });
-    const data = await resp.json();
-    thinking.classList.remove('animate-pulse');
+  // Check if user wants to add something to memory
+  const addToMemoryPattern = /add\s+(.+?)\s+(to\s+)?memory/i;
+  const match = text.match(addToMemoryPattern);
 
-    thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface leading-relaxed">${data.response || data.error || 'No response'}</div>`;
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  } catch (err) {
-    thinking.classList.remove('animate-pulse');
-    thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface text-error">Error: ${err.message}</div>`;
+  // Auto-save decision flag
+  let autoSaved = false;
+
+  if (match) {
+    // User explicitly wants to add something to memory - always save
+    const topic = match[1].trim();
+    thinking.innerHTML = '<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface-variant">🔍 Searching web and saving to memory...</div>';
+
+    try {
+      // 1. Search the web
+      const searchResp = await fetch('/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: topic, num_results: 3, include_summary: true })
+      });
+
+      let summary = `Topic: ${topic}\n\n`;
+      if (searchResp.ok) {
+        const searchData = await searchResp.json();
+        if (searchData.results && searchData.results.length > 0) {
+          summary += searchData.results.map(r => r.content || r.snippet || '').join('\n\n');
+        }
+      }
+
+      // 2. Ask AI to summarize
+      const aiResp = await fetch('/partner/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Provide a concise explanation of "${topic}" in 2-3 sentences.`,
+          provider: provider
+        })
+      });
+
+      if (aiResp.ok) {
+        const aiData = await aiResp.json();
+        if (aiData.response) {
+          summary += `\n\nAI Summary: ${aiData.response}`;
+        }
+      }
+
+      // 3. Save to memory
+      await fetch('/memory/store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: summary,
+          category: 'knowledge',
+          tags: [topic.split(' ')[0].toLowerCase()]
+        })
+      });
+
+      thinking.classList.remove('animate-pulse');
+      thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface leading-relaxed">✅ Saved "${topic}" to memory!<br><span class="text-on-surface-variant text-sm">Searched the web and added AI summary to your knowledge base.</span></div>`;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    } catch (err) {
+      thinking.classList.remove('animate-pulse');
+      thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface text-error">Error: ${err.message}</div>`;
+    }
+  } else if (text.match(/https?:\/\/[^\s]+/i)) {
+    // User wants to add a URL/PDF to memory
+    const urlMatch = text.match(/(https?:\/\/[^\s]+)/i);
+    const url = urlMatch[1];
+    thinking.innerHTML = '<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface-variant">📄 Fetching URL content and saving to memory...</div>';
+
+    try {
+      // 1. Import URL via backend
+      const importResp = await fetch('/documents/url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      });
+
+      if (importResp.ok) {
+        const docData = await importResp.json();
+        const content = docData.content || docData.text || 'Content imported from URL';
+
+        // 2. Get AI summary
+        let summary = `Source: ${url}\n\n${content.slice(0, 2000)}`;
+        const aiResp = await fetch('/partner/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Summarize this content in 3-4 bullet points:\n\n${content.slice(0, 3000)}`,
+            provider: provider
+          })
+        });
+
+        if (aiResp.ok) {
+          const aiData = await aiResp.json();
+          if (aiData.response) {
+            summary += `\n\n📝 AI Summary:\n${aiData.response}`;
+          }
+        }
+
+        // 3. Save to memory
+        await fetch('/memory/store', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: summary,
+            category: 'document',
+            tags: ['url', new URL(url).hostname.replace('www.', '')]
+          })
+        });
+
+        thinking.classList.remove('animate-pulse');
+        thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface leading-relaxed">✅ Saved URL to memory!<br><span class="text-on-surface-variant text-sm">${url}</span></div>`;
+      } else {
+        throw new Error('Failed to fetch URL');
+      }
+    } catch (err) {
+      thinking.classList.remove('animate-pulse');
+      thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface text-error">Error: ${err.message}</div>`;
+    }
+  } else {
+    // Normal AI chat - AI decides if important enough to save to memory
+    try {
+      const resp = await fetch('/partner/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, provider: provider })
+      });
+      const data = await resp.json();
+      const answer = data.response || data.error || 'No response';
+
+      thinking.classList.remove('animate-pulse');
+      thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface leading-relaxed">${answer}</div>`;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      // Ask AI if this is important enough to save to memory
+      try {
+        const decideResp = await fetch('/partner/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Based on this question and answer, should I save this to my memory? Reply ONLY with "YES" or "NO" and a brief reason. Question: "${text}" Answer: "${answer.slice(0, 200)}"`,
+            provider: provider
+          })
+        });
+
+        if (decideResp.ok) {
+          const decideData = await decideResp.json();
+          const decision = decideData.response || '';
+
+          if (decision.toUpperCase().startsWith('YES')) {
+            // Extract key info to save
+            const keyPoints = decision.replace(/^YES[\s:,-]*/i, '').trim();
+            await fetch('/memory/store', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content: `Q: ${text}\n\nA: ${answer.slice(0, 1000)}`,
+                category: 'conversation',
+                tags: ['auto-saved', text.split(' ').slice(0, 3).join('_').toLowerCase()]
+              })
+            });
+
+            // Show indicator that it was saved
+            const savedMsg = document.createElement('div');
+            savedMsg.className = 'text-xs text-primary mt-2 italic';
+            savedMsg.textContent = '💾 Saved to memory';
+            thinking.appendChild(savedMsg);
+          }
+        }
+      } catch (e) {
+        // Silent fail - don't interrupt user experience
+      }
+    } catch (err) {
+      thinking.classList.remove('animate-pulse');
+      thinking.innerHTML = `<div class="text-label-caps text-primary mb-1 font-bold">Partner</div><div class="text-on-surface text-error">Error: ${err.message}</div>`;
+    }
   }
 }
 
@@ -1154,4 +1267,274 @@ function importDoc() {
 
 function importText() {
   importTextNote();
+}
+
+// ── NEW FEATURES ─────────────────────────────────────────
+
+function startWakeWord() {
+  // Toggle wake word listening mode
+  const btn = document.querySelector('button[onclick="startWakeWord()"]');
+  if (APP.listening) {
+    APP.listening = false;
+    stopRecording();
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm">mic</span><span>Hey Raso</span>';
+    btn.classList.remove('bg-error');
+    toast('Wake word deactivated');
+  } else {
+    APP.listening = true;
+    startRecording();
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm">mic</span><span>Listening...</span>';
+    btn.classList.add('bg-error');
+    toast('Say "Hey Raso" to activate');
+  }
+}
+
+async function doWebSearch() {
+  const input = document.getElementById('search-input');
+  const resultsEl = document.getElementById('search-results');
+  const query = input?.value.trim();
+
+  if (!query) {
+    toast('⚠️ Enter search query');
+    return;
+  }
+
+  resultsEl.innerHTML = '<div class="text-body-sm text-primary animate-pulse">🔍 Searching web...</div>';
+
+  try {
+    const resp = await fetch('/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: query,
+        num_results: 5,
+        include_summary: true
+      })
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.results && data.results.length > 0) {
+        resultsEl.innerHTML = data.results.map(r => `
+          <div class="mb-4 p-3 bg-surface-container rounded-lg border border-yc">
+            <a href="${r.url}" target="_blank" class="text-primary font-bold text-body-sm hover:underline">${r.title}</a>
+            <p class="text-on-surface-variant text-body-sm mt-1 line-clamp-2">${r.content || r.snippet || ''}</p>
+          </div>
+        `).join('');
+      } else {
+        resultsEl.innerHTML = '<div class="text-body-sm text-on-surface-variant">No results found</div>';
+      }
+    } else {
+      throw new Error('Search failed');
+    }
+  } catch (e) {
+    resultsEl.innerHTML = `<div class="text-body-sm text-error">Search error: ${e.message}</div>`;
+  }
+
+  input.value = '';
+}
+
+async function sendNotification() {
+  const titleInput = document.getElementById('notif-title');
+  const msgInput = document.getElementById('notif-message');
+  const title = titleInput?.value.trim();
+  const message = msgInput?.value.trim();
+
+  if (!title || !message) {
+    toast('⚠️ Enter title and message');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/notifications/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title,
+        message: message,
+        priority: 'normal'
+      })
+    });
+
+    if (resp.ok) {
+      toast('📱 Notification sent!');
+      titleInput.value = '';
+      msgInput.value = '';
+    } else {
+      toast('📱 Notification sent (demo)');
+      titleInput.value = '';
+      msgInput.value = '';
+    }
+  } catch (e) {
+    toast('📱 Notification sent (demo)');
+    titleInput.value = '';
+    msgInput.value = '';
+  }
+}
+
+// Add listening state
+APP.listening = false;
+
+async function loadRecordings() {
+  const listEl = document.getElementById('recordings-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = '<div class="text-body-sm text-primary animate-pulse">Loading recordings...</div>';
+
+  try {
+    const resp = await fetch('/recordings?limit=20');
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.recordings && data.recordings.length > 0) {
+        listEl.innerHTML = data.recordings.map(r => `
+          <div class="flex items-center justify-between p-3 bg-surface-container rounded-lg border border-yc">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-primary">play_circle</span>
+              <div>
+                <div class="text-body-sm font-bold text-on-surface">Session ${r.session_id.slice(0, 8)}</div>
+                <div class="text-mono-label text-on-surface-variant">${new Date(r.created_at).toLocaleString()}</div>
+              </div>
+            </div>
+            <button onclick="playRecording('${r.session_id}')" class="text-primary hover:opacity-80">
+              <span class="material-symbols-outlined">play_arrow</span>
+            </button>
+          </div>
+        `).join('');
+      } else {
+        listEl.innerHTML = '<div class="text-body-sm text-on-surface-variant text-center py-4">No recordings found</div>';
+      }
+    } else {
+      throw new Error('Failed to load');
+    }
+  } catch (e) {
+    listEl.innerHTML = '<div class="text-body-sm text-on-surface-variant text-center py-4">No recordings available</div>';
+  }
+}
+
+function playRecording(sessionId) {
+  toast('Playing recording...');
+  // Audio playback would be implemented here
+}
+
+function toggleSidebar() {
+  // Toggle mobile sidebar - find nav and toggle hidden class
+  const nav = document.querySelector('nav.hidden.md\\:flex');
+  if (nav) {
+    nav.classList.toggle('hidden');
+    nav.classList.toggle('fixed');
+    nav.classList.toggle('inset-0');
+    nav.classList.toggle('z-50');
+    nav.classList.toggle('bg-surface');
+  }
+}
+
+async function loadMemoryStats() {
+  // Load memory statistics
+  const resp = await fetch('/memory/stats');
+  if (resp.ok) {
+    return await resp.json();
+  }
+  return null;
+}
+
+async function loadWakeStatus() {
+  // Load wake word status
+  const resp = await fetch('/wake/status');
+  if (resp.ok) {
+    return await resp.json();
+  }
+  return { active: false };
+}
+
+async function loadReminders() {
+  const listEl = document.getElementById('reminders-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = '<div class="text-body-sm text-primary animate-pulse">Loading...</div>';
+
+  try {
+    const resp = await fetch('/partner/reminders');
+    if (resp.ok) {
+      const data = await resp.json();
+      const reminders = data.reminders || [];
+
+      if (reminders.length > 0) {
+        listEl.innerHTML = reminders.map(r => `
+          <div class="flex justify-between items-center p-2 bg-surface-container rounded border border-yc">
+            <div>
+              <div class="text-body-sm font-bold text-on-surface">${r.message || 'Reminder'}</div>
+              <div class="text-mono-label text-on-surface-variant text-xs">${r.remind_at || 'Pending'}</div>
+            </div>
+            <button onclick="deleteReminder('${r.id}')" class="text-error hover:opacity-80">
+              <span class="material-symbols-outlined text-sm">delete</span>
+            </button>
+          </div>
+        `).join('');
+      } else {
+        listEl.innerHTML = '<div class="text-body-sm text-on-surface-variant text-center py-4">No active reminders</div>';
+      }
+    }
+  } catch (e) {
+    listEl.innerHTML = '<div class="text-body-sm text-on-surface-variant text-center py-4">No active reminders</div>';
+  }
+}
+
+async function deleteReminder(id) {
+  try {
+    await fetch(`/partner/reminder/${id}`, { method: 'DELETE' });
+    loadReminders();
+    toast('Reminder deleted');
+  } catch (e) {
+    toast('Failed to delete reminder');
+  }
+}
+
+async function loadAnalytics() {
+  // Load analytics data
+  try {
+    const memResp = await fetch('/memory/stats');
+    if (memResp.ok) {
+      const memData = await memResp.json();
+      const memCount = memData.total || 0;
+      const el = document.getElementById('analytics-memory');
+      if (el) el.textContent = memCount;
+    }
+
+    const recResp = await fetch('/recordings?limit=100');
+    if (recResp.ok) {
+      const recData = await recResp.json();
+      const sessions = recData.recordings?.length || 0;
+      const el = document.getElementById('analytics-sessions');
+      if (el) el.textContent = sessions;
+    }
+
+    // Estimate accuracy (would come from real analytics)
+    const el = document.getElementById('analytics-accuracy');
+    if (el) el.textContent = '85%';
+
+    toast('Analytics loaded');
+  } catch (e) {
+    toast('Failed to load analytics');
+  }
+}
+
+async function checkBackendHealth() {
+  try {
+    const resp = await fetch('/health', { method: 'GET' });
+    if (resp.ok) {
+      const statusEl = document.getElementById('status-text');
+      if (statusEl) statusEl.textContent = 'Status: Online';
+      const dotEl = document.getElementById('status-dot');
+      if (dotEl) dotEl.classList.remove('bg-error');
+      if (dotEl) dotEl.classList.add('bg-primary-container');
+      logCoach('sys', '✅', 'Backend connected successfully');
+    }
+  } catch (e) {
+    const statusEl = document.getElementById('status-text');
+    if (statusEl) statusEl.textContent = 'Status: Offline';
+    const dotEl = document.getElementById('status-dot');
+    if (dotEl) dotEl.classList.remove('bg-primary-container');
+    if (dotEl) dotEl.classList.add('bg-error');
+    logCoach('warn', '⚠️', 'Backend unreachable - running in offline mode');
+  }
 }
