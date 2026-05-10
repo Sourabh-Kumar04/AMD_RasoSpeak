@@ -54,9 +54,9 @@ class SessionConfig(BaseModel):
 
 # ── SEGMENTATION ───────────────────────────────────────
 class SegmentRequest(BaseModel):
-    script:            str
-    target_chunk_size: int = 8
-    style:             str = "presentation"  # presentation | lecture | speech
+    script: str = Field(..., min_length=10, max_length=50_000, description="Script text to segment")
+    target_chunk_size: int = Field(default=8, ge=3, le=30)
+    style: str = Field(default="presentation", pattern="^(presentation|lecture|speech)$")
 
 
 class ChunkMeta(BaseModel):

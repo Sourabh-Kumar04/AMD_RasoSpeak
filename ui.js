@@ -261,7 +261,8 @@ function showEndBtn(show) {
   document.getElementById('btn-end')?.classList.toggle('hidden', !show);
 }
 function showTimer(show) {
-  document.getElementById('session-timer')?.classList.toggle('hidden', !show);
+  document.getElementById('header-timer')?.classList.toggle('hidden', !show);
+  document.getElementById('footer-timer')?.classList.toggle('hidden', !show);
 }
 
 /* ── SETTINGS ───────────────────────────────────────── */

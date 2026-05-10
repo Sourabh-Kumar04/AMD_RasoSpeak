@@ -146,7 +146,7 @@
       <div class="status-dot" id="status-dot"></div>
       <span id="status-text" style="font-family:var(--font-mono)">Idle</span>
     </div>
-    <div class="session-timer hidden" id="session-timer">00:00</div>
+    <div class="session-timer hidden" id="header-timer">00:00</div>
   </div>
 </header>
 
@@ -368,7 +368,7 @@ In offline mode, client-side chunking is used as fallback."></textarea>
 
       <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
         <button class="btn btn-danger hidden" id="btn-end" onclick="stopSession()">End Session</button>
-        <div class="session-timer hidden" id="session-timer">00:00</div>
+        <div class="session-timer hidden" id="footer-timer">00:00</div>
       </div>
     </footer>
   </div>
@@ -436,8 +436,8 @@ In offline mode, client-side chunking is used as fallback."></textarea>
           <input type="text" id="partner-input" class="script-textarea" placeholder="Ask anything... OR type 'use chatgpt for this'">
           <button class="btn btn-primary" onclick="askPartner()">Ask</button>
         </div>
-        <div id="partner-response" class="partner-response">
-          <span style="color:var(--text-muted);font-size:12px">Your partner's response will appear here...</span>
+        <div id="partner-response" class="partner-response" style="max-height:200px;overflow-y:auto">
+          <div id="partner-messages"></div>
         </div>
       </div>
 

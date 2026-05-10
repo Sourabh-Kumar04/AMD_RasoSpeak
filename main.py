@@ -17,7 +17,7 @@ from typing import Any
 
 import uvicorn
 from pydantic import BaseModel
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -58,88 +58,64 @@ async def lifespan(app: FastAPI):
     """Load all agents on startup, clean up on shutdown."""
     log.info("🚀 RasoSpeak v2 starting — loading agents on AMD MI300X...")
 
-    # FIRST: Shared Memory Agent (the brain) - must initialize first!
-    agents["shared_memory"] = SharedMemoryAgent()
-    await agents["shared_memory"].initialize()
-    log.info("✅ SharedMemoryAgent ready (UNIFIED BRAIN)")
+    # Agent registry with initialization logic
+    agent_init_order = [
+        # Core first - Shared Memory must be first!
+        ("shared_memory", SharedMemoryAgent, "UNIFIED BRAIN"),
+        # Core coaching
+        ("transcription", TranscriptionAgent, "Whisper Large v3 on ROCm"),
+        ("scoring", ScoringAgent, "Qwen2.5-7B on vLLM"),
+        ("coaching", CoachingAgent, "Qwen2.5-7B on vLLM"),
+        ("segmentation", SegmentationAgent, "Qwen2.5-3B on vLLM"),
+        ("memory", SessionMemoryAgent, "Session storage"),
+        # Partner agents
+        ("qa", QAAgent, "OpenAI/Anthropic/Google/xAI/Qwen"),
+        ("search", SearchAgent, "Tavily/DuckDuckGo"),
+        ("recording", RecordingAgent, "Audio recording"),
+        ("analytics", AnalyticsAgent, "Performance analytics"),
+        ("partner", PartnerAgent, "Your AI companion"),
+        ("wake_word", WakeWordAgent, "'Hey Raso' detection"),
+        ("document", DocumentAgent, "PDF/URL import"),
+        ("notification", NotificationAgent, "Phone notifications"),
+    ]
 
-    # Core coaching agents
-    agents["transcription"] = TranscriptionAgent()
-    await agents["transcription"].initialize()
-    log.info("✅ TranscriptionAgent ready (Whisper Large v3 on ROCm)")
+    agent_health: dict[str, str] = {}
 
-    agents["scoring"] = ScoringAgent()
-    await agents["scoring"].initialize()
-    log.info("✅ ScoringAgent ready (Qwen2.5-7B on vLLM)")
+    for name, AgentClass, desc in agent_init_order:
+        try:
+            agents[name] = AgentClass()
+            await agents[name].initialize()
+            agent_health[name] = "ok"
+            log.info(f"✅ {name.capitalize()}Agent ready ({desc})")
+        except Exception as e:
+            agents[name] = None
+            agent_health[name] = f"failed: {str(e)[:100]}"
+            log.error(f"❌ {name.capitalize()}Agent failed to initialize: {e}")
 
-    agents["coaching"] = CoachingAgent()
-    await agents["coaching"].initialize()
-    log.info("✅ CoachingAgent ready (Qwen2.5-7B on vLLM)")
+    # Set shared memory references for agents that need it
+    if agents.get("shared_memory"):
+        for agent_name in ["qa", "search", "recording", "analytics", "partner", "document"]:
+            if agents.get(agent_name):
+                try:
+                    agents[agent_name].set_shared_memory(agents["shared_memory"])
+                except Exception as e:
+                    log.warning(f"⚠️ {agent_name} shared_memory setup failed: {e}")
 
-    agents["segmentation"] = SegmentationAgent()
-    await agents["segmentation"].initialize()
-    log.info("✅ SegmentationAgent ready (Qwen2.5-3B on vLLM)")
+    # Store agent health for /health endpoint
+    app.state.agent_health = agent_health
 
-    agents["memory"] = SessionMemoryAgent()
-    await agents["memory"].initialize()
-    log.info("✅ SessionMemoryAgent ready")
+    log.info(f"🚀 Startup complete. Agent health: {agent_health}")
 
-    # Q&A Agent (multi-provider AI chat) - now connected to shared memory
-    agents["qa"] = QAAgent()
-    await agents["qa"].initialize()
-    agents["qa"].set_shared_memory(agents["shared_memory"])
-    log.info("✅ QAAgent ready (OpenAI/Anthropic/Google/xAI/Qwen)")
-
-    # Search Agent (web search) - connected to shared memory
-    agents["search"] = SearchAgent()
-    await agents["search"].initialize()
-    agents["search"].set_shared_memory(agents["shared_memory"])
-    log.info("✅ SearchAgent ready (Tavily/DuckDuckGo)")
-
-    # Recording Agent - connected to shared memory
-    agents["recording"] = RecordingAgent()
-    await agents["recording"].initialize()
-    agents["recording"].set_shared_memory(agents["shared_memory"])
-    log.info("✅ RecordingAgent ready")
-
-    # Analytics Agent - connected to shared memory
-    agents["analytics"] = AnalyticsAgent()
-    await agents["analytics"].initialize()
-    agents["analytics"].set_shared_memory(agents["shared_memory"])
-    log.info("✅ AnalyticsAgent ready")
-
-    # Partner Agent - Your AI Partner / Secondary Brain
-    agents["partner"] = PartnerAgent()
-    await agents["partner"].initialize()
-    agents["partner"].set_shared_memory(agents["shared_memory"])
-    agents["partner"].set_search_agent(agents["search"])
-    log.info("✅ PartnerAgent ready (YOUR AI PARTNER)")
-
-    # Wake Word Agent - Listen for "Hey Raso"
-    agents["wake_word"] = WakeWordAgent()
-    await agents["wake_word"].initialize()
-    log.info("✅ WakeWordAgent ready (listening for 'Hey Raso')")
-
-    # Document Agent - Import documents to memory
-    agents["documents"] = DocumentAgent()
-    await agents["documents"].initialize()
-    agents["documents"].set_shared_memory(agents["shared_memory"])
-    log.info("✅ DocumentAgent ready (import docs to memory)")
-
-    # Notification Agent - Phone notifications
-    agents["notifications"] = NotificationAgent()
-    await agents["notifications"].initialize()
-    agents["notifications"].set_shared_memory(agents["shared_memory"])
-    log.info("✅ NotificationAgent ready (phone notifications)")
-
-    log.info("🧠 All 14 agents online — RasoSpeak v2 ready as your AI PARTNER!")
     yield
 
     # Cleanup
+    log.info("🧹 Shutting down RasoSpeak...")
     for name, agent in agents.items():
-        if hasattr(agent, "shutdown"):
-            await agent.shutdown()
-    log.info("👋 RasoSpeak v2 shut down cleanly")
+        if agent and hasattr(agent, "cleanup"):
+            try:
+                await agent.cleanup()
+            except Exception as e:
+                log.error(f"Error cleaning up {name}: {e}")
 
 
 # ── APP ────────────────────────────────────────────────
@@ -150,17 +126,26 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS - use ALLOWED_ORIGINS from settings (default "*" for dev, can restrict for prod)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS.split(",") if settings.ALLOWED_ORIGINS != "*" else ["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
-# Serve the frontend - check for static folder, fall back to root
+# Serve the frontend - NEVER fall back to "." which exposes all files!
 import os
-static_dir = "static" if os.path.exists("static") else "."
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+from pathlib import Path
+
+static_path = Path("static")
+if not static_path.exists():
+    static_path.mkdir(exist_ok=True)
+    log.warning("⚠️ static/ directory not found — created empty static/. Serve frontend files there.")
+    # Create a placeholder file so it's not empty
+    (static_path / ".gitkeep").touch()
+
+app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
 
 # ── ROOT ROUTE ─────────────────────────────────────────
@@ -234,7 +219,7 @@ async def get_session(session_id: str):
     """Retrieve session data for the stats dashboard."""
     session = await agents["memory"].get_session(session_id)
     if not session:
-        return {"error": "Session not found"}, 404
+        raise HTTPException(status_code=404, detail="Session not found")
     return session
 
 
@@ -243,7 +228,7 @@ async def get_session_insights(session_id: str):
     """Get AI-generated insights from a completed session."""
     session = await agents["memory"].get_session(session_id)
     if not session:
-        return {"error": "Session not found"}, 404
+        raise HTTPException(status_code=404, detail="Session not found")
     insights = await agents["coaching"].generate_session_insights(session)
     return insights
 
@@ -253,9 +238,9 @@ async def get_session_insights(session_id: str):
 # ══════════════════════════════════════════════════════
 
 class QARequest(BaseModel):
-    question: str
-    provider: str = None  # openai | anthropic | google | xai | qwen_local
-    context: str = None
+    question: str = Field(..., min_length=1, max_length=2_000)
+    provider: str | None = Field(default=None, pattern="^(openai|anthropic|google|xai|qwen_local)$")
+    context: str | None = Field(default=None, max_length=10_000)
     stream_to_earpiece: bool = True
 
 
@@ -289,8 +274,8 @@ async def get_qa_providers():
 # ══════════════════════════════════════════════════════
 
 class SearchRequest(BaseModel):
-    query: str
-    num_results: int = 5
+    query: str = Field(..., min_length=1, max_length=500)
+    num_results: int = Field(default=5, ge=1, le=20)
     include_summary: bool = True
 
 
@@ -471,13 +456,13 @@ async def add_weak_word(req: WeakWordRequest, session_id: str = None):
 # ══════════════════════════════════════════════════════
 
 class PartnerAskRequest(BaseModel):
-    message: str
-    provider: str = None
+    message: str = Field(..., min_length=1, max_length=4_000)
+    provider: str | None
 
 
 class ReminderRequest(BaseModel):
-    message: str
-    remind_at: str = None  # ISO timestamp or "in 1 hour"
+    message: str = Field(..., min_length=1, max_length=500)
+    remind_at: str | None  # ISO timestamp or "in 1 hour"
 
 
 @app.post("/partner/start")

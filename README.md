@@ -1,3 +1,17 @@
+---
+title: RasoSpeak
+emoji: 🎙️
+colorFrom: purple
+colorTo: red
+sdk: docker
+sdk_version: 3.12
+pinned: false
+tags:
+  - amd
+  - amd-hackathon-2026
+  - ai-agents
+---
+
 # 🎙 RasoSpeak — Your Secondary Brain & AI Partner
 ### Built for AMD Developer Hackathon × lablab.ai
 

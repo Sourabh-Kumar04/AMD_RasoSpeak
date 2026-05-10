@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     port:       int = 8000
     log_level:  str = "info"
 
+    # ── SECURITY ─────────────────────────────────────────
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
+    API_KEY: str = os.getenv("API_KEY", "")
+
     # ── SESSION SETTINGS ───────────────────────────────
     MAX_SESSIONS:         int = 50
     SESSION_TTL_SECONDS:  int = 3600      # 1 hour

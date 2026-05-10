@@ -117,7 +117,7 @@ def ask_with_context(question, context, provider="qwen"):
 
 def switch_provider(provider, temporary=False):
     """Switch AI provider."""
-    result = call_api(f"/partner/provider?provider={provider}&temporary={temporary}", method="GET")
+    result = call_api(f"/partner/provider?provider={provider}&temporary={temporary}", method="POST")
     return result.get("message", "Done")
 
 

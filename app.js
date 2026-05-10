@@ -248,11 +248,15 @@ function stopSession() {
 }
 
 // ── WEBSOCKET CLIENT ──────────────────────────────────
+let _wsReconnectAttempts = 0;
+const _maxReconnectAttempts = 5;
+
 function connectWebSocket() {
   const url = `${CONFIG.WS_URL}/${APP.sessionId}`;
-  APP.ws    = new WebSocket(url);
+  APP.ws = new WebSocket(url);
 
   APP.ws.onopen = () => {
+    _wsReconnectAttempts = 0;
     logCoach('ok', '🔌', `Connected to AMD backend · Session <code>${APP.sessionId.slice(0, 8)}</code>`);
     // Send session config
     APP.ws.send(JSON.stringify({
@@ -278,13 +282,29 @@ function connectWebSocket() {
   };
 
   APP.ws.onerror = (e) => {
-    logCoach('warn', '⚠️', 'WebSocket error — running in offline mode');
-    // Fallback to v1 browser-only mode
-    startOfflineSession();
+    logCoach('warn', '⚠️', 'WebSocket error');
   };
 
-  APP.ws.onclose = () => {
-    logCoach('sys', '🔌', 'WebSocket connection closed.');
+  APP.ws.onclose = (event) => {
+    // Don't reconnect on clean close (code 1000)
+    if (event.code === 1000) {
+      logCoach('sys', '🔌', 'WebSocket connection closed cleanly.');
+      return;
+    }
+    // Reconnect with exponential backoff
+    if (_wsReconnectAttempts < _maxReconnectAttempts && APP.running) {
+      const delay = Math.min(1000 * Math.pow(2, _wsReconnectAttempts), 15000);
+      _wsReconnectAttempts++;
+      logCoach('warn', '🔄', `Reconnecting in ${delay/1000}s... (${_wsReconnectAttempts}/${_maxReconnectAttempts})`);
+      setTimeout(() => {
+        if (APP.running && !APP.paused) {
+          connectWebSocket();
+        }
+      }, delay);
+    } else {
+      logCoach('error', '❌', 'Connection lost — please refresh the page.');
+      startOfflineSession();
+    }
   };
 }
 
@@ -582,8 +602,10 @@ function startTimer() {
     const e = Math.floor((Date.now() - APP.sessionStart) / 1000);
     const m = String(Math.floor(e / 60)).padStart(2, '0');
     const s = String(e % 60).padStart(2, '0');
-    const el = document.getElementById('session-timer');
-    if (el) el.textContent = `${m}:${s}`;
+    const time = `${m}:${s}`;
+    // Update both header and footer timers
+    document.getElementById('header-timer').textContent = time;
+    document.getElementById('footer-timer').textContent = time;
   }, 1000);
 }
 function stopTimer() { clearInterval(APP.timerIv); }
@@ -749,7 +771,7 @@ function selectProvider(provider) {
 
 async function askPartner() {
   const input = document.getElementById('partner-input');
-  const responseEl = document.getElementById('partner-response');
+  const messagesEl = document.getElementById('partner-messages');
   const message = input?.value.trim();
 
   if (!message) {
@@ -779,7 +801,19 @@ async function askPartner() {
     return;
   }
 
-  responseEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px">🤔 Thinking...</span>';
+  // Add user message to conversation
+  const userMsg = document.createElement('div');
+  userMsg.className = 'partner-msg partner-msg-user';
+  userMsg.innerHTML = `<span style="color:var(--text-primary);font-size:12px">${escHtml(message)}</span>`;
+  messagesEl.appendChild(userMsg);
+
+  // Clear input and show thinking
+  input.value = '';
+  const thinking = document.createElement('div');
+  thinking.className = 'partner-msg partner-msg-ai';
+  thinking.innerHTML = '<span style="color:var(--text-muted);font-size:12px">🤔 Thinking...</span>';
+  messagesEl.appendChild(thinking);
+  messagesEl.parentElement.scrollTop = messagesEl.parentElement.scrollHeight;
 
   try {
     const resp = await fetch('/partner/ask', {
@@ -793,15 +827,16 @@ async function askPartner() {
 
     if (resp.ok) {
       const data = await resp.json();
-      responseEl.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">${data.answer || data.message || 'No response'}</span>`;
+      thinking.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">${data.answer || data.message || 'No response'}</span>`;
     } else {
       // Fallback response for demo
-      responseEl.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">I received your message: "${message}". Connect to AMD backend for full AI responses.</span>`;
+      thinking.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">I received your message: "${message}". Connect to AMD backend for full AI responses.</span>`;
     }
   } catch (e) {
     // Demo mode fallback
-    responseEl.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">Demo mode: You asked "${message}". Backend connection required for AI responses.</span>`;
+    thinking.innerHTML = `<span style="color:var(--text);font-size:12px;line-height:1.6">Demo mode: You asked "${message}". Backend connection required for AI responses.</span>`;
   }
+  messagesEl.parentElement.scrollTop = messagesEl.parentElement.scrollHeight;
 
   input.value = '';
 }
