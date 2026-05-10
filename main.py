@@ -183,9 +183,15 @@ async def logo_png():
         return FileResponse("logo.png")
     # Fallback SVG if file is missing (prevents 500 error)
     svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r="45" fill="#FF6600"/>
-      <path d="M30 50 Q50 20 70 50 T110 50" stroke="white" stroke-width="8" fill="none"/>
-      <text x="50" y="85" font-size="12" fill="white" text-anchor="middle" font-family="sans-serif" font-weight="bold">RASOSPEAK</text>
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#FF8800;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#FF4400;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="48" fill="url(#g)"/>
+      <path d="M20 50 L30 50 L35 30 L45 70 L55 30 L65 70 L70 50 L80 50" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="50" y="88" font-size="10" fill="white" text-anchor="middle" font-family="sans-serif" font-weight="900" letter-spacing="1">RASOSPEAK</text>
     </svg>'''
     return Response(content=svg, media_type="image/svg+xml")
 

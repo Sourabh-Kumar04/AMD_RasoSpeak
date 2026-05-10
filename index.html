@@ -117,8 +117,11 @@
 <!-- NavigationDrawer (Web) -->
 <nav class="hidden md:flex flex-col gap-unit p-4 bg-surface-container-low h-full w-64 border-r border-outline-variant shrink-0">
   <div class="mb-8">
-    <img src="logo.png" alt="RasoSpeak Logo" class="h-14 w-auto rounded-lg">
-    <p class="text-label-caps text-on-surface-variant mt-2">Secondary Brain</p>
+    <div class="flex items-center gap-3 mb-2">
+      <img src="logo.png" alt="Logo" class="h-10 w-10 rounded-lg">
+      <h2 class="text-headline-md font-headline-md text-primary">RasoSpeak</h2>
+    </div>
+    <p class="text-label-caps text-on-surface-variant">Secondary Brain</p>
   </div>
   <div class="flex flex-col gap-2">
     <a id="nav-live" onclick="switchView('live')" class="flex items-center gap-3 px-3 py-2 text-secondary hover:bg-surface-container-high transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
@@ -158,7 +161,8 @@
       </button>
       <img src="logo.png" alt="Logo" class="h-8 w-8 rounded-md">
       <div class="flex flex-col">
-        <h1 class="text-headline-sm font-headline-sm font-bold text-primary-container" id="page-title">Command Center</h1>
+        <div class="text-[10px] font-bold text-primary tracking-widest uppercase leading-none mb-1">RasoSpeak</div>
+        <h1 class="text-headline-sm font-headline-sm font-bold text-primary-container leading-none" id="page-title">Command Center</h1>
       </div>
     </div>
     <div class="flex items-center gap-4">
