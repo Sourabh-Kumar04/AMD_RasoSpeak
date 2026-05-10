@@ -134,18 +134,12 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
-# Serve the frontend - NEVER fall back to "." which exposes all files!
+# Serve the frontend static files from current directory
 import os
 from pathlib import Path
 
-static_path = Path("static")
-if not static_path.exists():
-    static_path.mkdir(exist_ok=True)
-    log.warning("⚠️ static/ directory not found — created empty static/. Serve frontend files there.")
-    # Create a placeholder file so it's not empty
-    (static_path / ".gitkeep").touch()
-
-app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+# Serve static files (js, css) from current directory
+app.mount("/static", StaticFiles(directory="."), name="static")
 
 
 # ── ROOT ROUTE ─────────────────────────────────────────
