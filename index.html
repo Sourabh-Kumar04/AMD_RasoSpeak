@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>RasoSpeak — Your AI Partner</title>
+  <title>RasoSpeak — Your Secondary Brain</title>
   <link rel="icon" type="image/png" href="logo.png"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=Inter:wght@400;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
@@ -13,1030 +13,397 @@
       darkMode: "class",
       theme: {
         extend: {
-          "colors": {
-            "inverse-surface": "#303030",
-            "outline": "#8e7164",
-            "surface-container-highest": "#e2e2e2",
-            "on-secondary-fixed": "#1a1c18",
-            "secondary-fixed": "#e3e3dc",
-            "error-container": "#ffdad6",
-            "tertiary-fixed": "#e2e2e2",
-            "surface-bright": "#f9f9f9",
-            "on-primary-fixed": "#360f00",
-            "on-background": "#1b1b1b",
-            "surface-container": "#eeeeee",
-            "primary-fixed": "#ffdbcd",
-            "primary-container": "#ff6600",
-            "outline-variant": "#e3bfb1",
+          colors: {
             "primary": "#a33e00",
-            "on-secondary-container": "#636560",
-            "on-error": "#ffffff",
-            "on-surface-variant": "#5a4136",
-            "on-tertiary-container": "#2e3030",
-            "background": "#f9f9f9",
-            "on-tertiary-fixed": "#1a1c1c",
-            "primary-fixed-dim": "#ffb596",
-            "on-primary": "#ffffff",
-            "inverse-primary": "#ffb596",
-            "error": "#ba1a1a",
-            "on-surface": "#1b1b1b",
-            "tertiary-container": "#969797",
-            "surface-container-high": "#e8e8e8",
-            "surface-dim": "#dadada",
-            "on-primary-fixed-variant": "#7c2e00",
-            "tertiary-fixed-dim": "#c6c6c6",
-            "inverse-on-surface": "#f1f1f1",
-            "surface-tint": "#a33e00",
-            "surface-variant": "#e2e2e2",
-            "on-tertiary-fixed-variant": "#454747",
-            "on-primary-container": "#561d00",
-            "secondary-container": "#e3e3dc",
-            "secondary": "#5d5f5a",
-            "surface-container-lowest": "#ffffff",
-            "on-tertiary": "#ffffff",
-            "secondary-fixed-dim": "#c6c7c0",
+            "primary-container": "#ff6600",
             "surface": "#f9f9f9",
-            "tertiary": "#5d5f5f",
-            "on-secondary-fixed-variant": "#464743",
-            "on-error-container": "#93000a",
-            "surface-container-low": "#f3f3f3",
-            "on-secondary": "#ffffff"
+            "on-surface": "#1b1b1b",
+            "secondary": "#5d5f5a",
+            "error": "#ba1a1a",
           },
-          "borderRadius": {
-            "DEFAULT": "0.125rem",
-            "lg": "0.25rem",
-            "xl": "0.5rem",
-            "full": "0.75rem"
-          },
-          "spacing": {
-            "margin-desktop": "32px",
-            "gutter": "16px",
-            "max-width": "1280px",
-            "margin-mobile": "16px",
-            "unit": "4px"
-          },
-          "fontFamily": {
-            "headline-md": ["Hanken Grotesk"],
-            "body-sm": ["Inter"],
-            "label-caps": ["Inter"],
-            "body-md": ["Inter"],
-            "headline-lg": ["Hanken Grotesk"],
-            "mono-label": ["JetBrains Mono"],
-            "headline-sm": ["Hanken Grotesk"],
-            "body-lg": ["Inter"]
-          },
-          "fontSize": {
-            "headline-md": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700" }],
-            "body-sm": ["13px", { "lineHeight": "1.4", "fontWeight": "400" }],
-            "label-caps": ["11px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700" }],
-            "body-md": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
-            "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
-            "mono-label": ["12px", { "lineHeight": "1", "fontWeight": "400" }],
-            "headline-sm": ["18px", { "lineHeight": "1.4", "fontWeight": "600" }],
-            "body-lg": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }]
+          fontFamily: {
+            "headline": ["Hanken Grotesk"],
+            "body": ["Inter"],
+            "mono": ["JetBrains Mono"],
           }
         },
       },
     }
   </script>
   <style>
-    body { background-color: #FFFFFF; min-height: 100vh; }
-    .border-yc { border-color: #E0E0E0; }
-    .bg-surface-block { background-color: #F6F6EF; }
+    body { background-color: #f9f9f9; min-height: 100vh; }
     .view { display: none; }
     .view.active { display: block; }
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    .active-nav { background-color: #ff6600 !important; color: white !important; font-weight: bold; }
-
-    /* Accuracy badge dynamic colors */
-    #acc-badge { transition: color 0.3s; }
-
-    /* Custom scrollbar */
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #E0E0E0; }
+    .active-nav { background-color: #ff6600 !important; color: white !important; }
+    .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+    .listen-pulse { animation: listen-pulse 1.5s ease-in-out infinite; }
+    @keyframes listen-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.4); }
+      50% { box-shadow: 0 0 0 15px rgba(255, 102, 0, 0); }
+    }
   </style>
 </head>
-<body class="text-on-surface antialiased flex h-screen overflow-hidden">
+<body class="text-on-surface antialiased">
 
-<!-- NavigationDrawer (Web) -->
-<nav class="hidden md:flex flex-col gap-unit p-5 bg-surface-container-low border-r border-outline-variant h-full w-64 shrink-0">
-  <div class="mb-6 px-2">
-    <div class="flex items-center gap-3 mb-1">
-      <img src="logo.png" alt="RasoSpeak" class="h-10 w-10 object-contain rounded-lg" style="background: transparent;">
-      <div class="flex flex-col">
-        <h2 class="text-headline-md font-headline-md text-on-surface font-bold">RasoSpeak</h2>
-        <p class="font-label-caps text-label-caps text-on-surface-variant opacity-60">Secondary Brain</p>
-      </div>
-    </div>
-  </div>
-  <div class="flex flex-col gap-1">
-    <a id="nav-live" onclick="switchView('live')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">account_tree</span>
-      Topology
-    </a>
-    <a id="nav-partner" onclick="switchView('partner')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">psychology_alt</span>
-      AI Partner
-    </a>
-    <a id="nav-script" onclick="switchView('script')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">description</span>
-      Script Studio
-    </a>
-    <a id="nav-memory" onclick="switchView('memory')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">psychology</span>
-      Memory
-    </a>
-    <a id="nav-docs" onclick="switchView('docs')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">folder</span>
-      Documents
-    </a>
-  </div>
-  <div class="mt-auto pt-4 border-t border-outline-variant">
-    <a id="nav-settings" onclick="switchView('settings')" class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg text-body-md font-body-md cursor-pointer" href="#">
-      <span class="material-symbols-outlined">settings</span>
-      Settings
-    </a>
-  </div>
-</nav>
+<!-- Main Container -->
+<div class="min-h-screen flex flex-col">
 
-<!-- Main Content Area -->
-<main class="flex-1 flex flex-col h-full overflow-hidden">
-  <!-- TopAppBar -->
-  <header class="bg-surface border-b border-outline-variant flex items-center justify-between w-full px-margin-mobile md:px-margin-desktop py-unit sticky top-0 z-10 h-14 shrink-0">
-    <div class="flex items-center gap-3">
-      <img src="logo.png" alt="RasoSpeak" class="h-9 w-9 object-contain rounded" style="background: transparent;">
-      <span class="font-headline-sm text-headline-sm text-on-surface font-bold">RasoSpeak</span>
-    </div>
-    <div class="hidden md:flex items-center gap-6">
-      <div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded border border-outline-variant">
-        <span class="material-symbols-outlined text-primary text-sm">memory</span>
-        <span class="font-mono-label text-mono-label">GPU Ready</span>
+  <!-- Hero Header -->
+  <header class="bg-white border-b border-gray-200 px-6 py-8">
+    <div class="max-w-6xl mx-auto">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <img src="logo.png" alt="RasoSpeak" class="h-14 w-14 object-contain">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900" style="font-family: 'Hanken Grotesk'">RasoSpeak</h1>
+            <p class="text-sm text-gray-500">Your Secondary Brain</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div id="status-indicator" class="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
+            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+            <span class="text-sm font-medium">14 Agents Active</span>
+          </div>
+          <div id="memory-indicator" class="flex items-center gap-2 px-4 py-2 bg-orange-50 border border-orange-200 rounded-full">
+            <span class="material-symbols-outlined text-orange-500 text-lg">psychology</span>
+            <span class="text-sm font-medium text-orange-700">Memory Connected</span>
+          </div>
+        </div>
       </div>
-      <div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded border border-outline-variant">
-        <div class="w-2 h-2 rounded-full bg-primary-container"></div>
-        <span class="font-mono-label text-mono-label">Status: Online</span>
+
+      <!-- Wake Word Activation -->
+      <div class="mt-8 flex flex-col items-center">
+        <p class="text-gray-600 mb-4 text-center">Say <span class="font-bold text-primary">"Hey Raso"</span> to activate your AI partner</p>
+        <div class="relative">
+          <button id="wake-btn" onclick="toggleWakeMode()" class="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all">
+            <span class="material-symbols-outlined text-4xl">mic</span>
+          </button>
+          <div id="wake-pulse" class="absolute inset-0 w-24 h-24 rounded-full bg-primary/30 -z-10 hidden"></div>
+        </div>
+        <p id="wake-status" class="mt-4 text-sm text-gray-500">Click to start listening</p>
       </div>
     </div>
-    <span class="material-symbols-outlined text-on-surface-variant">account_circle</span>
   </header>
 
-  <!-- Content Containers -->
-  <div class="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop bg-background">
-    <div class="max-w-max-width mx-auto w-full h-full">
+  <!-- Feature Cards -->
+  <main class="flex-1 px-6 py-8">
+    <div class="max-w-6xl mx-auto space-y-8">
 
-      <!-- AI Partner View -->
-      <div id="view-partner" class="view space-y-6">
-        <div class="bg-surface-container-lowest border border-yc rounded-lg p-6 max-w-3xl mx-auto shadow-sm">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-headline-sm font-headline-sm text-on-surface">Consult AI Partner</h3>
-            <select id="provider-select" class="text-body-sm bg-surface-container border border-outline-variant rounded px-3 py-1.5 focus:ring-0 outline-none">
+      <!-- Main Feature Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Your Inner Self Card -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
+              <span class="material-symbols-outlined text-orange-500 text-xl">psychology</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-lg">Your Inner Self</h3>
+              <p class="text-sm text-gray-500">With perfect memory</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <span class="material-symbols-outlined text-gray-400">memory</span>
+              <div>
+                <p class="font-medium text-sm">Remembers Everything</p>
+                <p class="text-xs text-gray-500">Ask "What did I say about X?"</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <span class="material-symbols-outlined text-gray-400">hearing</span>
+              <div>
+                <p class="font-medium text-sm">Voice Activated</p>
+                <p class="text-xs text-gray-500">"Hey Raso, tell me about AMD"</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <span class="material-symbols-outlined text-gray-400">sync</span>
+              <div>
+                <p class="font-medium text-sm">Shared Memory</p>
+                <p class="text-xs text-gray-500">All 14 AIs share the same brain</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Chat Card -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <span class="material-symbols-outlined text-blue-500 text-xl">chat</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-lg">AI Chat Partner</h3>
+              <p class="text-sm text-gray-500">Like you do yourself</p>
+            </div>
+          </div>
+          <div class="mb-4">
+            <input type="text" id="chat-input" placeholder="Ask anything... (Try: Hey Raso, what is AMD?)"
+              class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+              onkeypress="if(event.key==='Enter')sendMessage()">
+          </div>
+          <div class="flex items-center gap-2 mb-4">
+            <select id="provider-select" class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm">
               <option value="qwen">Qwen (Local)</option>
               <option value="openai">ChatGPT-4</option>
               <option value="anthropic">Claude 3.5</option>
               <option value="gemini">Gemini 1.5</option>
             </select>
-          </div>
-          <div id="chat-messages" class="h-96 overflow-y-auto space-y-4 mb-6 p-4 bg-surface-container-low rounded-lg border border-yc">
-            <div class="text-body-sm text-on-surface-variant text-center py-12">
-              Systems initialized. Query the partner engram.
-            </div>
-          </div>
-          <div class="flex gap-3">
-            <input type="text" id="chat-input" class="flex-1 bg-surface-container-lowest border border-outline-variant rounded px-4 py-2.5 text-body-md focus:border-primary-container outline-none transition-colors" placeholder="Type your query..." onkeypress="if(event.key==='Enter')sendMessage()">
-            <button onclick="sendMessage()" class="bg-primary text-on-primary px-4 py-2 rounded font-bold hover:opacity-90 transition-opacity">
-              <span class="material-symbols-outlined">send</span>
+            <button onclick="sendMessage()" class="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90">
+              Send
             </button>
           </div>
+          <div id="chat-messages" class="h-48 overflow-y-auto space-y-3 p-4 bg-gray-50 rounded-lg">
+            <div class="text-center text-sm text-gray-400 py-8">
+              Your AI partner is ready to chat
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Script Studio View -->
-      <div id="view-script" class="view space-y-6">
-        <div class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden flex flex-col h-[calc(100vh-200px)]">
-          <div class="bg-surface-block px-4 py-3 border-b border-yc flex justify-between items-center">
-            <h3 class="text-label-caps font-label-caps text-on-surface">Script Synthesis Studio</h3>
+        <!-- Search Web Card -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+              <span class="material-symbols-outlined text-green-500 text-xl">search</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-lg">Live Web Search</h3>
+              <p class="text-sm text-gray-500">Real-time information</p>
+            </div>
+          </div>
+          <div class="flex gap-2 mb-4">
+            <input type="text" id="web-search-input" placeholder="Search the web..."
+              class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+              onkeypress="if(event.key==='Enter')webSearch()">
+            <button onclick="webSearch()" class="px-4 py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600">
+              <span class="material-symbols-outlined">search</span>
+            </button>
+          </div>
+          <div id="search-results" class="h-48 overflow-y-auto p-4 bg-gray-50 rounded-lg">
+            <div class="text-sm text-gray-400 text-center py-8">Search results will appear here</div>
+          </div>
+        </div>
+
+        <!-- Speech Coach Card -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+              <span class="material-symbols-outlined text-purple-500 text-xl">record_voice_over</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-lg">Speech Coach</h3>
+              <p class="text-sm text-gray-500">Presentation partner</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <textarea id="script-ta" class="w-full h-24 px-4 py-3 border border-gray-200 rounded-lg resize-none text-sm" placeholder="Paste your script here..."></textarea>
             <div class="flex gap-2">
-              <button onclick="loadSample()" class="text-label-caps font-label-caps px-3 py-1.5 bg-surface-container border border-outline-variant rounded hover:bg-surface-container-high transition-colors">Load Sample</button>
-              <button onclick="processAndGo()" class="text-label-caps font-label-caps px-4 py-1.5 bg-primary text-on-primary rounded font-bold hover:opacity-90 shadow-sm">Process Script</button>
+              <button onclick="loadSample()" class="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">Load Sample</button>
+              <button onclick="processAndGo()" class="flex-1 px-3 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90">Practice</button>
             </div>
           </div>
-          <textarea id="script-ta" class="flex-1 p-6 font-mono-label text-body-md bg-transparent resize-none outline-none" placeholder="Enter raw script for engram extraction..."></textarea>
-          <div class="bg-surface-block px-4 py-2 border-t border-yc text-mono-label text-on-surface-variant flex justify-between">
-            <span id="wc">0 words · 0 chunks · ~0 min</span>
-            <span>UTF-8 Encoding</span>
+        </div>
+
+        <!-- Document Memory Card -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+              <span class="material-symbols-outlined text-yellow-600 text-xl">description</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-lg">Document Memory</h3>
+              <p class="text-sm text-gray-500">Import documents into brain</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <input type="text" id="doc-url" placeholder="Paste URL to import" class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm">
+            <button onclick="importUrl()" class="w-full px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600">Import URL</button>
+            <div class="relative">
+              <textarea id="doc-text" placeholder="Or paste text directly..." class="w-full h-20 px-4 py-2 border border-gray-200 rounded-lg text-sm resize-none"></textarea>
+            </div>
+            <button onclick="importText()" class="w-full px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">Add to Memory</button>
           </div>
         </div>
+
+        <!-- Analytics Card -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center">
+              <span class="material-symbols-outlined text-pink-500 text-xl">analytics</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-lg">Voice Analytics</h3>
+              <p class="text-sm text-gray-500">Analyze recorded voice</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="p-3 bg-gray-50 rounded-lg text-center">
+              <div id="anal-sessions" class="text-2xl font-bold text-primary">0</div>
+              <div class="text-xs text-gray-500">Sessions</div>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg text-center">
+              <div id="anal-accuracy" class="text-2xl font-bold text-green-500">0%</div>
+              <div class="text-xs text-gray-500">Avg Accuracy</div>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg text-center">
+              <div id="anal-wpm" class="text-2xl font-bold text-blue-500">0</div>
+              <div class="text-xs text-gray-500">Avg WPM</div>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg text-center">
+              <div id="mem-total" class="text-2xl font-bold text-orange-500">0</div>
+              <div class="text-xs text-gray-500">Memories</div>
+            </div>
+          </div>
+          <button onclick="loadAnalytics()" class="w-full px-3 py-2 bg-pink-500 text-white rounded-lg text-sm font-medium hover:bg-pink-600">View Analytics</button>
+        </div>
+
       </div>
 
-      <!-- Live Coaching (Topology) View -->
-      <div id="view-live" class="view space-y-gutter">
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
-          <!-- Metrics -->
-          <div class="md:col-span-4 bg-surface-block border border-yc rounded flex flex-col p-4 gap-3">
-            <h3 class="text-label-caps font-label-caps text-on-surface">Compute Telemetry</h3>
-            <div class="flex justify-between items-baseline border-b border-yc pb-2">
-              <span class="text-body-sm text-secondary">Corrections</span>
-              <span class="text-headline-sm text-on-surface" id="m-corr">0</span>
-            </div>
-            <div class="flex justify-between items-baseline border-b border-yc pb-2">
-              <span class="text-body-sm text-secondary">Accuracy</span>
-              <span class="text-headline-sm text-on-surface" id="acc-badge">0%</span>
-              <span id="m-acc" class="hidden">0%</span>
-            </div>
-            <div class="flex justify-between items-baseline">
-              <span class="text-body-sm text-secondary">Completed</span>
-              <span class="text-headline-sm text-on-surface" id="m-done">0</span>
-            </div>
+      <!-- Memory Query Section -->
+      <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
+            <span class="material-symbols-outlined text-indigo-500 text-xl">memory</span>
           </div>
-          <!-- Controls -->
-          <div class="md:col-span-8 bg-surface-container-lowest border border-yc rounded p-4 flex items-center justify-between">
-            <div class="flex items-center gap-6">
-              <div class="flex flex-col">
-                <span class="text-label-caps text-on-surface-variant">Session Progress</span>
-                <span class="text-headline-sm"><span id="seg-num">0</span> / <span id="seg-total">0</span> chunks</span>
-                <span id="progress-text" class="hidden">0 / 0 chunks</span>
-              </div>
-              <div class="w-48 h-2 bg-surface-container rounded-full overflow-hidden">
-                <div id="progress-bar" class="h-full bg-primary-container transition-all" style="width: 0%"></div>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <button onclick="prevChunk()" class="p-2 border border-yc rounded hover:bg-surface-container transition-colors">
-                <span class="material-symbols-outlined">skip_previous</span>
-              </button>
-              <button id="btn-main" onclick="toggleSession()" class="w-12 h-12 bg-primary text-on-primary rounded-full flex items-center justify-center hover:opacity-90 shadow-lg">
-                <span class="material-symbols-outlined text-2xl" id="play-icon">play_arrow</span>
-              </button>
-              <button onclick="nextChunk()" class="p-2 border border-yc rounded hover:bg-surface-container transition-colors">
-                <span class="material-symbols-outlined">skip_next</span>
-              </button>
-              <button id="btn-end" onclick="stopSession()" class="p-2 border border-yc rounded hover:bg-error-container text-error transition-colors hidden">
-                <span class="material-symbols-outlined">stop_circle</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
-          <!-- Current Chunk Display -->
-          <div class="md:col-span-8 bg-surface-container-lowest border border-yc rounded flex flex-col h-[400px]">
-            <div class="bg-surface-block border-b border-yc p-3">
-              <h3 class="text-label-caps font-label-caps text-on-surface">Active Engram</h3>
-            </div>
-            <div id="current-chunk" class="flex-1 p-8 flex items-center justify-center text-center text-headline-md font-headline-md text-on-surface-variant leading-relaxed">
-              Load a script to begin live coaching
-            </div>
-            <div id="stage-ambient" class="absolute inset-0 pointer-events-none transition-all duration-1000"></div>
-          </div>
-          <!-- Live Logs -->
-          <div class="md:col-span-4 bg-surface-container-lowest border border-yc rounded flex flex-col h-[400px] overflow-hidden">
-            <div class="bg-surface-block border-b border-yc p-3 flex justify-between items-center">
-              <h3 class="text-label-caps font-label-caps text-on-surface">Event Logs</h3>
-              <button onclick="clearLog()" class="text-[10px] uppercase font-bold text-on-surface-variant hover:text-primary">Clear</button>
-            </div>
-            <div id="live-transcript" class="flex-1 overflow-y-auto p-4 space-y-2 font-mono-label text-body-sm bg-[#FCFCFC]">
-              <!-- Logs will be injected here -->
-            </div>
-          </div>
-        </div>
-        
-        <!-- Live Transcription Bar -->
-        <div class="bg-surface-block border border-yc rounded p-3 flex items-center gap-4">
-            <span class="text-label-caps text-on-surface-variant font-bold">Whisper Live:</span>
-            <div id="live-tx" class="flex-1 text-mono-label text-on-surface-variant truncate">
-                Awaiting voice input...
-            </div>
-        </div>
-      </div>
-
-      <!-- Memory Index View -->
-      <div id="view-memory" class="view space-y-6">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
           <div>
-            <h2 class="text-headline-lg font-headline-lg text-on-surface mb-2">Memory Index</h2>
-            <p class="text-body-lg text-on-surface-variant">Conceptual nodes and semantic engrams recorded by the Agent.</p>
-          </div>
-          <div class="flex flex-col sm:row gap-4 w-full md:w-auto">
-            <div class="relative w-full sm:w-64">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
-              <input id="memory-search" onkeyup="if(event.key==='Enter')searchMemory()" class="w-full pl-9 pr-3 py-2 bg-surface-container-lowest border border-outline-variant focus:border-primary-container rounded-lg text-body-sm outline-none transition-colors" placeholder="Query memory..." type="text"/>
-            </div>
+            <h3 class="font-bold text-lg">Query Your Memory</h3>
+            <p class="text-sm text-gray-500">Search through all your conversations and documents</p>
           </div>
         </div>
-        <div id="memory-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-          <div class="md:col-span-full py-20 text-center text-on-surface-variant border border-yc border-dashed rounded-lg">
-            No memories retrieved. Initialize search.
-          </div>
+        <div class="flex gap-3">
+          <input type="text" id="memory-search" placeholder="Try: What did I say about AI? or When did I talk about presentations?"
+            class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+            onkeyup="if(event.key==='Enter')searchMemory()">
+          <button onclick="searchMemory()" class="px-6 py-3 bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-600">Search Memory</button>
+        </div>
+        <div id="memory-results" class="mt-4 p-4 bg-gray-50 rounded-lg min-h-32">
+          <div class="text-sm text-gray-400 text-center py-8">Your memories will appear here</div>
         </div>
       </div>
 
-      <!-- Documents View -->
-      <div id="view-docs" class="view space-y-6">
-        <div class="max-w-4xl mx-auto space-y-8">
-          <!-- Ingest -->
-          <div class="bg-surface-container-lowest border border-yc rounded-lg p-6 shadow-sm">
-            <h3 class="text-headline-sm mb-4">Ingest Data Engram</h3>
-            <div class="grid md:grid-cols-2 gap-6">
-              <div class="space-y-4">
-                <label class="text-label-caps text-on-surface-variant block">Semantic URI</label>
-                <div class="flex gap-2">
-                  <input type="text" id="doc-url" class="flex-1 bg-surface-container-low border border-yc rounded px-3 py-2 text-body-sm focus:border-primary-container outline-none" placeholder="https://external.knowledge/node">
-                  <button onclick="importUrl()" class="bg-primary text-on-primary px-4 py-2 rounded font-bold hover:opacity-90">Ingest</button>
-                </div>
-              </div>
-              <div class="space-y-4">
-                <label class="text-label-caps text-on-surface-variant block">Direct Memory Injection</label>
-                <textarea id="doc-text" class="w-full bg-surface-container-low border border-yc rounded p-3 text-body-sm focus:border-primary-container outline-none h-32 resize-none" placeholder="Paste raw knowledge strings..."></textarea>
-                <button onclick="importText()" class="w-full bg-surface-block border border-yc py-2 rounded text-label-caps font-bold hover:bg-surface-container-high transition-colors">Commit to GPU Memory</button>
-              </div>
-            </div>
+      <!-- Multi-AI Provider Switching -->
+      <div class="bg-gradient-to-r from-primary/5 to-orange-50 rounded-xl border border-primary/20 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
+            <span class="material-symbols-outlined text-primary text-xl">swap_horiz</span>
           </div>
-
-          <!-- Library -->
           <div>
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-label-caps text-on-surface-variant font-bold">Active Knowledge Base</h3>
-                <span class="text-[10px] text-on-surface-variant opacity-50">3 NODES PERSISTED</span>
-            </div>
-            <div id="knowledge-dump" class="grid md:grid-cols-3 gap-4">
-              <!-- Sample Nodes -->
-              <div class="bg-surface-block border border-yc p-4 rounded hover:shadow-md transition-shadow cursor-pointer group">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="material-symbols-outlined text-primary text-sm">article</span>
-                    <span class="text-[9px] font-mono text-on-surface-variant opacity-50">#DOC_082</span>
-                </div>
-                <h4 class="text-body-sm font-bold text-on-surface mb-1 group-hover:text-primary">Startup Pitch Deck.pdf</h4>
-                <p class="text-[11px] text-on-surface-variant leading-tight line-clamp-2">Key metrics for YC W24 batch including growth, retention, and burn rates...</p>
-              </div>
-              <div class="bg-surface-block border border-yc p-4 rounded hover:shadow-md transition-shadow cursor-pointer group">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="material-symbols-outlined text-primary text-sm">database</span>
-                    <span class="text-[9px] font-mono text-on-surface-variant opacity-50">#MEM_104</span>
-                </div>
-                <h4 class="text-body-sm font-bold text-on-surface mb-1 group-hover:text-primary">Customer Interview Transcripts</h4>
-                <p class="text-[11px] text-on-surface-variant leading-tight line-clamp-2">Aggregated feedback from early adopters regarding the low-latency earpiece delivery...</p>
-              </div>
-              <div class="bg-surface-block border border-yc p-4 rounded hover:shadow-md transition-shadow cursor-pointer group">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="material-symbols-outlined text-primary text-sm">link</span>
-                    <span class="text-[9px] font-mono text-on-surface-variant opacity-50">#URL_019</span>
-                </div>
-                <h4 class="text-body-sm font-bold text-on-surface mb-1 group-hover:text-primary">Competitor Analysis Matrix</h4>
-                <p class="text-[11px] text-on-surface-variant leading-tight line-clamp-2">Comparison table with Speechelo, Descript, and traditional teleprompter hardware...</p>
-              </div>
-            </div>
+            <h3 class="font-bold text-lg">Switch AI Providers</h3>
+            <p class="text-sm text-gray-600">Change AI mid-conversation with voice command</p>
           </div>
         </div>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="setProvider('qwen')" class="provider-btn px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:border-primary hover:bg-orange-50 transition-colors">
+            <span class="mr-2">💻</span> Qwen (Local)
+          </button>
+          <button onclick="setProvider('openai')" class="provider-btn px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:border-blue-500 hover:bg-blue-50 transition-colors">
+            <span class="mr-2">🔵</span> ChatGPT
+          </button>
+          <button onclick="setProvider('anthropic')" class="provider-btn px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:border-purple-500 hover:bg-purple-50 transition-colors">
+            <span class="mr-2">🟣</span> Claude
+          </button>
+          <button onclick="setProvider('gemini')" class="provider-btn px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:border-green-500 hover:bg-green-50 transition-colors">
+            <span class="mr-2">🟢</span> Gemini
+          </button>
+        </div>
+        <p class="mt-4 text-sm text-gray-500">Or say: "Hey Raso, use ChatGPT for this"</p>
       </div>
 
-      <!-- Settings View -->
-      <div id="view-settings" class="view space-y-6">
-        <div class="max-w-3xl mx-auto">
-          <h2 class="text-headline-lg font-headline-lg mb-6">Configuration</h2>
-          <div id="stats-container" class="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-12"></div>
-          <div class="space-y-6">
-            <!-- Hardware -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Hardware Allocation</span>
-              </div>
-              <div class="p-4 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                  <span class="material-symbols-outlined text-secondary">memory</span>
-                  <div>
-                    <div class="text-body-md font-bold">GPU Accelerator</div>
-                    <div class="text-mono-label text-on-surface-variant">Compute Node • 192GB VRAM</div>
-                  </div>
-                </div>
-                <span class="bg-primary-fixed text-primary px-2 py-1 rounded text-mono-label border border-outline-variant">Active</span>
-              </div>
-            </section>
-            
-            <!-- Agent Protocols -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Agent Protocols</span>
-              </div>
-              <div class="divide-y divide-yc">
-                <div class="p-4 flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-on-surface-variant">mic</span>
-                    <div>
-                      <div class="text-body-md">Whisper Ingest Agent</div>
-                      <div class="text-mono-label text-on-surface-variant">Speech-to-Text inference</div>
-                    </div>
-                  </div>
-                  <div class="w-10 h-6 bg-primary-container rounded-full flex items-center px-1 justify-end">
-                    <div class="w-4 h-4 bg-white rounded-full"></div>
-                  </div>
-                </div>
-                <div class="p-4 flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-on-surface-variant">psychology</span>
-                    <div>
-                      <div class="text-body-md">Qwen Scoring Agent</div>
-                      <div class="text-mono-label text-on-surface-variant">Real-time reasoning heuristic</div>
-                    </div>
-                  </div>
-                  <div class="w-10 h-6 bg-primary-container rounded-full flex items-center px-1 justify-end">
-                    <div class="w-4 h-4 bg-white rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- TTS Settings -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-                <div class="p-4 border-b border-yc bg-surface-block">
-                  <span class="text-label-caps font-bold">In-Ear Monitoring (TTS)</span>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="flex flex-col gap-1">
-                            <label class="text-body-sm text-on-surface-variant">Voice Engram</label>
-                            <select id="sel-voice" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm outline-none">
-                                <option value="">Auto (best English)</option>
-                            </select>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-body-sm text-on-surface-variant">Delivery Speed</label>
-                            <select id="sel-speed" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm outline-none">
-                                <option value="0.7">0.7x (Slow)</option>
-                                <option value="0.85" selected>0.85x (Default)</option>
-                                <option value="1.0">1.0x (Normal)</option>
-                                <option value="1.15">1.15x (Fast)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Wake Word Configuration -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Wake Word Detection</span>
-                <span id="wake-status" class="text-mono-label text-on-surface-variant">Idle</span>
-              </div>
-              <div class="p-4 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                  <span class="material-symbols-outlined text-secondary">hearing</span>
-                  <div>
-                    <div class="text-body-md font-bold">"Hey Raso" Hotword</div>
-                    <div class="text-mono-label text-on-surface-variant">Voice activation for AI Partner</div>
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <button onclick="startWakeWord()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold hover:bg-primary-container">Start</button>
-                  <button onclick="stopWakeWord()" class="bg-surface-container text-on-surface px-4 py-2 rounded text-body-sm font-bold border border-outline-variant hover:bg-surface-block">Stop</button>
-                </div>
-              </div>
-            </section>
-
-            <!-- Memory System Stats -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Memory Index</span>
-                <button onclick="loadMemoryStats()" class="text-primary text-body-sm font-bold">Refresh</button>
-              </div>
-              <div class="p-4">
-                <div id="memory-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div class="bg-surface-container rounded p-3 text-center">
-                    <div id="mem-total" class="text-headline-md text-primary">0</div>
-                    <div class="text-mono-label text-on-surface-variant">Entries</div>
-                  </div>
-                  <div class="bg-surface-container rounded p-3 text-center">
-                    <div id="mem-words" class="text-headline-md text-secondary">0</div>
-                    <div class="text-mono-label text-on-surface-variant">Words</div>
-                  </div>
-                  <div class="bg-surface-container rounded p-3 text-center">
-                    <div id="mem-chunks" class="text-headline-md text-on-surface">0</div>
-                    <div class="text-mono-label text-on-surface-variant">Chunks</div>
-                  </div>
-                  <div class="bg-surface-container rounded p-3 text-center">
-                    <div id="mem-recall" class="text-headline-md text-on-surface">0%</div>
-                    <div class="text-mono-label text-on-surface-variant">Recall</div>
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <button onclick="switchView('memory')" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold">Open Memory</button>
-                  <button onclick="clearMemory()" class="bg-surface-container text-on-surface px-4 py-2 rounded text-body-sm font-bold border border-outline-variant">Clear All</button>
-                </div>
-              </div>
-            </section>
-
-            <!-- Knowledge Base (Documents) -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Knowledge Ingestion</span>
-                <button onclick="loadDocuments()" class="text-primary text-body-sm font-bold">Refresh</button>
-              </div>
-              <div class="p-4">
-                <div id="docs-list" class="space-y-2 mb-4">
-                  <p class="text-body-sm text-on-surface-variant text-center py-4">No documents ingested. Click "Add Document" to begin.</p>
-                </div>
-                <div class="flex gap-2 flex-wrap">
-                  <button onclick="switchView('docs')" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold">Open Docs</button>
-                  <label class="bg-primary-container text-primary px-4 py-2 rounded text-body-sm font-bold cursor-pointer">
-                    Add Document
-                    <input type="file" id="doc-upload" accept=".pdf,.txt,.md,.doc" class="hidden" onchange="uploadDocument(this)">
-                  </label>
-                </div>
-              </div>
-            </section>
-
-            <!-- Partner Status -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">AI Partner Status</span>
-                <span id="partner-status" class="text-mono-label text-secondary">Active</span>
-              </div>
-              <div class="divide-y divide-yc">
-                <div class="p-4 flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-secondary">smart_toy</span>
-                    <div>
-                      <div class="text-body-md">Conversation Partner</div>
-                      <div class="text-mono-label text-on-surface-variant">Real-time voice assistant</div>
-                    </div>
-                  </div>
-                  <button onclick="togglePartner()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold">Toggle</button>
-                </div>
-                <div class="p-4 flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-on-surface-variant">search</span>
-                    <div>
-                      <div class="text-body-md">Web Search Agent</div>
-                      <div class="text-mono-label text-on-surface-variant">Live information retrieval</div>
-                    </div>
-                  </div>
-                  <span id="search-agent-status" class="text-mono-label text-on-surface-variant">Ready</span>
-                </div>
-                <div class="p-4 flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-on-surface-variant">auto_awesome</span>
-                    <div>
-                      <div class="text-body-md">QA Provider</div>
-                      <div class="text-mono-label text-on-surface-variant">Question answering endpoint</div>
-                    </div>
-                  </div>
-                  <select id="qa-provider" class="bg-surface-container border border-outline-variant rounded px-3 py-1 text-body-sm" onchange="changeQaProvider(this.value)">
-                    <option value="qwen">Qwen (Default)</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic</option>
-                    <option value="gemini">Gemini</option>
-                  </select>
-                </div>
-              </div>
-            </section>
-
-            <!-- Notifications & Reminders -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Notifications</span>
-                <button onclick="loadReminders()" class="text-primary text-body-sm font-bold">Refresh</button>
-              </div>
-              <div class="p-4">
-                <div id="reminders-list" class="space-y-2 mb-4">
-                  <p class="text-body-sm text-on-surface-variant text-center py-4">No reminders set.</p>
-                </div>
-                <div class="flex gap-2">
-                  <input type="text" id="new-reminder" placeholder="Add reminder..." class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="addReminder()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold">Add</button>
-                </div>
-              </div>
-            </section>
-
-            <!-- Analytics Dashboard -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Session Analytics</span>
-                <button onclick="loadAnalytics()" class="text-primary text-body-sm font-bold">Refresh</button>
-              </div>
-              <div class="p-4">
-                <div id="analytics-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div class="bg-surface-container rounded p-3 text-center">
-                    <div id="anal-sessions" class="text-headline-md text-primary">0</div>
-                    <div class="text-mono-label text-on-surface-variant">Sessions</div>
-                  </div>
-                  <div class="bg-surface-container rounded p-3 text-center">
-                    <div id="anal-accuracy" class="text-headline-md text-secondary">0%</div>
-                    <div class="text-mono-label text-on-surface-variant">Avg Accuracy</div>
-                  </div>
-                  <div class="bg-surface-container rounded p-3 text-center">
-                    <div id="anal-wpm" class="text-headline-md text-on-surface">0</div>
-                    <div class="text-mono-label text-on-surface-variant">Avg WPM</div>
-                  </div>
-                  <div class="bg-surface-container rounded p-3 text-center">
-                    <div id="anal-time" class="text-headline-md text-on-surface">0h</div>
-                    <div class="text-mono-label text-on-surface-variant">Total Time</div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- Partner Voice Mode -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Voice Conversation</span>
-                <span id="voice-mode-status" class="text-mono-label text-on-surface-variant">Standby</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Speak directly to your AI Partner for real-time voice conversation.</p>
-                <div class="flex gap-2">
-                  <button onclick="startVoicePartner()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold">Start Voice Chat</button>
-                  <button onclick="stopVoicePartner()" class="bg-surface-container text-on-surface px-4 py-2 rounded text-body-sm font-bold border border-outline-variant">Stop</button>
-                </div>
-                <div class="mt-3">
-                  <button onclick="summarizeConversation()" class="text-secondary text-body-sm font-bold hover:underline">Get Conversation Summary</button>
-                </div>
-              </div>
-            </section>
-
-            <!-- QA Direct Endpoint -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Direct QA</span>
-                <button onclick="loadQaProviders()" class="text-primary text-body-sm font-bold">Load Providers</button>
-              </div>
-              <div class="p-4 space-y-3">
-                <div id="qa-providers-list" class="grid grid-cols-2 gap-2 mb-3">
-                  <div class="bg-surface-container rounded p-2 text-center text-mono-label text-on-surface-variant">Loading...</div>
-                </div>
-                <div class="flex gap-2">
-                  <input type="text" id="qa-direct-input" placeholder="Ask a quick question..." class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="askQaDirect()" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold">Ask</button>
-                </div>
-                <div id="qa-direct-answer" class="text-body-sm text-on-surface p-2 bg-surface-container rounded hidden"></div>
-              </div>
-            </section>
-
-            <!-- Weak Words Tracker -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Weak Words Analysis</span>
-                <button onclick="loadWeakWords()" class="text-primary text-body-sm font-bold">Analyze</button>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Track words you struggle with during practice.</p>
-                <div id="weak-words-list" class="flex flex-wrap gap-2 mb-3">
-                  <span class="text-body-sm text-on-surface-variant">No weak words recorded yet.</span>
-                </div>
-                <div class="flex gap-2">
-                  <input type="text" id="add-weak-word" placeholder="Add word to track..." class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="addWeakWord()" class="bg-primary-container text-primary px-4 py-2 rounded text-body-sm font-bold">Add</button>
-                </div>
-              </div>
-            </section>
-
-            <!-- Document Search -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Knowledge Search</span>
-              </div>
-              <div class="p-4">
-                <div class="flex gap-2 mb-3">
-                  <input type="text" id="doc-search-input" placeholder="Search imported documents..." class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="searchDocuments()" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold">Search</button>
-                </div>
-                <div id="doc-search-results" class="space-y-2 max-h-48 overflow-y-auto">
-                  <p class="text-body-sm text-on-surface-variant text-center py-2">Enter a query to search documents.</p>
-                </div>
-              </div>
-            </section>
-
-            <!-- Notifications History -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Notification History</span>
-                <button onclick="loadNotificationHistory()" class="text-primary text-body-sm font-bold">Load</button>
-              </div>
-              <div class="p-4">
-                <div id="notification-history" class="space-y-2 max-h-40 overflow-y-auto">
-                  <p class="text-body-sm text-on-surface-variant text-center py-2">No notifications yet.</p>
-                </div>
-              </div>
-            </section>
-
-            <!-- Memory Preferences -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Memory Preferences</span>
-                <button onclick="loadMemoryPreferences()" class="text-primary text-body-sm font-bold">Load</button>
-              </div>
-              <div class="p-4">
-                <div id="memory-preferences" class="space-y-2 mb-3">
-                  <p class="text-body-sm text-on-surface-variant">Loading preferences...</p>
-                </div>
-                <div class="flex gap-2">
-                  <input type="text" id="pref-key" placeholder="Preference key..." class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <input type="text" id="pref-value" placeholder="Value..." class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="setMemoryPreference()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold">Set</button>
-                </div>
-              </div>
-            </section>
-
-            <!-- Add Fact to Memory -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Quick Memory Add</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Quickly save important facts to memory.</p>
-                <div class="flex gap-2">
-                  <input type="text" id="quick-fact" placeholder="Enter fact to remember..." class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <select id="fact-category" class="bg-surface-container border border-outline-variant rounded px-2 py-2 text-body-sm">
-                    <option value="general">General</option>
-                    <option value="work">Work</option>
-                    <option value="personal">Personal</option>
-                    <option value="learning">Learning</option>
-                  </select>
-                  <button onclick="addFactToMemory()" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold">Save</button>
-                </div>
-              </div>
-            </section>
-
-            <!-- Session Recording Control -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Session Recording</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Start/stop audio recording for the current practice session.</p>
-                <div class="flex gap-2 mb-3">
-                  <input type="text" id="session-id-input" placeholder="Session ID (optional)" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                </div>
-                <div class="flex gap-2">
-                  <button onclick="startSessionRecording()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold">Start Recording</button>
-                  <button onclick="stopSessionRecording()" class="bg-error text-on-error px-4 py-2 rounded text-body-sm font-bold">Stop</button>
-                  <button onclick="getSessionDetails()" class="bg-surface-container text-on-surface px-4 py-2 rounded text-body-sm font-bold border border-outline-variant">Get Session</button>
-                </div>
-                <div id="session-status" class="mt-3 text-body-sm text-on-surface-variant"></div>
-              </div>
-            </section>
-
-            <!-- Session Insights -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Session Insights</span>
-                <button onclick="loadSessionInsights()" class="text-primary text-body-sm font-bold">Load</button>
-              </div>
-              <div class="p-4">
-                <div class="flex gap-2 mb-3">
-                  <input type="text" id="insights-session-id" placeholder="Session ID for insights" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                </div>
-                <div id="session-insights" class="text-body-sm text-on-surface-variant">
-                  Enter a session ID to view detailed insights.
-                </div>
-              </div>
-            </section>
-
-            <!-- Advanced Analytics -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Advanced Analytics</span>
-              </div>
-              <div class="p-4 space-y-3">
-                <div class="flex gap-2">
-                  <input type="text" id="analytics-user-id" placeholder="User ID" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="loadUserAnalytics()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold">User Stats</button>
-                </div>
-                <div class="flex gap-2">
-                  <button onclick="loadImprovementData()" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold">Improvement</button>
-                  <button onclick="loadQaTopics()" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold">QA Topics</button>
-                </div>
-                <div id="advanced-analytics-results" class="mt-3 p-3 bg-surface-container rounded text-body-sm text-on-surface-variant">
-                  Analytics results will appear here.
-                </div>
-              </div>
-            </section>
-
-            <!-- Wake Word Processing -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Wake Word Processing</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Process audio buffer to detect "Hey Raso" wake word.</p>
-                <div class="flex gap-2">
-                  <button onclick="processWakeWord()" class="bg-primary-container text-primary px-4 py-2 rounded text-body-sm font-bold">Process Audio</button>
-                  <button onclick="startWakeDetection()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold">Start Detection</button>
-                </div>
-                <div id="wake-detection-result" class="mt-3 text-body-sm text-on-surface-variant"></div>
-              </div>
-            </section>
-
-            <!-- Memory Recall -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Memory Recall</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Recall specific memories by query, key, or category.</p>
-                <div class="space-y-2 mb-3">
-                  <input type="text" id="recall-query" placeholder="Search query..." class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm w-full outline-none">
-                  <input type="text" id="recall-key" placeholder="Memory key (optional)" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm w-full outline-none">
-                  <select id="recall-category" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm w-full">
-                    <option value="">All categories</option>
-                    <option value="conversation">Conversation</option>
-                    <option value="fact">Fact</option>
-                    <option value="preference">Preference</option>
-                    <option value="document">Document</option>
-                  </select>
-                </div>
-                <button onclick="recallMemory()" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold w-full">Recall Memory</button>
-                <div id="recall-results" class="mt-3 space-y-2 max-h-40 overflow-y-auto">
-                </div>
-              </div>
-            </section>
-
-            <!-- Document Snippet -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Quick Snippet</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Add a quick text snippet to documents.</p>
-                <textarea id="snippet-text" placeholder="Enter text to add as snippet..." class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm w-full h-20 outline-none resize-none"></textarea>
-                <button onclick="addSnippet()" class="bg-primary-container text-primary px-4 py-2 rounded text-body-sm font-bold mt-2 w-full">Add Snippet</button>
-              </div>
-            </section>
-
-            <!-- Provider Selection -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">AI Provider Selection</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Select which AI provider to use for queries.</p>
-                <div class="grid grid-cols-2 gap-2 mb-3">
-                  <button onclick="setProvider('qwen')" class="bg-surface-container border border-yc rounded p-3 text-body-sm font-bold text-center hover:bg-primary-container">Qwen (Local)</button>
-                  <button onclick="setProvider('openai')" class="bg-surface-container border border-yc rounded p-3 text-body-sm font-bold text-center hover:bg-primary-container">OpenAI</button>
-                  <button onclick="setProvider('anthropic')" class="bg-surface-container border border-yc rounded p-3 text-body-sm font-bold text-center hover:bg-primary-container">Anthropic</button>
-                  <button onclick="setProvider('gemini')" class="bg-surface-container border border-yc rounded p-3 text-body-sm font-bold text-center hover:bg-primary-container">Gemini</button>
-                </div>
-                <div id="provider-status" class="text-body-sm text-secondary font-bold">Current: Qwen (Local)</div>
-              </div>
-            </section>
-
-            <!-- Partner Status Check -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block flex justify-between items-center">
-                <span class="text-label-caps font-bold">Partner Status</span>
-                <button onclick="checkPartnerStatus()" class="text-primary text-body-sm font-bold">Check</button>
-              </div>
-              <div class="p-4">
-                <div id="partner-status-display" class="text-body-sm text-on-surface-variant">
-                  Click "Check" to see current partner status.
-                </div>
-              </div>
-            </section>
-
-            <!-- AI Context for Prompts -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">AI Context Builder</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Get formatted context for AI prompts based on memory.</p>
-                <div class="flex gap-2 mb-3">
-                  <select id="ai-context-target" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1">
-                    <option value="qa">Q&A Agent</option>
-                    <option value="search">Search Agent</option>
-                    <option value="partner">Partner Agent</option>
-                    <option value="coach">Coaching Agent</option>
-                  </select>
-                  <button onclick="getAiContext()" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold">Get Context</button>
-                </div>
-                <div id="ai-context-output" class="p-3 bg-surface-container rounded text-body-sm text-on-surface-variant max-h-32 overflow-y-auto hidden">
-                </div>
-              </div>
-            </section>
-
-            <!-- Session Details -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Session Details</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Get detailed information about a specific session.</p>
-                <div class="flex gap-2 mb-3">
-                  <input type="text" id="session-detail-id" placeholder="Session ID" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="getSessionInfo()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold">Get</button>
-                </div>
-                <div id="session-detail-output" class="p-3 bg-surface-container rounded text-body-sm text-on-surface-variant hidden">
-                </div>
-              </div>
-            </section>
-
-            <!-- Session Analytics -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Single Session Analytics</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Get analytics for a specific practice session.</p>
-                <div class="flex gap-2 mb-3">
-                  <input type="text" id="session-analytics-id" placeholder="Session ID" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="getSessionAnalytics()" class="bg-secondary text-on-secondary px-4 py-2 rounded text-body-sm font-bold">Analyze</button>
-                </div>
-                <div id="session-analytics-output" class="p-3 bg-surface-container rounded text-body-sm text-on-surface-variant hidden">
-                </div>
-              </div>
-            </section>
-
-            <!-- Single Recording Lookup -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Recording Lookup</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Get details about a specific recording by ID.</p>
-                <div class="flex gap-2 mb-3">
-                  <input type="text" id="recording-id-input" placeholder="Recording ID" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="getRecordingDetails()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold">Get</button>
-                </div>
-                <div id="recording-output" class="p-3 bg-surface-container rounded text-body-sm text-on-surface-variant hidden">
-                </div>
-              </div>
-            </section>
-
-            <!-- Device Registration -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Device Registration</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Register this device to receive notifications.</p>
-                <div class="space-y-2 mb-3">
-                  <select id="device-type" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm w-full">
-                    <option value="browser">Browser</option>
-                    <option value="phone">Phone</option>
-                    <option value="telegram">Telegram</option>
-                  </select>
-                  <input type="text" id="device-endpoint" placeholder="Device endpoint (FCM token, etc.)" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm w-full outline-none">
-                </div>
-                <button onclick="registerDevice()" class="bg-primary text-on-primary px-4 py-2 rounded text-body-sm font-bold w-full">Register Device</button>
-              </div>
-            </section>
-
-            <!-- Document by ID -->
-            <section class="bg-surface-container-lowest border border-yc rounded-lg overflow-hidden">
-              <div class="p-4 border-b border-yc bg-surface-block">
-                <span class="text-label-caps font-bold">Document Lookup</span>
-              </div>
-              <div class="p-4">
-                <p class="text-body-sm text-on-surface-variant mb-3">Get or delete a specific document by ID.</p>
-                <div class="flex gap-2 mb-3">
-                  <input type="text" id="doc-id-input" placeholder="Document ID" class="bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm flex-1 outline-none">
-                  <button onclick="getDocumentById()" class="bg-primary text-on-primary px-3 py-2 rounded text-body-sm font-bold">Get</button>
-                  <button onclick="deleteDocumentById()" class="bg-error text-on-error px-3 py-2 rounded text-body-sm font-bold">Del</button>
-                </div>
-                <div id="doc-id-output" class="p-3 bg-surface-container rounded text-body-sm text-on-surface-variant hidden">
-                </div>
-              </div>
-            </section>
+      <!-- 14 Agents Overview -->
+      <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+            <span class="material-symbols-outlined text-gray-600 text-xl">account_tree</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg">14 AI Agents — All Sharing Memory</h3>
+            <p class="text-sm text-gray-500">Specialized agents working together with unified brain</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div class="p-3 bg-orange-50 rounded-lg text-center">
+            <span class="text-xl">🤝</span>
+            <p class="text-xs font-medium mt-1">Partner</p>
+          </div>
+          <div class="p-3 bg-gray-50 rounded-lg text-center">
+            <span class="text-xl">🧠</span>
+            <p class="text-xs font-medium mt-1">Shared Memory</p>
+          </div>
+          <div class="p-3 bg-blue-50 rounded-lg text-center">
+            <span class="text-xl">👂</span>
+            <p class="text-xs font-medium mt-1">Wake Word</p>
+          </div>
+          <div class="p-3 bg-green-50 rounded-lg text-center">
+            <span class="text-xl">🎙️</span>
+            <p class="text-xs font-medium mt-1">Transcription</p>
+          </div>
+          <div class="p-3 bg-purple-50 rounded-lg text-center">
+            <span class="text-xl">⚖️</span>
+            <p class="text-xs font-medium mt-1">Scoring</p>
+          </div>
+          <div class="p-3 bg-pink-50 rounded-lg text-center">
+            <span class="text-xl">🎓</span>
+            <p class="text-xs font-medium mt-1">Coaching</p>
+          </div>
+          <div class="p-3 bg-yellow-50 rounded-lg text-center">
+            <span class="text-xl">✂️</span>
+            <p class="text-xs font-medium mt-1">Segmentation</p>
+          </div>
+          <div class="p-3 bg-indigo-50 rounded-lg text-center">
+            <span class="text-xl">❓</span>
+            <p class="text-xs font-medium mt-1">Q&A</p>
+          </div>
+          <div class="p-3 bg-cyan-50 rounded-lg text-center">
+            <span class="text-xl">🔍</span>
+            <p class="text-xs font-medium mt-1">Search</p>
+          </div>
+          <div class="p-3 bg-lime-50 rounded-lg text-center">
+            <span class="text-xl">📄</span>
+            <p class="text-xs font-medium mt-1">Document</p>
+          </div>
+          <div class="p-3 bg-rose-50 rounded-lg text-center">
+            <span class="text-xl">🔔</span>
+            <p class="text-xs font-medium mt-1">Notification</p>
+          </div>
+          <div class="p-3 bg-amber-50 rounded-lg text-center">
+            <span class="text-xl">🎥</span>
+            <p class="text-xs font-medium mt-1">Recording</p>
+          </div>
+          <div class="p-3 bg-teal-50 rounded-lg text-center">
+            <span class="text-xl">📊</span>
+            <p class="text-xs font-medium mt-1">Analytics</p>
+          </div>
+          <div class="p-3 bg-slate-100 rounded-lg text-center">
+            <span class="text-xl">💾</span>
+            <p class="text-xs font-medium mt-1">Session Memory</p>
           </div>
         </div>
       </div>
 
     </div>
-  </div>
-  
-  <!-- Footer Controls (Mobile/Pinned) -->
-  <footer class="h-12 border-t border-yc bg-surface-block px-4 flex items-center justify-between shrink-0">
-    <div id="footer-timer" class="text-mono-label text-on-surface-variant hidden">00:00</div>
-    <div id="agent-indicator-label" class="text-mono-label text-primary font-bold text-[10px] uppercase tracking-widest">System Ready</div>
-    <div id="prog-pct" class="text-mono-label text-on-surface-variant">0%</div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-200 px-6 py-4">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <p class="text-sm text-gray-500">RasoSpeak — Your Secondary Brain & AI Partner</p>
+      <p class="text-sm text-gray-400">Built for AMD Developer Hackathon</p>
+    </div>
   </footer>
-</main>
 
-<!-- Mobile Nav -->
-<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-16 bg-surface-container-lowest border-t border-outline-variant z-50">
-  <button onclick="switchView('live')" class="flex flex-col items-center justify-center text-secondary w-1/5">
-    <span class="material-symbols-outlined">hub</span>
-    <span class="text-[10px] font-label-caps">Topology</span>
-  </button>
-  <button onclick="switchView('partner')" class="flex flex-col items-center justify-center text-secondary w-1/5">
-    <span class="material-symbols-outlined">chat</span>
-    <span class="text-[10px] font-label-caps">Partner</span>
-  </button>
-  <button onclick="switchView('memory')" class="flex flex-col items-center justify-center text-secondary w-1/5">
-    <span class="material-symbols-outlined">database</span>
-    <span class="text-[10px] font-label-caps">Memory</span>
-  </button>
-  <button onclick="switchView('docs')" class="flex flex-col items-center justify-center text-secondary w-1/5">
-    <span class="material-symbols-outlined">description</span>
-    <span class="text-[10px] font-label-caps">Docs</span>
-  </button>
-  <button onclick="switchView('settings')" class="flex flex-col items-center justify-center text-secondary w-1/5">
-    <span class="material-symbols-outlined">settings</span>
-    <span class="text-[10px] font-label-caps">Settings</span>
-  </button>
-</nav>
+</div>
 
-<div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-on-surface text-on-primary px-6 py-2 rounded-full text-body-sm font-bold shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-[1000]"></div>
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50"></div>
 
+<!-- Scripts -->
 <script src="state.js"></script>
 <script src="nlp.js"></script>
 <script src="speech.js"></script>
@@ -1044,44 +411,54 @@
 <script src="app.js"></script>
 
 <script>
-  function switchView(view) {
-    // Update view visibility
-    document.querySelectorAll('.view').forEach(v => {
-      v.classList.remove('active');
-    });
-    const targetView = document.getElementById('view-' + view);
-    if (targetView) targetView.classList.add('active');
+let wakeModeActive = false;
 
-    // Update navigation styles
-    document.querySelectorAll('nav a, nav button').forEach(el => {
-      el.classList.remove('active-nav');
-    });
-    const navItem = document.getElementById('nav-' + view);
-    if (navItem) navItem.classList.add('active-nav');
+function toggleWakeMode() {
+  wakeModeActive = !wakeModeActive;
+  const btn = document.getElementById('wake-btn');
+  const pulse = document.getElementById('wake-pulse');
+  const status = document.getElementById('wake-status');
 
-    // Update header title
-    const titles = { 
-      partner: 'AI Partner Engram', 
-      script: 'Script Studio', 
-      live: 'Command Center', 
-      memory: 'Memory Index', 
-      docs: 'Knowledge Ingestion',
-      settings: 'System Configuration'
-    };
-    document.getElementById('page-title').textContent = titles[view] || 'RasoSpeak';
-    
-    if (view === 'live' && typeof renderLiveChunkList === 'function') renderLiveChunkList();
+  if (wakeModeActive) {
+    btn.classList.add('listen-pulse');
+    pulse.classList.remove('hidden');
+    pulse.classList.add('pulse-ring');
+    status.textContent = 'Listening for "Hey Raso"...';
+    toast('🎙️ Wake word detection active. Say "Hey Raso" to activate!');
+  } else {
+    btn.classList.remove('listen-pulse');
+    pulse.classList.add('hidden');
+    pulse.classList.remove('pulse-ring');
+    status.textContent = 'Click to start listening';
+    toast('🔇 Wake word detection stopped');
   }
+}
 
-  function toggleSidebar() {
-    const sb = document.getElementById('sidebar');
-    sb.classList.toggle('-translate-x-full');
-  }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+  setTimeout(() => {
+    t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+  }, 3000);
+}
 
-  // Initialize
-  window.addEventListener('load', () => {
-    switchView('live');
-  });
+function setProvider(provider) {
+  document.getElementById('provider-select').value = provider;
+  const providers = { qwen: 'Qwen', openai: 'ChatGPT', anthropic: 'Claude', gemini: 'Gemini' };
+  toast(`🤖 Switched to ${providers[provider] || provider}`);
+
+  // Update active state
+  document.querySelectorAll('.provider-btn').forEach(btn => btn.classList.remove('border-primary', 'bg-orange-50'));
+  event.target.closest('.provider-btn').classList.add('border-primary', 'bg-orange-50');
+}
+
+// Initialize on load
+window.addEventListener('load', () => {
+  loadMemoryStats();
+  loadAnalytics();
+  checkBackendHealth();
+});
 </script>
 
 </body>
