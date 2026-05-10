@@ -141,6 +141,22 @@ from pathlib import Path
 # Serve static files (js, css) from current directory
 app.mount("/static", StaticFiles(directory="."), name="static")
 
+# Serve frontend files at root level for direct access (app.js, nlp.js, etc.)
+@app.get("/app.js")
+async def app_js(): return FileResponse("app.js")
+@app.get("/nlp.js")
+async def nlp_js(): return FileResponse("nlp.js")
+@app.get("/ui.js")
+async def ui_js(): return FileResponse("ui.js")
+@app.get("/speech.js")
+async def speech_js(): return FileResponse("speech.js")
+@app.get("/state.js")
+async def state_js(): return FileResponse("state.js")
+@app.get("/styles.css")
+async def styles_css(): return FileResponse("styles.css")
+@app.get("/index.html")
+async def index_html(): return FileResponse("index.html")
+
 
 # ── ROOT ROUTE ─────────────────────────────────────────
 @app.get("/")
