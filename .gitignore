@@ -230,6 +230,7 @@ temp/
 HF_*.md
 RUN_*.md
 hf_*.md
+README_HF*.md
 
 # OS
 .DS_Store
