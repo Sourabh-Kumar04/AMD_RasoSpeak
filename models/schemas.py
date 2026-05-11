@@ -160,3 +160,9 @@ class SessionInsights(BaseModel):
     focus_words:        list[str]   # words to practice before next session
     recommended_mode:   str         # suggested mode for next session
     encouragement:      str
+
+
+# ── PARTNER / RASO ────────────────────────────────────
+class PartnerAskRequest(BaseModel):
+    message:  str = Field(..., min_length=1, max_length=4_000)
+    provider: str | None = None
