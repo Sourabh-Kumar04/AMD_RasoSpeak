@@ -1,404 +1,150 @@
 <!DOCTYPE html>
-<html class="light" lang="en">
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>RasoSpeak — Meet Raso, Your AI Companion</title>
+  <title>RasoSpeak — Home</title>
   <link rel="icon" type="image/png" href="logo.png"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=Inter:wght@400;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "primary": "#a33e00",
-            "primary-container": "#ff6600",
-            "surface": "#f9f9f9",
-            "on-surface": "#1b1b1b",
-            "secondary": "#5d5f5a",
-            "error": "#ba1a1a",
-          },
-          fontFamily: {
-            "headline": ["Hanken Grotesk"],
-            "body": ["Inter"],
-            "mono": ["JetBrains Mono"],
-          }
-        },
-      },
-    }
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
-    body { background-color: #f9f9f9; min-height: 100vh; }
-    .view { display: none; }
-    .view.active { display: block; }
-    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    .active-nav { background-color: #ff6600 !important; color: white !important; }
-    .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
-    @keyframes pulse-ring {
-      0% { transform: scale(1); opacity: 1; }
-      100% { transform: scale(1.3); opacity: 0; }
-    }
-    .listen-pulse { animation: listen-pulse 1.5s ease-in-out infinite; }
-    @keyframes listen-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.4); }
-      50% { box-shadow: 0 0 0 15px rgba(255, 102, 0, 0); }
-    }
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: #FAFAFA; }
+    .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
+    .nav-link:hover { @apply bg-gray-100; }
+    .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
   </style>
 </head>
-<body class="text-on-surface antialiased">
+<body class="min-h-screen">
 
-<!-- Main Container -->
-<div class="min-h-screen flex flex-col">
-
-  <!-- Hero Header -->
-  <header class="bg-white border-b border-gray-200 px-6 py-8">
-    <div class="max-w-6xl mx-auto">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <img src="logo.png" alt="RasoSpeak" class="h-14 w-14 object-contain">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900" style="font-family: 'Hanken Grotesk'">RasoSpeak</h1>
-            <p class="text-sm text-gray-500">Your AI Companion with Memory</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-4">
-          <div id="status-indicator" class="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
-            <div class="w-3 h-3 rounded-full bg-green-500"></div>
-            <span class="text-sm font-medium">15 Agents + Raso Active</span>
-          </div>
-          <div id="memory-indicator" class="flex items-center gap-2 px-4 py-2 bg-orange-50 border border-orange-200 rounded-full">
-            <span class="material-symbols-outlined text-orange-500 text-lg">psychology</span>
-            <span class="text-sm font-medium text-orange-700">Memory Connected</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Wake Word Activation -->
-      <div class="mt-8 flex flex-col items-center">
-        <p class="text-gray-600 mb-4 text-center">Say <span class="font-bold text-primary">"Hey Raso"</span> to talk to your AI companion</p>
-        <div class="relative">
-          <button id="wake-btn" onclick="toggleWakeMode()" class="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all">
-            <span class="material-symbols-outlined text-4xl">mic</span>
-          </button>
-          <div id="wake-pulse" class="absolute inset-0 w-24 h-24 rounded-full bg-primary/30 -z-10 hidden"></div>
-        </div>
-        <p id="wake-status" class="mt-4 text-sm text-gray-500">Click to start listening</p>
+<!-- Navigation -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="flex items-center justify-between h-16">
+      <a href="index.html" class="flex items-center gap-3">
+        <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
+        <span class="font-bold text-lg">RasoSpeak</span>
+      </a>
+      <div class="flex items-center gap-1">
+        <a href="index.html" class="nav-link active">Home</a>
+        <a href="chat.html" class="nav-link">Chat</a>
+        <a href="memory.html" class="nav-link">Memory</a>
+        <a href="coach.html" class="nav-link">Coach</a>
+        <a href="docs.html" class="nav-link">Docs</a>
+        <a href="settings.html" class="nav-link">Settings</a>
       </div>
     </div>
-  </header>
+  </div>
+</nav>
 
-  <!-- Feature Cards -->
-  <main class="flex-1 px-6 py-8">
-    <div class="max-w-6xl mx-auto space-y-8">
+<!-- Main Content -->
+<main class="max-w-5xl mx-auto px-6 py-12">
 
-      <!-- Main Feature Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <!-- Hero -->
+  <section class="text-center py-12">
+    <h1 class="text-4xl font-bold mb-4">Meet Raso</h1>
+    <p class="text-xl text-gray-600 mb-8">Your AI companion with perfect memory</p>
 
-        <!-- Your Inner Self Card -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
-              <span class="material-symbols-outlined text-orange-500 text-xl">psychology</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-lg">Your Inner Self</h3>
-              <p class="text-sm text-gray-500">With perfect memory</p>
-            </div>
-          </div>
-          <div class="space-y-3">
-            <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-              <span class="material-symbols-outlined text-gray-400">memory</span>
-              <div>
-                <p class="font-medium text-sm">Remembers Everything</p>
-                <p class="text-xs text-gray-500">Ask "What did I say about X?"</p>
-              </div>
-            </div>
-            <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-              <span class="material-symbols-outlined text-gray-400">hearing</span>
-              <div>
-                <p class="font-medium text-sm">Voice Activated</p>
-                <p class="text-xs text-gray-500">"Hey Raso, tell me about AMD"</p>
-              </div>
-            </div>
-            <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-              <span class="material-symbols-outlined text-gray-400">sync</span>
-              <div>
-                <p class="font-medium text-sm">Shared Memory</p>
-                <p class="text-xs text-gray-500">All 14 AIs share the same brain</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- AI Chat Card -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-              <span class="material-symbols-outlined text-blue-500 text-xl">chat</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-lg">AI Chat Partner</h3>
-              <p class="text-sm text-gray-500">Your helpful AI friend</p>
-            </div>
-          </div>
-          <div class="mb-4">
-            <input type="text" id="chat-input" placeholder="Ask anything... (Try: Hey Raso, what is AMD?)"
-              class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
-              onkeypress="if(event.key==='Enter')sendMessage()">
-          </div>
-          <div class="flex items-center gap-2 mb-4">
-            <select id="provider-select" class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm">
-              <option value="qwen">Qwen (Local)</option>
-              <option value="openai">ChatGPT-4</option>
-              <option value="anthropic">Claude 3.5</option>
-              <option value="gemini">Gemini 1.5</option>
-            </select>
-            <button onclick="sendMessage()" class="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90">
-              Send
-            </button>
-          </div>
-          <div id="chat-messages" class="h-48 overflow-y-auto space-y-3 p-4 bg-gray-50 rounded-lg">
-            <div class="text-center text-sm text-gray-400 py-8">
-              Raso is here and ready to chat!
-            </div>
-          </div>
-        </div>
-
-        <!-- Search Web Card -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <span class="material-symbols-outlined text-green-500 text-xl">search</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-lg">Live Web Search</h3>
-              <p class="text-sm text-gray-500">Real-time information</p>
-            </div>
-          </div>
-          <div class="flex gap-2 mb-4">
-            <input type="text" id="web-search-input" placeholder="Search the web..."
-              class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
-              onkeypress="if(event.key==='Enter')webSearch()">
-            <button onclick="webSearch()" class="px-4 py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600">
-              <span class="material-symbols-outlined">search</span>
-            </button>
-          </div>
-          <div id="search-results" class="h-48 overflow-y-auto p-4 bg-gray-50 rounded-lg">
-            <div class="text-sm text-gray-400 text-center py-8">Search results will appear here</div>
-          </div>
-        </div>
-
-        <!-- Speech Coach Card -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-              <span class="material-symbols-outlined text-purple-500 text-xl">record_voice_over</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-lg">Speech Coach</h3>
-              <p class="text-sm text-gray-500">Presentation partner</p>
-            </div>
-          </div>
-          <div class="space-y-3">
-            <textarea id="script-ta" class="w-full h-24 px-4 py-3 border border-gray-200 rounded-lg resize-none text-sm" placeholder="Paste your script here..."></textarea>
-            <div class="flex gap-2">
-              <button onclick="loadSample()" class="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">Load Sample</button>
-              <button onclick="processAndGo()" class="flex-1 px-3 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90">Practice</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Document Memory Card -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-              <span class="material-symbols-outlined text-yellow-600 text-xl">description</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-lg">Document Memory</h3>
-              <p class="text-sm text-gray-500">Import documents into brain</p>
-            </div>
-          </div>
-          <div class="space-y-3">
-            <input type="text" id="doc-url" placeholder="Paste URL to import" class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm">
-            <button onclick="importUrl()" class="w-full px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600">Import URL</button>
-            <div class="relative">
-              <textarea id="doc-text" placeholder="Or paste text directly..." class="w-full h-20 px-4 py-2 border border-gray-200 rounded-lg text-sm resize-none"></textarea>
-            </div>
-            <button onclick="importText()" class="w-full px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">Add to Memory</button>
-          </div>
-        </div>
-
-        <!-- Analytics Card -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center">
-              <span class="material-symbols-outlined text-pink-500 text-xl">analytics</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-lg">Voice Analytics</h3>
-              <p class="text-sm text-gray-500">Analyze recorded voice</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3 mb-4">
-            <div class="p-3 bg-gray-50 rounded-lg text-center">
-              <div id="anal-sessions" class="text-2xl font-bold text-primary">0</div>
-              <div class="text-xs text-gray-500">Sessions</div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-lg text-center">
-              <div id="anal-accuracy" class="text-2xl font-bold text-green-500">0%</div>
-              <div class="text-xs text-gray-500">Avg Accuracy</div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-lg text-center">
-              <div id="anal-wpm" class="text-2xl font-bold text-blue-500">0</div>
-              <div class="text-xs text-gray-500">Avg WPM</div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-lg text-center">
-              <div id="mem-total" class="text-2xl font-bold text-orange-500">0</div>
-              <div class="text-xs text-gray-500">Memories</div>
-            </div>
-          </div>
-          <button onclick="loadAnalytics()" class="w-full px-3 py-2 bg-pink-500 text-white rounded-lg text-sm font-medium hover:bg-pink-600">View Analytics</button>
-        </div>
-
+    <!-- Wake Word -->
+    <div class="inline-block bg-white border border-gray-200 rounded-lg p-8 mb-8">
+      <p class="text-gray-600 mb-4">Say <span class="font-semibold text-emerald-600">"Hey Raso"</span> to activate</p>
+      <div class="relative inline-block">
+        <button id="wake-btn" onclick="toggleWakeMode()" class="w-20 h-20 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg hover:bg-emerald-600 transition-all">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+          </svg>
+        </button>
+        <div id="wake-pulse" class="absolute inset-0 w-20 h-20 rounded-full bg-emerald-500/20 -z-10 hidden"></div>
       </div>
-
-      <!-- Memory Query Section -->
-      <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-            <span class="material-symbols-outlined text-indigo-500 text-xl">memory</span>
-          </div>
-          <div>
-            <h3 class="font-bold text-lg">Query Your Memory</h3>
-            <p class="text-sm text-gray-500">Search through all your conversations and documents</p>
-          </div>
-        </div>
-        <div class="flex gap-3">
-          <input type="text" id="memory-search" placeholder="Try: What did I say about AI? or When did I talk about presentations?"
-            class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
-            onkeyup="if(event.key==='Enter')searchMemory()">
-          <button onclick="searchMemory()" class="px-6 py-3 bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-600">Search Memory</button>
-        </div>
-        <div id="memory-results" class="mt-4 p-4 bg-gray-50 rounded-lg min-h-32">
-          <div class="text-sm text-gray-400 text-center py-8">Your memories will appear here</div>
-        </div>
-      </div>
-
-      <!-- Multi-AI Provider Switching -->
-      <div class="bg-gradient-to-r from-primary/5 to-orange-50 rounded-xl border border-primary/20 p-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
-            <span class="material-symbols-outlined text-primary text-xl">swap_horiz</span>
-          </div>
-          <div>
-            <h3 class="font-bold text-lg">Switch AI Providers</h3>
-            <p class="text-sm text-gray-600">Change AI mid-conversation with voice command</p>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <button onclick="setProvider('qwen')" class="provider-btn px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:border-primary hover:bg-orange-50 transition-colors">
-            <span class="mr-2">💻</span> Qwen (Local)
-          </button>
-          <button onclick="setProvider('openai')" class="provider-btn px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:border-blue-500 hover:bg-blue-50 transition-colors">
-            <span class="mr-2">🔵</span> ChatGPT
-          </button>
-          <button onclick="setProvider('anthropic')" class="provider-btn px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:border-purple-500 hover:bg-purple-50 transition-colors">
-            <span class="mr-2">🟣</span> Claude
-          </button>
-          <button onclick="setProvider('gemini')" class="provider-btn px-4 py-3 bg-white border border-gray-200 rounded-lg font-medium hover:border-green-500 hover:bg-green-50 transition-colors">
-            <span class="mr-2">🟢</span> Gemini
-          </button>
-        </div>
-        <p class="mt-4 text-sm text-gray-500">Or say: "Hey Raso, use ChatGPT for this"</p>
-      </div>
-
-      <!-- 14 Agents Overview -->
-      <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-            <span class="material-symbols-outlined text-gray-600 text-xl">account_tree</span>
-          </div>
-          <div>
-            <h3 class="font-bold text-lg">15 AI Agents + Raso — All Sharing Memory</h3>
-            <p class="text-sm text-gray-500">Specialized agents working together with Raso as your companion</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          <div class="p-3 bg-orange-50 rounded-lg text-center">
-            <span class="text-xl">🤝</span>
-            <p class="text-xs font-medium mt-1">Raso</p>
-          </div>
-          <div class="p-3 bg-gray-50 rounded-lg text-center">
-            <span class="text-xl">🧠</span>
-            <p class="text-xs font-medium mt-1">Shared Memory</p>
-          </div>
-          <div class="p-3 bg-blue-50 rounded-lg text-center">
-            <span class="text-xl">👂</span>
-            <p class="text-xs font-medium mt-1">Wake Word</p>
-          </div>
-          <div class="p-3 bg-green-50 rounded-lg text-center">
-            <span class="text-xl">🎙️</span>
-            <p class="text-xs font-medium mt-1">Transcription</p>
-          </div>
-          <div class="p-3 bg-purple-50 rounded-lg text-center">
-            <span class="text-xl">⚖️</span>
-            <p class="text-xs font-medium mt-1">Scoring</p>
-          </div>
-          <div class="p-3 bg-pink-50 rounded-lg text-center">
-            <span class="text-xl">🎓</span>
-            <p class="text-xs font-medium mt-1">Coaching</p>
-          </div>
-          <div class="p-3 bg-yellow-50 rounded-lg text-center">
-            <span class="text-xl">✂️</span>
-            <p class="text-xs font-medium mt-1">Segmentation</p>
-          </div>
-          <div class="p-3 bg-indigo-50 rounded-lg text-center">
-            <span class="text-xl">❓</span>
-            <p class="text-xs font-medium mt-1">Q&A</p>
-          </div>
-          <div class="p-3 bg-cyan-50 rounded-lg text-center">
-            <span class="text-xl">🔍</span>
-            <p class="text-xs font-medium mt-1">Search</p>
-          </div>
-          <div class="p-3 bg-lime-50 rounded-lg text-center">
-            <span class="text-xl">📄</span>
-            <p class="text-xs font-medium mt-1">Document</p>
-          </div>
-          <div class="p-3 bg-rose-50 rounded-lg text-center">
-            <span class="text-xl">🔔</span>
-            <p class="text-xs font-medium mt-1">Notification</p>
-          </div>
-          <div class="p-3 bg-amber-50 rounded-lg text-center">
-            <span class="text-xl">🎥</span>
-            <p class="text-xs font-medium mt-1">Recording</p>
-          </div>
-          <div class="p-3 bg-teal-50 rounded-lg text-center">
-            <span class="text-xl">📊</span>
-            <p class="text-xs font-medium mt-1">Analytics</p>
-          </div>
-          <div class="p-3 bg-slate-100 rounded-lg text-center">
-            <span class="text-xl">💾</span>
-            <p class="text-xs font-medium mt-1">Session Memory</p>
-          </div>
-        </div>
-      </div>
-
+      <p id="wake-status" class="mt-4 text-sm text-gray-500">Click to start listening</p>
     </div>
-  </main>
+  </section>
 
-  <!-- Footer -->
-  <footer class="bg-white border-t border-gray-200 px-6 py-4">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
-      <p class="text-sm text-gray-500">RasoSpeak — Your AI Companion</p>
-      <p class="text-sm text-gray-400">Built for AMD Developer Hackathon</p>
+  <!-- Quick Actions -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <a href="chat.html" class="card p-6 rounded-lg border border-gray-200 hover:border-emerald-500 transition-colors">
+      <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
+      </div>
+      <h3 class="font-semibold text-lg mb-2">Chat with Raso</h3>
+      <p class="text-sm text-gray-500">Ask anything, search the web, get answers instantly</p>
+    </a>
+
+    <a href="memory.html" class="card p-6 rounded-lg border border-gray-200 hover:border-emerald-500 transition-colors">
+      <div class="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+      </div>
+      <h3 class="font-semibold text-lg mb-2">Query Memory</h3>
+      <p class="text-sm text-gray-500">Search through all your conversations and knowledge</p>
+    </a>
+
+    <a href="coach.html" class="card p-6 rounded-lg border border-gray-200 hover:border-emerald-500 transition-colors">
+      <div class="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+        </svg>
+      </div>
+      <h3 class="font-semibold text-lg mb-2">Speech Coach</h3>
+      <p class="text-sm text-gray-500">Practice presentations with real-time feedback</p>
+    </a>
+  </section>
+
+  <!-- Features Overview -->
+  <section class="bg-white rounded-lg border border-gray-200 p-8">
+    <h2 class="text-xl font-semibold mb-6">What Raso Can Do</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="flex items-start gap-4">
+        <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-medium">Perfect Memory</h4>
+          <p class="text-sm text-gray-500">Remembers everything you tell it, forever</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-4">
+        <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-medium">Voice Activated</h4>
+          <p class="text-sm text-gray-500">Just say "Hey Raso" to start talking</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-4">
+        <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-medium">Web Search</h4>
+          <p class="text-sm text-gray-500">Get real-time information from the web</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-4">
+        <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-medium">Speech Coaching</h4>
+          <p class="text-sm text-gray-500">Practice and improve your presentations</p>
+        </div>
+      </div>
     </div>
-  </footer>
+  </section>
 
-</div>
+</main>
 
 <!-- Toast -->
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50"></div>
@@ -420,17 +166,17 @@ function toggleWakeMode() {
   const status = document.getElementById('wake-status');
 
   if (wakeModeActive) {
-    btn.classList.add('listen-pulse');
+    btn.classList.add('ring-4', 'ring-emerald-500/30');
     pulse.classList.remove('hidden');
-    pulse.classList.add('pulse-ring');
     status.textContent = 'Listening for "Hey Raso"...';
-    toast('🎙️ Wake word detection active. Say "Hey Raso" to activate!');
+    if (typeof startWakeWord === 'function') startWakeWord();
+    toast('Wake word detection active!');
   } else {
-    btn.classList.remove('listen-pulse');
+    btn.classList.remove('ring-4', 'ring-emerald-500/30');
     pulse.classList.add('hidden');
-    pulse.classList.remove('pulse-ring');
     status.textContent = 'Click to start listening';
-    toast('🔇 Wake word detection stopped');
+    if (typeof stopWakeWord === 'function') stopWakeWord();
+    toast('Wake word detection stopped');
   }
 }
 
@@ -438,27 +184,8 @@ function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
-  setTimeout(() => {
-    t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
-  }, 3000);
+  setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
 }
-
-function setProvider(provider) {
-  document.getElementById('provider-select').value = provider;
-  const providers = { qwen: 'Qwen', openai: 'ChatGPT', anthropic: 'Claude', gemini: 'Gemini' };
-  toast(`🤖 Switched to ${providers[provider] || provider}`);
-
-  // Update active state
-  document.querySelectorAll('.provider-btn').forEach(btn => btn.classList.remove('border-primary', 'bg-orange-50'));
-  event.target.closest('.provider-btn').classList.add('border-primary', 'bg-orange-50');
-}
-
-// Initialize on load
-window.addEventListener('load', () => {
-  loadMemoryStats();
-  loadAnalytics();
-  checkBackendHealth();
-});
 </script>
 
 </body>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>RasoSpeak — Chat</title>
+  <link rel="icon" type="image/png" href="logo.png"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: #FAFAFA; }
+    .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
+    .nav-link:hover { @apply bg-gray-100; }
+    .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
+    .chat-bubble { max-width: 80%; }
+    .chat-bubble.user { @apply ml-auto bg-emerald-500 text-white; }
+    .chat-bubble.raso { @apply mr-auto bg-white border border-gray-200; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- Navigation -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="flex items-center justify-between h-16">
+      <a href="index.html" class="flex items-center gap-3">
+        <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
+        <span class="font-bold text-lg">RasoSpeak</span>
+      </a>
+      <div class="flex items-center gap-1">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="chat.html" class="nav-link active">Chat</a>
+        <a href="memory.html" class="nav-link">Memory</a>
+        <a href="coach.html" class="nav-link">Coach</a>
+        <a href="docs.html" class="nav-link">Docs</a>
+        <a href="settings.html" class="nav-link">Settings</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-3xl mx-auto px-6 py-8">
+
+  <!-- Chat Header -->
+  <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+        <span class="text-lg">🤝</span>
+      </div>
+      <div>
+        <h2 class="font-semibold">Raso</h2>
+        <p class="text-xs text-gray-500">Your AI companion</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <select id="provider-select" class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white">
+        <option value="qwen">Qwen</option>
+        <option value="openai">ChatGPT</option>
+        <option value="anthropic">Claude</option>
+        <option value="gemini">Gemini</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Chat Messages -->
+  <div id="chat-messages" class="bg-white rounded-lg border border-gray-200 p-6 mb-6 min-h-96 max-h-[60vh] overflow-y-auto space-y-4">
+    <div class="text-center text-gray-400 py-12">
+      <p class="mb-2">Raso is ready to chat!</p>
+      <p class="text-sm">Try: "Hey Raso, what is machine learning?"</p>
+    </div>
+  </div>
+
+  <!-- Chat Input -->
+  <div class="bg-white rounded-lg border border-gray-200 p-4">
+    <div class="flex gap-3">
+      <input type="text" id="chat-input" placeholder="Ask Raso anything..."
+        class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        onkeypress="if(event.key==='Enter')sendMessage()">
+      <button onclick="sendMessage()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
+        Send
+      </button>
+    </div>
+    <p class="text-xs text-gray-400 mt-2">Press Enter to send, or say "Hey Raso" to activate voice</p>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+    <button onclick="quickAsk('What can you help me with?')" class="py-2 px-3 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Help me</button>
+    <button onclick="quickAsk('Tell me a joke')" class="py-2 px-3 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Tell me a joke</button>
+    <button onclick="quickAsk('Search the web for latest AI news')" class="py-2 px-3 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">AI News</button>
+    <button onclick="quickAsk('What did I last ask you about?')" class="py-2 px-3 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Recall memory</button>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50"></div>
+
+<!-- Scripts -->
+<script src="state.js"></script>
+<script src="nlp.js"></script>
+<script src="speech.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+
+<script>
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+  setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
+}
+
+function quickAsk(question) {
+  document.getElementById('chat-input').value = question;
+  sendMessage();
+}
+
+// Override sendMessage to use chat page styling
+const originalSendMessage = window.sendMessage;
+</script>
+
+</body>
+</html>

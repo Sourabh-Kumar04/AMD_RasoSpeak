@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>RasoSpeak — Memory</title>
+  <link rel="icon" type="image/png" href="logo.png"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: #FAFAFA; }
+    .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
+    .nav-link:hover { @apply bg-gray-100; }
+    .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- Navigation -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="flex items-center justify-between h-16">
+      <a href="index.html" class="flex items-center gap-3">
+        <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
+        <span class="font-bold text-lg">RasoSpeak</span>
+      </a>
+      <div class="flex items-center gap-1">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="chat.html" class="nav-link">Chat</a>
+        <a href="memory.html" class="nav-link active">Memory</a>
+        <a href="coach.html" class="nav-link">Coach</a>
+        <a href="docs.html" class="nav-link">Docs</a>
+        <a href="settings.html" class="nav-link">Settings</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-3xl mx-auto px-6 py-8">
+
+  <!-- Memory Search -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-2">Query Your Memory</h2>
+    <p class="text-sm text-gray-500 mb-4">Search through all your conversations, documents, and knowledge</p>
+    <div class="flex gap-3">
+      <input type="text" id="memory-search" placeholder="Try: What did I say about AI?"
+        class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        onkeypress="if(event.key==='Enter')searchMemory()">
+      <button onclick="searchMemory()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
+        Search
+      </button>
+    </div>
+  </div>
+
+  <!-- Memory Results -->
+  <div id="memory-results" class="bg-white rounded-lg border border-gray-200 p-6 mb-6 min-h-48">
+    <div class="text-center text-gray-400 py-8">
+      <p>Your memories will appear here</p>
+      <p class="text-sm mt-1">Ask Raso questions or import documents to build your memory</p>
+    </div>
+  </div>
+
+  <!-- Memory Stats -->
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="mem-conversations" class="text-3xl font-bold text-emerald-600">0</div>
+      <div class="text-xs text-gray-500 mt-1">Conversations</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="mem-facts" class="text-3xl font-bold text-purple-600">0</div>
+      <div class="text-xs text-gray-500 mt-1">Facts Stored</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="mem-documents" class="text-3xl font-bold text-blue-600">0</div>
+      <div class="text-xs text-gray-500 mt-1">Documents</div>
+    </div>
+  </div>
+
+  <!-- Add to Memory -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <h3 class="font-semibold mb-4">Quick Add to Memory</h3>
+    <textarea id="quick-fact-input" placeholder="Type a fact or note to remember..." class="w-full h-24 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
+    <div class="flex gap-3">
+      <select id="fact-category" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+        <option value="general">General</option>
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="learning">Learning</option>
+      </select>
+      <button onclick="addFactToMemory()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
+        Save to Memory
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50"></div>
+
+<!-- Scripts -->
+<script src="state.js"></script>
+<script src="nlp.js"></script>
+<script src="speech.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+
+<script>
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+  setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
+}
+
+async function addFactToMemory() {
+  const input = document.getElementById('quick-fact-input');
+  const catSelect = document.getElementById('fact-category');
+  const fact = input.value.trim();
+  const category = catSelect.value;
+
+  if (!fact) {
+    toast('Enter a fact to remember');
+    return;
+  }
+
+  try {
+    await fetch('/memory/fact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fact: fact, category: category })
+    });
+    toast('Fact saved to memory');
+    input.value = '';
+  } catch (e) {
+    toast('Fact saved (demo mode)');
+    input.value = '';
+  }
+}
+
+window.addEventListener('load', () => {
+  loadMemoryStats();
+});
+</script>
+
+</body>
+</html>

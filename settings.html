@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>RasoSpeak — Settings</title>
+  <link rel="icon" type="image/png" href="logo.png"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: #FAFAFA; }
+    .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
+    .nav-link:hover { @apply bg-gray-100; }
+    .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- Navigation -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="flex items-center justify-between h-16">
+      <a href="index.html" class="flex items-center gap-3">
+        <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
+        <span class="font-bold text-lg">RasoSpeak</span>
+      </a>
+      <div class="flex items-center gap-1">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="chat.html" class="nav-link">Chat</a>
+        <a href="memory.html" class="nav-link">Memory</a>
+        <a href="coach.html" class="nav-link">Coach</a>
+        <a href="docs.html" class="nav-link">Docs</a>
+        <a href="settings.html" class="nav-link active">Settings</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-3xl mx-auto px-6 py-8">
+
+  <!-- AI Provider -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">AI Provider</h2>
+    <p class="text-sm text-gray-500 mb-4">Choose which AI model to use</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <button onclick="setProvider('qwen')" class="provider-btn p-4 border border-gray-200 rounded-lg text-center hover:border-emerald-500 hover:bg-emerald-50 transition-colors">
+        <div class="text-lg mb-1">💻</div>
+        <div class="font-medium text-sm">Qwen</div>
+        <div class="text-xs text-gray-500">Local (Fast)</div>
+      </button>
+      <button onclick="setProvider('openai')" class="provider-btn p-4 border border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-colors">
+        <div class="text-lg mb-1">🔵</div>
+        <div class="font-medium text-sm">ChatGPT</div>
+        <div class="text-xs text-gray-500">OpenAI</div>
+      </button>
+      <button onclick="setProvider('anthropic')" class="provider-btn p-4 border border-gray-200 rounded-lg text-center hover:border-purple-500 hover:bg-purple-50 transition-colors">
+        <div class="text-lg mb-1">🟣</div>
+        <div class="font-medium text-sm">Claude</div>
+        <div class="text-xs text-gray-500">Anthropic</div>
+      </button>
+      <button onclick="setProvider('gemini')" class="provider-btn p-4 border border-gray-200 rounded-lg text-center hover:border-green-500 hover:bg-green-50 transition-colors">
+        <div class="text-lg mb-1">🟢</div>
+        <div class="font-medium text-sm">Gemini</div>
+        <div class="text-xs text-gray-500">Google</div>
+      </button>
+    </div>
+    <p id="provider-status" class="text-sm text-emerald-600 mt-3">Currently using: Qwen</p>
+  </div>
+
+  <!-- Wake Word -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Wake Word</h2>
+    <p class="text-sm text-gray-500 mb-4">Configure voice activation</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="font-medium">"Hey Raso"</p>
+        <p class="text-sm text-gray-500">Say this to activate voice control</p>
+      </div>
+      <button id="wake-toggle" onclick="toggleWakeSetting()" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium">
+        Enable
+      </button>
+    </div>
+  </div>
+
+  <!-- Memory Settings -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Memory Settings</h2>
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="font-medium">Auto-save conversations</p>
+          <p class="text-sm text-gray-500">Automatically save chat history to memory</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="auto-save" class="sr-only peer" checked>
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+        </label>
+      </div>
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="font-medium">Remember personal facts</p>
+          <p class="text-sm text-gray-500">Store your preferences and facts</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="remember-facts" class="sr-only peer" checked>
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+        </label>
+      </div>
+      <div class="pt-4 border-t border-gray-100">
+        <button onclick="clearMemory()" class="text-red-600 text-sm hover:underline">Clear all memory data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Speech Coach -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Speech Coach Settings</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-2">Chunk Size</label>
+        <select id="chunk-size" class="w-full px-3 py-2 border border-gray-200 rounded-lg">
+          <option value="5">5 words (Easy)</option>
+          <option value="8" selected>8 words (Normal)</option>
+          <option value="12">12 words (Hard)</option>
+          <option value="15">15 words (Expert)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Accuracy Threshold</label>
+        <select id="accuracy-threshold" class="w-full px-3 py-2 border border-gray-200 rounded-lg">
+          <option value="0.6">60% (Beginner)</option>
+          <option value="0.75" selected>75% (Normal)</option>
+          <option value="0.85">85% (Strict)</option>
+          <option value="0.95">95% (Perfect)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Voice Speed</label>
+        <select id="voice-speed" class="w-full px-3 py-2 border border-gray-200 rounded-lg">
+          <option value="0.7">Slow (0.7x)</option>
+          <option value="0.85" selected>Normal (0.85x)</option>
+          <option value="1.0">Fast (1.0x)</option>
+          <option value="1.15">Very Fast (1.15x)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- About -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <h2 class="text-lg font-semibold mb-4">About RasoSpeak</h2>
+    <div class="space-y-2 text-sm text-gray-600">
+      <p>Version 2.0.0</p>
+      <p>15 AI Agents + Raso sharing memory</p>
+      <p class="pt-4 text-xs text-gray-400">Built for AMD Developer Hackathon</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50"></div>
+
+<!-- Scripts -->
+<script src="state.js"></script>
+<script src="nlp.js"></script>
+<script src="speech.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+
+<script>
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+  setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
+}
+
+function toggleWakeSetting() {
+  const btn = document.getElementById('wake-toggle');
+  if (btn.textContent === 'Enable') {
+    btn.textContent = 'Disable';
+    btn.classList.remove('bg-emerald-500');
+    btn.classList.add('bg-gray-400');
+    toast('Wake word enabled');
+  } else {
+    btn.textContent = 'Enable';
+    btn.classList.add('bg-emerald-500');
+    btn.classList.remove('bg-gray-400');
+    toast('Wake word disabled');
+  }
+}
+
+function clearMemory() {
+  if (confirm('Are you sure you want to clear all memory data? This cannot be undone.')) {
+    localStorage.clear();
+    toast('Memory cleared');
+  }
+}
+</script>
+
+</body>
+</html>

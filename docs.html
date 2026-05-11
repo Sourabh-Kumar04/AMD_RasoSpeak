@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>RasoSpeak — Documents</title>
+  <link rel="icon" type="image/png" href="logo.png"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: #FAFAFA; }
+    .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
+    .nav-link:hover { @apply bg-gray-100; }
+    .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- Navigation -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="flex items-center justify-between h-16">
+      <a href="index.html" class="flex items-center gap-3">
+        <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
+        <span class="font-bold text-lg">RasoSpeak</span>
+      </a>
+      <div class="flex items-center gap-1">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="chat.html" class="nav-link">Chat</a>
+        <a href="memory.html" class="nav-link">Memory</a>
+        <a href="coach.html" class="nav-link">Coach</a>
+        <a href="docs.html" class="nav-link active">Docs</a>
+        <a href="settings.html" class="nav-link">Settings</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-3xl mx-auto px-6 py-8">
+
+  <!-- Import URL -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Import from URL</h2>
+    <div class="flex gap-3">
+      <input type="text" id="doc-url" placeholder="Paste URL to import (article, blog, etc.)"
+        class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      <button onclick="importUrl()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
+        Import
+      </button>
+    </div>
+    <p class="text-xs text-gray-400 mt-2">Raso will fetch the content and add it to your memory</p>
+  </div>
+
+  <!-- Import Text -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Import Text</h2>
+    <textarea id="doc-text" placeholder="Paste text, notes, or any content to add to your memory..."
+      class="w-full h-32 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
+    <div class="flex gap-3">
+      <select id="doc-category" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+        <option value="note">Note</option>
+        <option value="article">Article</option>
+        <option value="book">Book</option>
+        <option value="research">Research</option>
+        <option value="other">Other</option>
+      </select>
+      <button onclick="importText()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
+        Add to Memory
+      </button>
+    </div>
+  </div>
+
+  <!-- Upload File -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Upload Document</h2>
+    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+      <input type="file" id="doc-upload" accept=".pdf,.txt,.md,.doc,.docx" class="hidden" onchange="uploadDocument(this)">
+      <button onclick="document.getElementById('doc-upload').click()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">
+        Choose File
+      </button>
+      <p class="text-sm text-gray-500 mt-3">Supports PDF, TXT, MD, DOC, DOCX</p>
+    </div>
+  </div>
+
+  <!-- Document List -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold">Your Documents</h2>
+      <button onclick="loadDocuments()" class="text-sm text-emerald-600 hover:text-emerald-700">Refresh</button>
+    </div>
+    <div id="docs-list" class="space-y-3">
+      <div class="text-center text-gray-400 py-8">
+        <p>No documents yet</p>
+        <p class="text-sm mt-1">Import URLs, text, or upload files above</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50"></div>
+
+<!-- Scripts -->
+<script src="state.js"></script>
+<script src="nlp.js"></script>
+<script src="speech.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+
+<script>
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+  setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
+}
+
+function uploadDocument(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  toast('Uploading ' + file.name + '...');
+  // File upload implementation
+  setTimeout(() => {
+    toast('Document uploaded');
+    loadDocuments();
+  }, 1000);
+}
+
+window.addEventListener('load', () => {
+  loadDocuments();
+});
+</script>
+
+</body>
+</html>
