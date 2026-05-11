@@ -8,7 +8,7 @@ import json
 import logging
 import time
 import asyncio
-from typing import Optional
+from typing import Optional, AsyncIterator
 
 from .base_agent import BaseAgent
 from .llm_client import create_llm_client, LLMClient
