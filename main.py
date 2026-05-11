@@ -43,10 +43,13 @@ from models.schemas import (
 )
 from config.settings import settings
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_ip
 from slowapi.errors import RateLimitExceeded
 
 # ── RATE LIMITING ──────────────────────────────────────
+def get_remote_ip(request):
+    """Get client IP from request."""
+    return request.client.host if request.client else "127.0.0.1"
+
 limiter = Limiter(key_func=get_remote_ip)
 
 # ── LOGGING ───────────────────────────────────────────
