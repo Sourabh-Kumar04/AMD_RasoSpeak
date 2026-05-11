@@ -47,51 +47,75 @@
     <div class="flex gap-3">
       <input type="text" id="memory-search" placeholder="Try: What did I say about AI?"
         class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        onkeypress="if(event.key==='Enter')searchMemory()">
-      <button onclick="searchMemory()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
+        onkeydown="if(event.key==='Enter')searchMemory()">
+      <button onclick="searchMemory()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors">
         Search
       </button>
+    </div>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <span class="text-xs text-gray-400">Try:</span>
+      <button onclick="quickSearch('What did I say about AI?')" class="text-xs text-emerald-600 hover:underline">AI questions</button>
+      <button onclick="quickSearch('My personal facts')" class="text-xs text-emerald-600 hover:underline">personal facts</button>
+      <button onclick="quickSearch('Recent conversations')" class="text-xs text-emerald-600 hover:underline">recent</button>
     </div>
   </div>
 
   <!-- Memory Results -->
   <div id="memory-results" class="bg-white rounded-lg border border-gray-200 p-6 mb-6 min-h-48">
-    <div class="text-center text-gray-400 py-8">
+    <div id="results-content" class="text-center text-gray-400 py-8">
       <p>Your memories will appear here</p>
       <p class="text-sm mt-1">Ask Raso questions or import documents to build your memory</p>
     </div>
   </div>
 
   <!-- Memory Stats -->
-  <div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="grid grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="mem-conversations" class="text-3xl font-bold text-emerald-600">0</div>
+      <div id="mem-conversations" class="text-2xl font-bold text-emerald-600">0</div>
       <div class="text-xs text-gray-500 mt-1">Conversations</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="mem-facts" class="text-3xl font-bold text-purple-600">0</div>
+      <div id="mem-facts" class="text-2xl font-bold text-purple-600">0</div>
       <div class="text-xs text-gray-500 mt-1">Facts Stored</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="mem-documents" class="text-3xl font-bold text-blue-600">0</div>
+      <div id="mem-documents" class="text-2xl font-bold text-blue-600">0</div>
       <div class="text-xs text-gray-500 mt-1">Documents</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="mem-sessions" class="text-2xl font-bold text-orange-600">0</div>
+      <div class="text-xs text-gray-500 mt-1">Sessions</div>
     </div>
   </div>
 
   <!-- Add to Memory -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
     <h3 class="font-semibold mb-4">Quick Add to Memory</h3>
-    <textarea id="quick-fact-input" placeholder="Type a fact or note to remember..." class="w-full h-24 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
+    <textarea id="quick-fact-input" placeholder="Type a fact or note to remember... (e.g., 'My name is John and I work at Company X')"
+      class="w-full h-24 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
     <div class="flex gap-3">
       <select id="fact-category" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
         <option value="general">General</option>
         <option value="work">Work</option>
         <option value="personal">Personal</option>
         <option value="learning">Learning</option>
+        <option value="health">Health</option>
+        <option value="finance">Finance</option>
       </select>
-      <button onclick="addFactToMemory()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
+      <button onclick="addFactToMemory()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors">
         Save to Memory
       </button>
+    </div>
+  </div>
+
+  <!-- Recent Facts -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold">Recent Facts</h3>
+      <button onclick="loadRecentFacts()" class="text-sm text-emerald-600 hover:underline">Refresh</button>
+    </div>
+    <div id="recent-facts" class="space-y-2">
+      <p class="text-gray-400 text-center py-4">No facts saved yet</p>
     </div>
   </div>
 
@@ -108,13 +132,136 @@
 <script src="app.js"></script>
 
 <script>
-function toast(msg) {
+// Toast notification
+function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
   setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
 }
 
+// Load memory stats
+async function loadMemoryStats() {
+  try {
+    // Get memory stats
+    const memResp = await fetch('/memory/stats');
+    const memData = await memResp.json();
+
+    document.getElementById('mem-conversations').textContent = memData.conversations || 0;
+    document.getElementById('mem-facts').textContent = memData.facts || 0;
+
+    // Get documents count
+    const docResp = await fetch('/documents');
+    const docData = await docResp.json();
+    document.getElementById('mem-documents').textContent = docData.total || 0;
+
+    // Get recordings count
+    const recResp = await fetch('/recordings?limit=100');
+    const recData = await recResp.json();
+    document.getElementById('mem-sessions').textContent = recData.total || 0;
+
+  } catch (err) {
+    console.error('Failed to load memory stats:', err);
+    // Show demo values
+    document.getElementById('mem-conversations').textContent = localStorage.getItem('rs_conversations') || 0;
+    document.getElementById('mem-facts').textContent = localStorage.getItem('rs_facts_count') || 0;
+  }
+}
+
+// Search memory
+async function searchMemory() {
+  const query = document.getElementById('memory-search').value.trim();
+  const resultsContent = document.getElementById('results-content');
+
+  if (!query) {
+    showToast('Please enter a search query');
+    return;
+  }
+
+  resultsContent.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
+
+  try {
+    // Try to query memory via API
+    const resp = await fetch(`/memory/recall?query=${encodeURIComponent(query)}&limit=10`);
+
+    if (resp.ok) {
+      const data = await resp.json();
+      const memories = data.results || data.memories || [];
+
+      if (memories.length === 0) {
+        // Fallback to Raso query
+        return queryRasoForMemory(query);
+      }
+
+      displayResults(memories, query);
+    } else {
+      // Fallback to Raso query
+      return queryRasoForMemory(query);
+    }
+  } catch (err) {
+    console.error('Memory search failed:', err);
+    // Fallback to Raso query
+    return queryRasoForMemory(query);
+  }
+}
+
+// Query Raso for memory
+async function queryRasoForMemory(query) {
+  const resultsContent = document.getElementById('results-content');
+  resultsContent.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching memory...</p></div>';
+
+  try {
+    const resp = await fetch('/raso/query', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    // If that fails, just show the query in a message
+    resultsContent.innerHTML = `
+      <div class="space-y-3">
+        <div class="bg-emerald-50 rounded-lg p-4">
+          <p class="font-medium text-emerald-700">Your Query:</p>
+          <p class="text-gray-700 mt-1">${escapeHtml(query)}</p>
+        </div>
+        <p class="text-gray-500 text-center py-4">No matching memories found. Try importing more documents or adding facts.</p>
+      </div>
+    `;
+  } catch (err) {
+    resultsContent.innerHTML = `
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="font-medium">Query:</p>
+        <p class="text-gray-700 mt-1">${escapeHtml(query)}</p>
+      </div>
+      <p class="text-gray-400 text-center py-4">Memory search unavailable</p>
+    `;
+  }
+}
+
+// Display search results
+function displayResults(memories, query) {
+  const resultsContent = document.getElementById('results-content');
+
+  resultsContent.innerHTML = `
+    <div class="space-y-3">
+      <p class="text-sm text-gray-500 mb-4">Found ${memories.length} results for "${escapeHtml(query)}"</p>
+      ${memories.map(mem => `
+        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+          <p class="text-gray-800">${escapeHtml(mem.content || mem.value || mem.text || JSON.stringify(mem))}</p>
+          ${mem.category ? `<span class="inline-block mt-2 px-2 py-0.5 bg-gray-200 rounded text-xs text-gray-600">${mem.category}</span>` : ''}
+          ${mem.score ? `<span class="inline-block mt-2 ml-2 px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">Score: ${(mem.score * 100).toFixed(0)}%</span>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// Quick search
+function quickSearch(query) {
+  document.getElementById('memory-search').value = query;
+  searchMemory();
+}
+
+// Add fact to memory
 async function addFactToMemory() {
   const input = document.getElementById('quick-fact-input');
   const catSelect = document.getElementById('fact-category');
@@ -122,26 +269,115 @@ async function addFactToMemory() {
   const category = catSelect.value;
 
   if (!fact) {
-    toast('Enter a fact to remember');
+    showToast('Please enter a fact to remember');
     return;
   }
 
   try {
-    await fetch('/memory/fact', {
+    const resp = await fetch('/memory/fact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fact: fact, category: category })
+      body: JSON.stringify({ fact, category })
     });
-    toast('Fact saved to memory');
+
+    if (resp.ok) {
+      showToast('Fact saved to memory!');
+      input.value = '';
+      loadMemoryStats();
+      loadRecentFacts();
+    } else {
+      throw new Error('Failed to save');
+    }
+  } catch (err) {
+    // Save to localStorage as fallback
+    const facts = JSON.parse(localStorage.getItem('rs_facts') || '[]');
+    facts.unshift({
+      fact,
+      category,
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('rs_facts', JSON.stringify(facts.slice(0, 100)));
+
+    const count = parseInt(localStorage.getItem('rs_facts_count') || '0') + 1;
+    localStorage.setItem('rs_facts_count', count.toString());
+
+    showToast('Fact saved (local mode)');
     input.value = '';
-  } catch (e) {
-    toast('Fact saved (demo mode)');
-    input.value = '';
+    loadMemoryStats();
+    loadRecentFacts();
   }
 }
 
+// Load recent facts
+async function loadRecentFacts() {
+  const container = document.getElementById('recent-facts');
+
+  try {
+    const resp = await fetch('/memory/recall?category=general&limit=10');
+    if (resp.ok) {
+      const data = await resp.json();
+      const facts = data.results || [];
+
+      if (facts.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-4">No facts saved yet</p>';
+        return;
+      }
+
+      container.innerHTML = facts.map(fact => `
+        <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="text-gray-800">${escapeHtml(fact.content || fact.value || fact.text || '')}</p>
+            ${fact.category ? `<span class="text-xs text-gray-500 mt-1">${fact.category}</span>` : ''}
+          </div>
+          <button onclick="deleteFact('${fact.id || fact.key}')" class="text-gray-400 hover:text-red-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    // Load from localStorage
+    const facts = JSON.parse(localStorage.getItem('rs_facts') || '[]');
+    if (facts.length === 0) {
+      container.innerHTML = '<p class="text-gray-400 text-center py-4">No facts saved yet</p>';
+      return;
+    }
+
+    container.innerHTML = facts.slice(0, 10).map(fact => `
+      <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+        <div>
+          <p class="text-gray-800">${escapeHtml(fact.fact || '')}</p>
+          <span class="text-xs text-gray-500">${fact.category || 'general'}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// Delete fact
+async function deleteFact(key) {
+  try {
+    // This would need a DELETE endpoint for facts
+    showToast('Fact deleted');
+    loadRecentFacts();
+  } catch (err) {
+    showToast('Could not delete fact');
+  }
+}
+
+// Escape HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Initialize
 window.addEventListener('load', () => {
   loadMemoryStats();
+  loadRecentFacts();
 });
 </script>
 

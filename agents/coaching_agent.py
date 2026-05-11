@@ -1,208 +1,205 @@
 """
 RasoSpeak v2 — CoachingAgent
-Qwen2.5-7B-Instruct on vLLM/ROCm for personalized coaching interventions.
-
-Activates only when ScoringAgent returns passed=False.
-Generates earpiece-ready corrections tailored to mode + attempt count.
+Uses external LLM APIs for personalized coaching (no GPU)
+Works on 4GB RAM with streaming support
 """
 
 import json
 import logging
 import time
-
-import httpx
+import asyncio
+from typing import Optional, AsyncIterator
 
 from .base_agent import BaseAgent
+from .llm_client import create_llm_client, LLMClient
 from config.settings import settings
-from config.prompts import (
-    COACHING_SYSTEM, coaching_user_prompt,
-    INSIGHTS_SYSTEM, insights_user_prompt,
-)
 
 log = logging.getLogger("rasospeak.coaching")
+
+COACHING_SYSTEM = """You are Raso, a friendly and encouraging speech coach.
+Your goal is to help users improve their speaking skills through practice.
+Provide positive, actionable feedback that helps them improve.
+Keep responses concise and encouraging."""
 
 
 class CoachingAgent(BaseAgent):
     """
     Agent 3: CoachingAgent
 
-    Generates personalized corrections when a presenter misses a chunk.
-    Three modes:
-      - silent: just replay (no verbal coaching)
-      - hint:   short keyword prompt ("remember: 'real-time'")
-      - full:   full sentence replay with gentle prefix
+    Uses external LLM APIs to generate personalized coaching.
+    No GPU required - runs on 4GB RAM via API calls.
 
-    Also generates end-of-session AI insights for the stats dashboard.
+    Provides:
+    - Real-time feedback during speech practice
+    - Encouragement based on progress
+    - Session summaries with improvement tips
     """
 
     name = "CoachingAgent"
 
     def __init__(self):
-        self._client: httpx.AsyncClient | None = None
+        self._llm_client: Optional[LLMClient] = None
 
     async def initialize(self):
-        self._client = httpx.AsyncClient(
-            base_url=settings.VLLM_BASE_URL,
-            timeout=settings.LLM_TIMEOUT_SECONDS,
-        )
-        log.info(f"CoachingAgent using {settings.COACHING_MODEL}")
+        """Initialize LLM client."""
+        log.info(f"Initializing CoachingAgent with provider: {settings.default_provider}")
+        self._llm_client = create_llm_client(settings.default_provider)
+        log.info(f"✅ CoachingAgent ready (API mode, no GPU)")
 
-    async def coach(
+    async def cleanup(self):
+        """Cleanup resources."""
+        if self._llm_client:
+            await self._llm_client.close()
+
+    async def generate_feedback(
         self,
-        expected:        str,
-        spoken:          str,
-        score:           dict,
-        mode:            str  = "hint",
-        attempt_number:  int  = 1,
-        user_weak_words: list = None,
+        transcript: str,
+        reference: str,
+        scores: dict = None,
+        provider: str = None,
     ) -> dict:
         """
-        Generate a coaching intervention for a failed chunk.
+        Generate coaching feedback based on transcript and scores.
 
         Args:
-            expected:       What the presenter should have said
-            spoken:         What they actually said (from Whisper)
-            score:          ScoreResult from ScoringAgent
-            mode:           Correction mode (silent/hint/full)
-            attempt_number: How many tries on this chunk so far
-            user_weak_words:Historical weak words for this user
+            transcript: What user said
+            reference: Target script
+            scores: Optional scores from ScoringAgent
+            provider: Override default provider
 
         Returns:
-            CoachResult dict with tts_text, display_text, strategy
+            {"feedback": "...", "strategy": "encourage|correct|advance"}
         """
-        t_start    = time.perf_counter()
-        weak_words = user_weak_words or []
+        if not self._llm_client:
+            return {"error": "LLM client not initialized"}
 
-        # Silent mode: just replay, no LLM needed
-        if mode == "silent":
-            elapsed = int((time.perf_counter() - t_start) * 1000)
-            return {
-                "strategy":        "replay",
-                "tts_text":        expected,
-                "display_text":    "Replaying chunk...",
-                "missed_concepts": score.get("missing_concepts", []),
-                "encouragement":   "",
-                "auto_skip":       attempt_number >= settings.MAX_ATTEMPTS_BEFORE_SKIP,
-                "processing_ms":   elapsed,
-            }
+        client = create_llm_client(provider) if provider else self._llm_client
 
-        # Auto-skip after too many attempts
-        if attempt_number >= settings.MAX_ATTEMPTS_BEFORE_SKIP:
-            elapsed = int((time.perf_counter() - t_start) * 1000)
-            return {
-                "strategy":        "skip",
-                "tts_text":        "Moving on. You've got this.",
-                "display_text":    f"Auto-advancing after {attempt_number} attempts. Keep going!",
-                "missed_concepts": score.get("missing_concepts", []),
-                "encouragement":   "Every session you improve.",
-                "auto_skip":       True,
-                "processing_ms":   elapsed,
-            }
+        # Build context
+        context = f"Reference: {reference}\nTranscript: {transcript}\n"
+        if scores:
+            context += f"Scores: Accuracy={scores.get('accuracy', 0):.0%}, "
+            context += f"Fluency={scores.get('fluency', 0):.0%}, "
+            context += f"Overall={scores.get('overall', 0):.0%}\n"
 
-        user_prompt = coaching_user_prompt(
-            expected, spoken, score, mode, attempt_number, weak_words
-        )
+        messages = [
+            {"role": "system", "content": COACHING_SYSTEM},
+            {"role": "user", "content": f"Provide coaching feedback for this speech practice:\n\n{context}"}
+        ]
 
         try:
-            result = await self._call_vllm(
-                system=COACHING_SYSTEM,
-                user=user_prompt,
-                max_tokens=settings.COACHING_MAX_TOKENS,
-            )
-            parsed = json.loads(result)
-            elapsed = int((time.perf_counter() - t_start) * 1000)
-            log.debug(f"Coaching: strategy={parsed.get('strategy')} in {elapsed}ms")
-            return {**parsed, "auto_skip": False, "processing_ms": elapsed}
+            result = await client.chat(messages, temperature=0.15, max_tokens=768)
 
+            # Try to parse as JSON
+            try:
+                feedback_data = json.loads(result["content"])
+                return {
+                    "feedback": feedback_data.get("feedback", result["content"]),
+                    "strategy": feedback_data.get("strategy", "encourage"),
+                    "tts_text": feedback_data.get("tts_text", feedback_data.get("feedback", "")),
+                    "display_text": feedback_data.get("display_text", feedback_data.get("feedback", "")),
+                    "provider": provider or settings.default_provider,
+                }
+            except json.JSONDecodeError:
+                return {
+                    "feedback": result["content"],
+                    "strategy": "encourage",
+                    "tts_text": result["content"],
+                    "display_text": result["content"],
+                    "provider": provider or settings.default_provider,
+                }
         except Exception as e:
-            log.warning(f"CoachingAgent fallback: {e}")
-            return self._fallback_coach(expected, score, mode, attempt_number, t_start)
+            log.error(f"Feedback generation failed: {e}")
+            return {"error": str(e)}
 
-    async def generate_session_insights(self, session: dict) -> dict:
-        """
-        Generate AI insights for the end-of-session stats dashboard.
-        Uses Qwen to produce personalized, actionable feedback.
-        """
-        t_start = time.perf_counter()
-        user_prompt = insights_user_prompt(session)
-
-        try:
-            result = await self._call_vllm(
-                system=INSIGHTS_SYSTEM,
-                user=user_prompt,
-                max_tokens=768,
-            )
-            parsed = json.loads(result)
-            elapsed = int((time.perf_counter() - t_start) * 1000)
-            log.info(f"Session insights generated in {elapsed}ms")
-            return parsed
-
-        except Exception as e:
-            log.warning(f"Insights generation failed: {e}")
-            stats = session.get("stats", {})
-            avg   = stats.get("avg_accuracy", 0)
-            return {
-                "overall_assessment": f"You completed {stats.get('chunks_done', 0)} chunks with {avg:.0f}% average accuracy.",
-                "strengths":          ["Completed the session", "Maintained consistent delivery"],
-                "improvements":       ["Focus on key technical terms", "Practice problematic chunks"],
-                "focus_words":        session.get("weak_words", [])[:5],
-                "recommended_mode":   "hint" if avg < 70 else "silent",
-                "encouragement":      "Every session makes you more confident on stage.",
-            }
-
-    async def _call_vllm(self, system: str, user: str, max_tokens: int) -> str:
-        if self._client is None:
-            raise RuntimeError("CoachingAgent not initialized")
-
-        payload = {
-            "model":       settings.COACHING_MODEL,
-            "messages":    [
-                {"role": "system", "content": system},
-                {"role": "user",   "content": user},
-            ],
-            "max_tokens":  max_tokens,
-            "temperature": settings.LLM_TEMPERATURE,
-            "stream":      False,
-        }
-        resp = await self._client.post("/chat/completions", json=payload)
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"].strip()
-
-    def _fallback_coach(
+    async def generate_feedback_streaming(
         self,
-        expected: str,
-        score: dict,
-        mode: str,
-        attempt: int,
-        t_start: float,
+        transcript: str,
+        reference: str,
+        scores: dict = None,
+        provider: str = None,
+    ) -> AsyncIterator[dict]:
+        """
+        Generate coaching feedback with streaming.
+        Useful for real-time speech coaching.
+        """
+        if not self._llm_client:
+            yield {"error": "LLM client not initialized"}
+            return
+
+        client = create_llm_client(provider) if provider else self._llm_client
+
+        context = f"Reference: {reference}\nTranscript: {transcript}\n"
+        if scores:
+            context += f"Scores: Accuracy={scores.get('accuracy', 0):.0%}, "
+            context += f"Fluency={scores.get('fluency', 0):.0%}, "
+            context += f"Overall={scores.get('overall', 0):.0%}\n"
+
+        messages = [
+            {"role": "system", "content": COACHING_SYSTEM},
+            {"role": "user", "content": f"Provide coaching feedback:\n\n{context}"}
+        ]
+
+        try:
+            full_text = ""
+            async for chunk in client.chat(messages, temperature=0.15, max_tokens=768, stream=True):
+                full_text += chunk
+                yield {"partial": chunk, "type": "stream", "accumulated": full_text}
+        except Exception as e:
+            yield {"error": str(e)}
+
+    async def generate_encouragement(
+        self,
+        progress: dict,
+        provider: str = None,
     ) -> dict:
-        """Rule-based fallback when vLLM is unavailable."""
-        elapsed  = int((time.perf_counter() - t_start) * 1000)
-        missing  = score.get("missing_concepts", [])
-        prefixes = ["Try again: ", "Once more: ", "Last chance: ", "Let's do this: "]
-        prefix   = prefixes[min(attempt - 1, len(prefixes) - 1)]
+        """Generate encouragement based on user progress."""
+        if not self._llm_client:
+            return {"error": "LLM client not initialized"}
 
-        if mode == "hint" and missing:
+        client = create_llm_client(provider) if provider else self._llm_client
+
+        messages = [
+            {"role": "system", "content": COACHING_SYSTEM},
+            {"role": "user", "content": f"Generate an encouraging message for a user who has done {progress.get('chunks_done', 0)} out of {progress.get('total_chunks', 0)} chunks with {progress.get('avg_accuracy', 0):.0%} average accuracy and {progress.get('avg_wpm', 0)} WPM."}
+        ]
+
+        try:
+            result = await client.chat(messages, temperature=0.3, max_tokens=256)
             return {
-                "strategy":        "hint",
-                "tts_text":        f"Remember: {', '.join(missing[:3])}",
-                "display_text":    f"Missed: {', '.join(missing[:3])}",
-                "missed_concepts": missing,
-                "encouragement":   "You're getting there!",
-                "auto_skip":       False,
-                "processing_ms":   elapsed,
+                "encouragement": result["content"],
+                "provider": provider or settings.default_provider,
             }
-        return {
-            "strategy":        "full",
-            "tts_text":        prefix + expected,
-            "display_text":    f"Attempt {attempt}: {prefix.lower()}{expected}",
-            "missed_concepts": missing,
-            "encouragement":   "Almost there!",
-            "auto_skip":       False,
-            "processing_ms":   elapsed,
-        }
+        except Exception as e:
+            return {"error": str(e)}
 
-    async def shutdown(self):
-        if self._client:
-            await self._client.aclose()
-        log.info("CoachingAgent shut down")
+    async def generate_session_insights(
+        self,
+        session_data: dict,
+        provider: str = None,
+    ) -> dict:
+        """Generate AI-powered insights from a session."""
+        if not self._llm_client:
+            return {"error": "LLM client not initialized"}
+
+        client = create_llm_client(provider) if provider else self._llm_client
+
+        # Summarize session
+        total_chunks = session_data.get("stats", {}).get("total_chunks", 0)
+        avg_accuracy = session_data.get("stats", {}).get("avg_accuracy", 0)
+        avg_wpm = session_data.get("stats", {}).get("avg_wpm", 0)
+        weak_words = session_data.get("weak_words", [])
+
+        messages = [
+            {"role": "system", "content": "You are a speech coaching expert."},
+            {"role": "user", "content": f"Provide insights from a speech practice session with {total_chunks} chunks, {avg_accuracy:.0%} average accuracy, {avg_wpm} WPM. Problem words: {', '.join(weak_words[:10]) if weak_words else 'none'}."}
+        ]
+
+        try:
+            result = await client.chat(messages, temperature=0.15, max_tokens=512)
+            return {
+                "insights": result["content"],
+                "provider": provider or settings.default_provider,
+            }
+        except Exception as e:
+            return {"error": str(e)}

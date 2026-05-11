@@ -1,9 +1,9 @@
 """
 RasoSpeak v2 — Q&A Agent
-Multi-provider AI question answering with streaming TTS output.
+Multi-provider AI question answering with streaming support.
 
-Supports: OpenAI GPT, Anthropic Claude, Google Gemini, xAI Grok
-Streams answers to user's earpiece in real-time.
+No GPU required - uses external APIs:
+Google Gemini, NVIDIA NIM, OpenAI, Anthropic, HuggingFace, OpenRouter, OpenCode, xAI, DeepSeek
 """
 
 import asyncio
@@ -12,29 +12,19 @@ import logging
 import time
 from typing import AsyncIterator, Optional
 
-import httpx
-
 from .base_agent import BaseAgent
+from .llm_client import create_llm_client, LLMClient, LLMProvider
 from config.settings import settings
 
 log = logging.getLogger("rasospeak.qa")
-
-
-class QAProvider(str):
-    """Supported AI providers for Q&A."""
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    GOOGLE = "google"
-    XAI = "xai"
-    QWEN_LOCAL = "qwen_local"
 
 
 class QAAgent(BaseAgent):
     """
     Agent for real-time question answering via external AI APIs.
 
-    Connects to multiple AI providers and streams responses
-    directly to the user's earpiece via TTS.
+    Uses unified LLM client supporting multiple providers with streaming.
+    No GPU required - works on 4GB RAM.
 
     Uses SharedMemoryAgent to:
     - Remember conversation history
@@ -46,57 +36,33 @@ class QAAgent(BaseAgent):
     name = "QAAgent"
 
     def __init__(self):
-        self._clients: dict[str, httpx.AsyncClient] = {}
-        self._default_provider = settings.QA_DEFAULT_PROVIDER
+        self._llm_client: Optional[LLMClient] = None
+        self._default_provider = settings.default_provider
         self._shared_memory = None
 
     async def initialize(self):
-        """Initialize HTTP clients for each provider."""
+        """Initialize LLM client."""
         log.info(f"Initializing QAAgent with provider: {self._default_provider}")
+        self._llm_client = create_llm_client(self._default_provider)
 
-        # Initialize clients based on available API keys
-        if settings.OPENAI_API_KEY:
-            self._clients[QAProvider.OPENAI] = httpx.AsyncClient(
-                base_url="https://api.openai.com/v1",
-                headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
-                timeout=60.0,
-            )
-            log.info("✅ OpenAI client initialized")
+        # Log available providers
+        available = []
+        for provider in ["google", "nvidia", "openai", "anthropic", "huggingface", "openrouter", "opencode", "xai", "deepseek"]:
+            config = settings.get_provider_config(provider)
+            if config.get("api_key"):
+                available.append(provider)
 
-        if settings.ANTHROPIC_API_KEY:
-            self._clients[QAProvider.ANTHROPIC] = httpx.AsyncClient(
-                base_url="https://api.anthropic.com/v1",
-                headers={
-                    "x-api-key": settings.ANTHROPIC_API_KEY,
-                    "anthropic-version": "2023-06-01",
-                },
-                timeout=60.0,
-            )
-            log.info("✅ Anthropic client initialized")
+        log.info(f"✅ QAAgent ready (API mode, no GPU)")
+        log.info(f"   Available providers: {available}")
 
-        if settings.GOOGLE_API_KEY:
-            self._clients[QAProvider.GOOGLE] = httpx.AsyncClient(
-                base_url="https://generativelanguage.googleapis.com/v1beta",
-                headers={"Authorization": f"Bearer {settings.GOOGLE_API_KEY}"},
-                timeout=60.0,
-            )
-            log.info("✅ Google Gemini client initialized")
+    async def cleanup(self):
+        """Cleanup resources."""
+        if self._llm_client:
+            await self._llm_client.close()
 
-        if settings.XAI_API_KEY:
-            self._clients[QAProvider.XAI] = httpx.AsyncClient(
-                base_url="https://api.x.ai/v1",
-                headers={"Authorization": f"Bearer {settings.XAI_API_KEY}"},
-                timeout=60.0,
-            )
-            log.info("✅ xAI Grok client initialized")
-
-        # Always available: local Qwen via vLLM
-        if settings.VLLM_BASE_URL:
-            self._clients[QAProvider.QWEN_LOCAL] = httpx.AsyncClient(
-                base_url=settings.VLLM_BASE_URL,
-                timeout=60.0,
-            )
-            log.info("✅ Local Qwen via vLLM initialized")
+    def set_shared_memory(self, shared_memory):
+        """Connect to shared memory for context."""
+        self._shared_memory = shared_memory
 
     async def ask(
         self,
@@ -107,229 +73,109 @@ class QAAgent(BaseAgent):
         session_id: str = None,
     ) -> dict:
         """
-        Answer a question using the specified AI provider.
+        Ask a question to AI.
 
         Args:
-            question: The user's question
-            provider: Which AI to use (openai/anthropic/google/xai/qwen_local)
-            context: Optional context (script content, previous conversation)
-            stream_to_earpiece: Whether to stream TTS to earpiece
-            session_id: Session ID for conversation history
+            question: The question to ask
+            provider: Override default provider (google, nvidia, openai, anthropic, etc.)
+            context: Additional context to include
+            stream_to_earpiece: For future streaming support
+            session_id: For memory context
 
         Returns:
-            QAResult with answer, sources, metadata
+            {"answer": "...", "provider": "...", "processing_ms": ...}
         """
-        provider = provider or self._default_provider
         t_start = time.perf_counter()
 
-        log.info(f"QAAgent processing: provider={provider}, question={question[:50]}...")
+        if not self._llm_client:
+            return {"error": "LLM client not initialized"}
 
-        # Get context from shared memory for personalized responses
-        shared_context = ""
-        if self._shared_memory:
+        # Use specified provider or default
+        client = create_llm_client(provider) if provider else self._llm_client
+
+        # Build messages with context
+        messages = [{"role": "system", "content": "You are RasoSpeak, a helpful AI assistant with perfect memory. Be concise and friendly."}]
+
+        # Add memory context if available
+        if self._shared_memory and session_id:
             try:
-                shared_context = await self._shared_memory.get_context_for_ai(
-                    ai_name=provider,
-                    include_recent=3
-                )
+                memory_context = await self._shared_memory.get_context_for_ai("qa")
+                if memory_context:
+                    messages.append({"role": "system", "content": f"User context: {memory_context}"})
             except Exception as e:
-                log.warning(f"Failed to get shared context: {e}")
+                log.warning(f"Failed to get memory context: {e}")
 
-        # Combine all context
-        full_context = shared_context
+        # Add provided context
         if context:
-            full_context += f"\n\nScript context: {context}" if full_context else context
+            messages.append({"role": "system", "content": f"Additional context: {context}"})
+
+        messages.append({"role": "user", "content": question})
 
         try:
-            if provider == QAProvider.OPENAI:
-                result = await self._call_openai(question, full_context)
-            elif provider == QAProvider.ANTHROPIC:
-                result = await self._call_anthropic(question, full_context)
-            elif provider == QAProvider.GOOGLE:
-                result = await self._call_google(question, full_context)
-            elif provider == QAProvider.XAI:
-                result = await self._call_xai(question, full_context)
-            elif provider == QAProvider.QWEN_LOCAL:
-                result = await self._call_qwen_local(question, full_context)
-            else:
-                result = await self._call_qwen_local(question, full_context)
-
+            result = await client.chat(messages, temperature=0.15, max_tokens=4096)
             elapsed_ms = int((time.perf_counter() - t_start) * 1000)
 
-            # Save conversation to shared memory for future reference
-            if self._shared_memory:
-                try:
-                    await self._shared_memory.add_conversation(
-                        user_input=question,
-                        ai_response=result["answer"],
-                        ai_provider=provider,
-                        context=context,
-                    )
-                except Exception as e:
-                    log.warning(f"Failed to save conversation to shared memory: {e}")
-
             return {
-                **result,
-                "provider": provider,
-                "stream_enabled": stream_to_earpiece,
+                "answer": result["content"],
+                "provider": provider or self._default_provider,
+                "finish_reason": result.get("finish_reason", "stop"),
                 "processing_ms": elapsed_ms,
             }
-
         except Exception as e:
-            log.error(f"QAAgent error: {e}")
-            elapsed_ms = int((time.perf_counter() - t_start) * 1000)
-            return {
-                "answer": f"I encountered an error: {str(e)}",
-                "provider": provider,
-                "error": str(e),
-                "processing_ms": elapsed_ms,
-            }
+            log.error(f"QA request failed: {e}")
+            return {"error": str(e)}
 
-    async def _call_openai(self, question: str, context: str = None) -> dict:
-        """Call OpenAI GPT API."""
-        client = self._clients.get(QAProvider.OPENAI)
-        if not client:
-            raise RuntimeError("OpenAI not configured")
+    async def ask_streaming(
+        self,
+        question: str,
+        provider: str = None,
+        context: str = None,
+    ) -> AsyncIterator[str]:
+        """
+        Ask a question and stream the response.
 
-        messages = []
+        Yields response chunks in real-time for TTS output.
+        """
+        if not self._llm_client:
+            yield "Error: LLM client not initialized"
+            return
+
+        client = create_llm_client(provider) if provider else self._llm_client
+
+        messages = [{"role": "system", "content": "You are RasoSpeak, a helpful AI assistant."}]
         if context:
             messages.append({"role": "system", "content": f"Context: {context}"})
         messages.append({"role": "user", "content": question})
 
-        resp = await client.post(
-            "/chat/completions",
-            json={
-                "model": settings.OPENAI_MODEL or "gpt-4o",
-                "messages": messages,
-                "temperature": 0.7,
-                "stream": False,
-            }
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        try:
+            async for chunk in client.chat(messages, temperature=0.15, max_tokens=4096, stream=True):
+                yield chunk
+        except Exception as e:
+            yield f"Error: {str(e)}"
+
+    async def get_available_providers(self) -> dict:
+        """Get list of available providers based on configured API keys."""
+        available = []
+        for provider in ["google", "nvidia", "openai", "anthropic", "huggingface", "openrouter", "opencode", "xai", "deepseek"]:
+            config = settings.get_provider_config(provider)
+            if config.get("api_key"):
+                available.append(provider)
 
         return {
-            "answer": data["choices"][0]["message"]["content"],
-            "model": data["model"],
-            "input_tokens": data.get("usage", {}).get("prompt_tokens"),
-            "output_tokens": data.get("usage", {}).get("completion_tokens"),
+            "available": available,
+            "default": self._default_provider,
         }
 
-    async def _call_anthropic(self, question: str, context: str = None) -> dict:
-        """Call Anthropic Claude API."""
-        client = self._clients.get(QAProvider.ANTHROPIC)
-        if not client:
-            raise RuntimeError("Anthropic not configured")
+    async def switch_provider(self, provider: str) -> dict:
+        """Switch to a different provider."""
+        if provider not in ["google", "nvidia", "openai", "anthropic", "huggingface", "openrouter", "opencode", "xai", "deepseek"]:
+            return {"error": f"Unknown provider: {provider}"}
 
-        system = f"You are a helpful voice assistant. Keep responses concise for text-to-speech." if not context else f"Context: {context}\n\nYou are a helpful voice assistant."
-
-        resp = await client.post(
-            "/messages",
-            json={
-                "model": settings.ANTHROPIC_MODEL or "claude-sonnet-4-20250514",
-                "max_tokens": 1024,
-                "system": system,
-                "messages": [{"role": "user", "content": question}],
-            }
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        self._default_provider = provider
+        self._llm_client = create_llm_client(provider)
+        log.info(f"Switched to provider: {provider}")
 
         return {
-            "answer": data["content"][0]["text"],
-            "model": data["model"],
-            "input_tokens": data.get("usage", {}).get("input_tokens"),
-            "output_tokens": data.get("usage", {}).get("output_tokens"),
+            "provider": provider,
+            "message": f"Switched to {provider}"
         }
-
-    async def _call_google(self, question: str, context: str = None) -> dict:
-        """Call Google Gemini API."""
-        client = self._clients.get(QAProvider.GOOGLE)
-        if not client:
-            raise RuntimeError("Google not configured")
-
-        contents = [{"role": "user", "parts": [{"text": question}]}]
-        if context:
-            contents.insert(0, {"role": "system", "parts": [{"text": f"Context: {context}"}]})
-
-        model_name = settings.GOOGLE_MODEL or "gemini-2.0-flash"
-        resp = await client.post(
-            f"/models/{model_name}:generateContent",
-            json={"contents": contents},
-        )
-        resp.raise_for_status()
-        data = resp.json()
-
-        answer = data["candidates"][0]["content"]["parts"][0]["text"]
-        return {"answer": answer, "model": model_name}
-
-    async def _call_xai(self, question: str, context: str = None) -> dict:
-        """Call xAI Grok API."""
-        client = self._clients.get(QAProvider.XAI)
-        if not client:
-            raise RuntimeError("xAI not configured")
-
-        messages = []
-        if context:
-            messages.append({"role": "system", "content": f"Context: {context}"})
-        messages.append({"role": "user", "content": question})
-
-        resp = await client.post(
-            "/chat/completions",
-            json={
-                "model": settings.XAI_MODEL or "grok-2-1212",
-                "messages": messages,
-                "temperature": 0.7,
-            }
-        )
-        resp.raise_for_status()
-        data = resp.json()
-
-        return {
-            "answer": data["choices"][0]["message"]["content"],
-            "model": data["model"],
-        }
-
-    async def _call_qwen_local(self, question: str, context: str = None) -> dict:
-        """Call local Qwen via vLLM."""
-        client = self._clients.get(QAProvider.QWEN_LOCAL)
-        if not client:
-            raise RuntimeError("Local Qwen not configured")
-
-        system_prompt = "You are a helpful voice assistant. Keep responses concise for text-to-speech output."
-        if context:
-            system_prompt += f"\n\nContext from document: {context}"
-
-        resp = await client.post(
-            "/chat/completions",
-            json={
-                "model": settings.QA_MODEL or "Qwen/Qwen2.5-7B-Instruct",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": question},
-                ],
-                "temperature": 0.7,
-                "max_tokens": 1024,
-            }
-        )
-        resp.raise_for_status()
-        data = resp.json()
-
-        return {
-            "answer": data["choices"][0]["message"]["content"],
-            "model": "qwen-local",
-        }
-
-    def set_shared_memory(self, shared_memory):
-        """Connect to shared memory for context-aware responses."""
-        self._shared_memory = shared_memory
-        log.info("QAAgent connected to SharedMemoryAgent")
-
-    def set_memory_agent(self, memory_agent):
-        """Legacy method - now uses shared_memory instead."""
-        pass  # Deprecated, use set_shared_memory
-
-    async def shutdown(self):
-        for client in self._clients.values():
-            await client.aclose()
-        log.info("QAAgent shut down")

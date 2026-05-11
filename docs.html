@@ -38,7 +38,13 @@
 </nav>
 
 <!-- Main Content -->
-<main class="max-w-3xl mx-auto px-6 py-8">
+<main class="max-w-4xl mx-auto px-6 py-8">
+
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold mb-2">Knowledge Base</h1>
+    <p class="text-gray-600">Import documents, URLs, and notes to expand your AI's knowledge</p>
+  </div>
 
   <!-- Import URL -->
   <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
@@ -46,11 +52,11 @@
     <div class="flex gap-3">
       <input type="text" id="doc-url" placeholder="Paste URL to import (article, blog, etc.)"
         class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
-      <button onclick="importUrl()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
+      <button onclick="importUrl()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors">
         Import
       </button>
     </div>
-    <p class="text-xs text-gray-400 mt-2">Raso will fetch the content and add it to your memory</p>
+    <p id="url-status" class="text-xs text-gray-400 mt-2"></p>
   </div>
 
   <!-- Import Text -->
@@ -59,6 +65,7 @@
     <textarea id="doc-text" placeholder="Paste text, notes, or any content to add to your memory..."
       class="w-full h-32 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
     <div class="flex gap-3">
+      <input type="text" id="doc-title" placeholder="Title (optional)" class="flex-1 px-3 py-2 border border-gray-200 rounded-lg">
       <select id="doc-category" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
         <option value="note">Note</option>
         <option value="article">Article</option>
@@ -66,7 +73,7 @@
         <option value="research">Research</option>
         <option value="other">Other</option>
       </select>
-      <button onclick="importText()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
+      <button onclick="importText()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors">
         Add to Memory
       </button>
     </div>
@@ -75,12 +82,23 @@
   <!-- Upload File -->
   <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
     <h2 class="text-lg font-semibold mb-4">Upload Document</h2>
-    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-      <input type="file" id="doc-upload" accept=".pdf,.txt,.md,.doc,.docx" class="hidden" onchange="uploadDocument(this)">
-      <button onclick="document.getElementById('doc-upload').click()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">
-        Choose File
-      </button>
-      <p class="text-sm text-gray-500 mt-3">Supports PDF, TXT, MD, DOC, DOCX</p>
+    <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors cursor-pointer" onclick="document.getElementById('doc-upload').click()">
+      <input type="file" id="doc-upload" accept=".pdf,.txt,.md,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
+      <div class="text-gray-400 mb-2">
+        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+      </div>
+      <p class="text-gray-600 font-medium">Click to upload or drag and drop</p>
+      <p class="text-sm text-gray-400 mt-1">PDF, TXT, MD, DOC, DOCX</p>
+    </div>
+    <div id="upload-progress" class="hidden mt-4">
+      <div class="flex items-center gap-3">
+        <div class="flex-1 bg-gray-200 rounded-full h-2">
+          <div id="progress-bar" class="bg-emerald-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+        </div>
+        <span id="progress-text" class="text-sm text-gray-500">0%</span>
+      </div>
     </div>
   </div>
 
@@ -88,12 +106,24 @@
   <div class="bg-white rounded-lg border border-gray-200 p-6">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold">Your Documents</h2>
-      <button onclick="loadDocuments()" class="text-sm text-emerald-600 hover:text-emerald-700">Refresh</button>
+      <div class="flex items-center gap-2">
+        <input type="text" id="doc-search" placeholder="Search documents..."
+          class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <button onclick="searchDocuments()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Search</button>
+        <button onclick="loadDocuments()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Refresh</button>
+      </div>
     </div>
     <div id="docs-list" class="space-y-3">
       <div class="text-center text-gray-400 py-8">
         <p>No documents yet</p>
         <p class="text-sm mt-1">Import URLs, text, or upload files above</p>
+      </div>
+    </div>
+    <div id="docs-pagination" class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+      <p id="docs-count" class="text-sm text-gray-500"></p>
+      <div class="flex gap-2">
+        <button id="prev-page" onclick="prevPage()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200 disabled:opacity-50" disabled>Previous</button>
+        <button id="next-page" onclick="nextPage()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200 disabled:opacity-50" disabled>Next</button>
       </div>
     </div>
   </div>
@@ -111,24 +141,281 @@
 <script src="app.js"></script>
 
 <script>
-function toast(msg) {
+let currentPage = 1;
+let totalDocs = 0;
+const pageSize = 10;
+
+// Toast notification
+function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
   setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
 }
 
-function uploadDocument(input) {
-  const file = input.files?.[0];
-  if (!file) return;
-  toast('Uploading ' + file.name + '...');
-  // File upload implementation
-  setTimeout(() => {
-    toast('Document uploaded');
-    loadDocuments();
-  }, 1000);
+// Import URL
+async function importUrl() {
+  const url = document.getElementById('doc-url').value.trim();
+  const status = document.getElementById('url-status');
+
+  if (!url) {
+    showToast('Please enter a URL');
+    return;
+  }
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    showToast('Please enter a valid URL starting with http:// or https://');
+    return;
+  }
+
+  status.textContent = 'Importing...';
+
+  try {
+    const resp = await fetch('/documents/url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+
+    const data = await resp.json();
+
+    if (resp.ok) {
+      status.textContent = `Imported: ${data.title || 'Document'}`;
+      showToast(`Imported: ${data.title || 'Document'}`);
+      document.getElementById('doc-url').value = '';
+      loadDocuments();
+    } else {
+      status.textContent = 'Failed to import URL';
+      showToast(data.error || 'Failed to import URL');
+    }
+  } catch (err) {
+    status.textContent = 'Error importing URL';
+    showToast('Error importing URL');
+    console.error(err);
+  }
 }
 
+// Import Text
+async function importText() {
+  const text = document.getElementById('doc-text').value.trim();
+  const title = document.getElementById('doc-title').value.trim() || 'Untitled Note';
+  const category = document.getElementById('doc-category').value;
+
+  if (!text) {
+    showToast('Please enter some text');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/documents/text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: text,
+        title,
+        category,
+        tags: []
+      })
+    });
+
+    if (resp.ok) {
+      showToast(`Added: ${title}`);
+      document.getElementById('doc-text').value = '';
+      document.getElementById('doc-title').value = '';
+      loadDocuments();
+    } else {
+      showToast('Failed to add note');
+    }
+  } catch (err) {
+    showToast('Error adding note');
+    console.error(err);
+  }
+}
+
+// Handle File Upload
+async function handleFileUpload(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const progress = document.getElementById('upload-progress');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+
+  progress.classList.remove('hidden');
+  progressBar.style.width = '0%';
+  progressText.textContent = '0%';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', file.name.replace(/\.[^/.]+$/, ''));
+    formData.append('category', 'document');
+
+    // Simulate progress
+    let prog = 0;
+    const interval = setInterval(() => {
+      prog = Math.min(prog + 10, 90);
+      progressBar.style.width = `${prog}%`;
+      progressText.textContent = `${prog}%`;
+    }, 100);
+
+    const resp = await fetch('/documents/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    clearInterval(interval);
+    progressBar.style.width = '100%';
+    progressText.textContent = '100%';
+
+    if (resp.ok) {
+      const data = await resp.json();
+      showToast(`Uploaded: ${data.title || file.name}`);
+      loadDocuments();
+    } else {
+      showToast('Failed to upload file');
+    }
+  } catch (err) {
+    showToast('Error uploading file');
+    console.error(err);
+  }
+
+  setTimeout(() => {
+    progress.classList.add('hidden');
+  }, 2000);
+}
+
+// Load Documents
+async function loadDocuments(page = 1) {
+  const container = document.getElementById('docs-list');
+  container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Loading documents...</p></div>';
+
+  try {
+    const resp = await fetch('/documents');
+    const data = await resp.json();
+
+    const docs = data.documents || [];
+    totalDocs = docs.length;
+    currentPage = page;
+
+    if (docs.length === 0) {
+      container.innerHTML = `
+        <div class="text-center text-gray-400 py-8">
+          <p>No documents yet</p>
+          <p class="text-sm mt-1">Import URLs, text, or upload files above</p>
+        </div>
+      `;
+      document.getElementById('docs-count').textContent = '0 documents';
+      return;
+    }
+
+    // Paginate
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const pageDocs = docs.slice(start, end);
+
+    container.innerHTML = pageDocs.map(doc => `
+      <div class="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+        <div class="flex-1">
+          <h3 class="font-medium text-gray-900">${doc.title || 'Untitled'}</h3>
+          <p class="text-sm text-gray-500 mt-1 line-clamp-2">${doc.content || doc.snippet || ''}</p>
+          <div class="flex items-center gap-2 mt-2">
+            <span class="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">${doc.category || 'other'}</span>
+            ${doc.created_at ? `<span class="text-xs text-gray-400">${new Date(doc.created_at).toLocaleDateString()}</span>` : ''}
+          </div>
+        </div>
+        <div class="flex items-center gap-2 ml-4">
+          <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    // Update pagination
+    document.getElementById('docs-count').textContent = `${totalDocs} documents`;
+    document.getElementById('prev-page').disabled = page <= 1;
+    document.getElementById('next-page').disabled = end >= totalDocs;
+
+  } catch (err) {
+    container.innerHTML = '<div class="text-center text-red-400 py-8"><p>Failed to load documents</p></div>';
+    console.error(err);
+  }
+}
+
+// Search Documents
+async function searchDocuments() {
+  const query = document.getElementById('doc-search').value.trim();
+  const container = document.getElementById('docs-list');
+
+  if (!query) {
+    loadDocuments();
+    return;
+  }
+
+  container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
+
+  try {
+    const resp = await fetch(`/documents/search?query=${encodeURIComponent(query)}`);
+    const data = await resp.json();
+
+    const results = data.results || [];
+
+    if (results.length === 0) {
+      container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>No matches found</p></div>';
+      return;
+    }
+
+    container.innerHTML = results.map(doc => `
+      <div class="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+        <div class="flex-1">
+          <h3 class="font-medium text-gray-900">${doc.title || 'Untitled'}</h3>
+          <p class="text-sm text-gray-500 mt-1 line-clamp-2">${doc.snippet || doc.content || ''}</p>
+        </div>
+        <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </div>
+    `).join('');
+
+    document.getElementById('docs-count').textContent = `${results.length} results`;
+
+  } catch (err) {
+    container.innerHTML = '<div class="text-center text-red-400 py-8"><p>Search failed</p></div>';
+    console.error(err);
+  }
+}
+
+// Delete Document
+async function deleteDocument(docId) {
+  if (!confirm('Delete this document?')) return;
+
+  try {
+    const resp = await fetch(`/documents/${docId}`, { method: 'DELETE' });
+    if (resp.ok) {
+      showToast('Document deleted');
+      loadDocuments(currentPage);
+    }
+  } catch (err) {
+    showToast('Failed to delete');
+    console.error(err);
+  }
+}
+
+// Pagination
+function prevPage() {
+  if (currentPage > 1) loadDocuments(currentPage - 1);
+}
+
+function nextPage() {
+  if ((currentPage * pageSize) < totalDocs) loadDocuments(currentPage + 1);
+}
+
+// Initialize
 window.addEventListener('load', () => {
   loadDocuments();
 });

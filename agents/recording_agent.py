@@ -9,6 +9,7 @@ Tracks:
 - User questions and AI responses
 """
 
+import asyncio
 import json
 import logging
 import time
@@ -43,6 +44,7 @@ class RecordingAgent(BaseAgent):
         self._storage_path = Path(settings.RECORDINGS_PATH or "./recordings")
         self._current_session: Optional[str] = None
         self._session_records: dict = {}
+        self._audio_lock = asyncio.Lock()  # Prevent race conditions in audio recording
         self._ensure_storage()
 
     def _ensure_storage(self):
@@ -117,39 +119,40 @@ class RecordingAgent(BaseAgent):
         Returns:
             RecordingResult with file info
         """
-        t_start = time.perf_counter()
-        record = self._session_records.get(session_id)
+        async with self._audio_lock:  # Prevent race conditions
+            t_start = time.perf_counter()
+            record = self._session_records.get(session_id)
 
-        if not record:
-            return {"error": "Session not recording"}
+            if not record:
+                return {"error": "Session not recording"}
 
-        # Save audio file
-        filename = f"{session_id}_{audio_type}_{int(time.time())}.wav"
-        filepath = self._storage_path / "audio" / filename
+            # Save audio file
+            filename = f"{session_id}_{audio_type}_{int(time.time())}.wav"
+            filepath = self._storage_path / "audio" / filename
 
-        try:
-            import base64
-            audio_bytes = base64.b64decode(audio_b64)
-            filepath.write_bytes(audio_bytes)
+            try:
+                import base64
+                audio_bytes = base64.b64decode(audio_b64)
+                filepath.write_bytes(audio_bytes)
 
-            record["audio_files"].append({
-                "filename": filename,
-                "type": audio_type,
-                "timestamp": datetime.utcnow().isoformat(),
-                "size_bytes": len(audio_bytes),
-                "metadata": metadata or {},
-            })
+                record["audio_files"].append({
+                    "filename": filename,
+                    "type": audio_type,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "size_bytes": len(audio_bytes),
+                    "metadata": metadata or {},
+                })
 
-            elapsed_ms = int((time.perf_counter() - t_start) * 1000)
-            return {
-                "recorded": True,
-                "filename": filename,
-                "size_bytes": len(audio_bytes),
-                "processing_ms": elapsed_ms,
-            }
-        except Exception as e:
-            log.error(f"Failed to record audio: {e}")
-            return {"error": str(e)}
+                elapsed_ms = int((time.perf_counter() - t_start) * 1000)
+                return {
+                    "recorded": True,
+                    "filename": filename,
+                    "size_bytes": len(audio_bytes),
+                    "processing_ms": elapsed_ms,
+                }
+            except Exception as e:
+                log.error(f"Failed to record audio: {e}")
+                return {"error": str(e)}
 
     async def record_qa_interaction(
         self,

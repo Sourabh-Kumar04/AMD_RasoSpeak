@@ -252,6 +252,27 @@ class SessionMemoryAgent(BaseAgent):
         except Exception:
             return []
 
+    async def cleanup_old_sessions(self, max_age_days: int = 30) -> int:
+        """Remove sessions older than max_age_days to prevent memory leaks."""
+        import time
+        cutoff = time.time() - (max_age_days * 86400)
+        removed = 0
+
+        for session_id in list(self._sessions.keys()):
+            session = self._sessions[session_id]
+            started_at = session.get("_started_at", 0)
+            if started_at > 0 and started_at < cutoff:
+                del self._sessions[session_id]
+                removed += 1
+
+        if removed > 0:
+            log.info(f"🧹 Cleaned up {removed} old sessions (> {max_age_days} days)")
+        return removed
+
+    async def get_session_count(self) -> int:
+        """Get current session count for monitoring."""
+        return len(self._sessions)
+
     async def shutdown(self):
         if self._redis:
             await self._redis.aclose()

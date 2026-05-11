@@ -42,6 +42,12 @@ from models.schemas import (
     SessionConfig
 )
 from config.settings import settings
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_ip
+from slowapi.errors import RateLimitExceeded
+
+# ── RATE LIMITING ──────────────────────────────────────
+limiter = Limiter(key_func=get_remote_ip)
 
 # ── LOGGING ───────────────────────────────────────────
 logging.basicConfig(
@@ -57,20 +63,19 @@ agents: dict[str, Any] = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load all agents on startup, clean up on shutdown."""
-    log.info("🚀 RasoSpeak v2 starting — loading agents on GPU Accelerator...")
+    log.info("🚀 RasoSpeak v2 starting — API mode (no GPU required)...")
 
     # Agent registry with initialization logic
     agent_init_order = [
         # Core first - Shared Memory must be first!
         ("shared_memory", SharedMemoryAgent, "UNIFIED BRAIN"),
-        # Core coaching
-        ("transcription", TranscriptionAgent, "Whisper Large v3 on ROCm"),
-        ("scoring", ScoringAgent, "Qwen2.5-7B on vLLM"),
-        ("coaching", CoachingAgent, "Qwen2.5-7B on vLLM"),
-        ("segmentation", SegmentationAgent, "Qwen2.5-3B on vLLM"),
+        # Core coaching - uses external APIs
+        ("transcription", TranscriptionAgent, "Web Speech API / OpenAI Whisper"),
+        ("scoring", ScoringAgent, f"LLM API ({settings.default_provider})"),
+        ("coaching", CoachingAgent, f"LLM API ({settings.default_provider})"),
         ("memory", SessionMemoryAgent, "Session storage"),
         # Partner agents
-        ("qa", QAAgent, "OpenAI/Anthropic/Google/xAI/Qwen"),
+        ("qa", QAAgent, f"Multi-provider ({settings.default_provider})"),
         ("search", SearchAgent, "Tavily/DuckDuckGo"),
         ("recording", RecordingAgent, "Audio recording"),
         ("analytics", AnalyticsAgent, "Performance analytics"),
@@ -142,6 +147,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
+
+# Add rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Serve the frontend static files from current directory
 import os
@@ -216,21 +225,18 @@ async def logo_png():
     return Response(content=svg, media_type="image/svg+xml")
 
 
-# ── ROOT ROUTE ─────────────────────────────────────────
-@app.get("/")
-async def root():
-    return FileResponse("index.html")
-
-
 # ── REST ENDPOINTS ─────────────────────────────────────
 @app.get("/health")
 async def health():
     # Check which agents are working
     agent_status = {}
+    failed_agents = []
     for name, agent in agents.items():
         try:
-            # Try to get status from each agent
-            if hasattr(agent, 'is_listening'):
+            if agent is None:
+                agent_status[name] = "failed"
+                failed_agents.append(name)
+            elif hasattr(agent, 'is_listening'):
                 agent_status[name] = "ready" if not agent.is_listening() else "listening"
             elif hasattr(agent, 'is_continuous_mode'):
                 agent_status[name] = "ready" if not agent.is_continuous_mode() else "active"
@@ -238,24 +244,46 @@ async def health():
                 agent_status[name] = "ready"
         except Exception:
             agent_status[name] = "error"
+            failed_agents.append(name)
+
+    # Determine overall status based on failed agents
+    overall_status = "ok"
+    if failed_agents:
+        # Critical agents that must work
+        critical = ["shared_memory", "qa", "raso"]
+        critical_failures = [a for a in failed_agents if a in critical]
+        if critical_failures:
+            overall_status = "degraded"
+        else:
+            overall_status = "degraded"
 
     return {
-        "status": "ok",
+        "status": overall_status,
         "agents": agent_status,
+        "failed_agents": failed_agents,
         "total_agents": len(agents),
-        "amd_device": settings.AMD_DEVICE,
+        "mode": "api_only",
+        "gpu_required": False,
+        "default_provider": settings.default_provider,
         "models": {
-            "transcription": settings.WHISPER_MODEL,
-            "scoring":       settings.SCORING_MODEL,
-            "coaching":      settings.COACHING_MODEL,
-            "segmentation":  settings.SEGMENTATION_MODEL,
-            "qa":            settings.QA_MODEL,
+            "default": settings.GOOGLE_MODEL,
+            "nvidia": settings.NVIDIA_MODEL,
+            "openai": settings.OPENAI_MODEL,
+            "anthropic": settings.ANTHROPIC_MODEL,
+            "huggingface": settings.HF_MODEL,
+            "openrouter": settings.OPENROUTER_MODEL,
+            "opencode": settings.OPENCODE_MODEL,
         },
         "providers": {
-            "openai": bool(settings.OPENAI_API_KEY),
-            "anthropic": bool(settings.ANTHROPIC_API_KEY),
-            "google": bool(settings.GOOGLE_API_KEY),
+            "google": bool(settings.google_api_key),
+            "nvidia": bool(settings.NVIDIA_API_KEY),
+            "openai": bool(settings.openai_api_key),
+            "anthropic": bool(settings.anthropic_api_key),
+            "huggingface": bool(settings.HF_API_KEY),
+            "openrouter": bool(settings.OPENROUTER_API_KEY),
+            "opencode": bool(settings.OPENCODE_API_KEY),
             "xai": bool(settings.XAI_API_KEY),
+            "deepseek": bool(settings.DEEPSEEK_API_KEY),
         },
         "features": {
             "wake_word": True,
@@ -263,8 +291,74 @@ async def health():
             "notifications": True,
             "partner_mode": True,
             "web_search": True,
+            "streaming": True,
         }
     }
+
+
+# ══════════════════════════════════════════════════════
+# ROUTE ALIASES — Support both "partner" and "raso" prefixes
+# ══════════════════════════════════════════════════════
+
+@app.post("/partner/start")
+async def partner_start_alias(session_id: str = None):
+    """Alias for /raso/start (backward compatibility)"""
+    return await agents["raso"].start_continuous_mode(session_id)
+
+
+@app.post("/partner/stop")
+async def partner_stop_alias():
+    """Alias for /raso/stop (backward compatibility)"""
+    return await agents["raso"].stop_continuous_mode()
+
+
+@app.get("/partner/status")
+async def partner_status_alias():
+    """Alias for /raso/status (backward compatibility)"""
+    current_provider = await agents["raso"].get_current_provider()
+    prefs = await agents["shared_memory"].get_user_preferences()
+    return {
+        "continuous_mode": agents["raso"].is_continuous_mode(),
+        "current_provider": current_provider,
+        "default_provider": prefs.get("preferred_ai_provider", "qwen_local"),
+        "temporary_provider": prefs.get("temporary_ai_provider"),
+    }
+
+
+@app.post("/partner/ask")
+@limiter.limit("10/minute")
+async def partner_ask_alias(req: PartnerAskRequest):
+    """Alias for /raso/ask (backward compatibility)"""
+    return await agents["raso"].ask_partner(req.message, req.provider)
+
+
+@app.get("/partner/query")
+async def partner_query_alias(query: str):
+    """Alias for /raso/query (backward compatibility)"""
+    return await agents["raso"].query_past(query)
+
+
+@app.post("/partner/reminder")
+async def partner_reminder_alias(req: ReminderRequest):
+    """Alias for /raso/reminder (backward compatibility)"""
+    return await agents["raso"].set_reminder(req.message, req.remind_at)
+
+
+@app.get("/partner/reminders")
+async def partner_reminders_alias():
+    """Alias for /raso/reminders (backward compatibility)"""
+    return await agents["raso"].get_reminders()
+
+
+@app.post("/partner/provider")
+async def partner_provider_alias(provider: str, temporary: bool = False):
+    """Alias for /raso/provider (backward compatibility)"""
+    if temporary:
+        await agents["shared_memory"].set_user_preference("temporary_ai_provider", provider)
+    else:
+        await agents["shared_memory"].set_user_preference("preferred_ai_provider", provider)
+        await agents["shared_memory"].set_user_preference("temporary_ai_provider", None)
+    return {"provider": provider, "temporary": temporary}
 
 
 @app.post("/segment")
@@ -312,10 +406,12 @@ class QARequest(BaseModel):
 
 
 @app.post("/qa")
+@limiter.limit("10/minute")
 async def ask_question(req: QARequest, session_id: str = None):
     """
     Ask a question to AI and get answer (streams to earpiece).
     Connect to OpenAI GPT, Anthropic Claude, Google Gemini, xAI Grok, or local Qwen.
+    Rate limited: 10 requests per minute.
     """
     result = await agents["qa"].ask(
         question=req.question,
@@ -347,10 +443,12 @@ class SearchRequest(BaseModel):
 
 
 @app.post("/search")
+@limiter.limit("30/minute")
 async def web_search(req: SearchRequest):
     """
     Search the web for real-time information.
     Uses Tavily (if API key), SerpAPI, Brave Search, or DuckDuckGo (fallback).
+    Rate limited: 30 requests per minute.
     """
     result = await agents["search"].search(
         query=req.query,
@@ -484,6 +582,17 @@ async def get_memory_stats():
     return await agents["shared_memory"].get_memory_stats()
 
 
+@app.post("/memory/cleanup")
+async def cleanup_memory(max_age_days: int = 30):
+    """Clean up old sessions to prevent memory leaks."""
+    removed = await agents["memory"].cleanup_old_sessions(max_age_days)
+    session_count = await agents["memory"].get_session_count()
+    return {
+        "cleaned": removed,
+        "remaining_sessions": session_count,
+    }
+
+
 @app.get("/memory/context")
 async def get_ai_context(ai_name: str = None):
     """Get formatted context for AI prompts."""
@@ -594,10 +703,12 @@ async def set_partner_provider(provider: str, temporary: bool = False):
 
 
 @app.post("/raso/ask")
+@limiter.limit("10/minute")
 async def ask_partner(req: PartnerAskRequest):
     """
     Ask your AI partner anything.
     Uses past conversations + web search + knowledge.
+    Rate limited: 10 requests per minute.
     """
     return await agents["raso"].ask_partner(req.message, req.provider)
 

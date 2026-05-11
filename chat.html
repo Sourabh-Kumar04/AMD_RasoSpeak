@@ -13,9 +13,13 @@
     .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
     .nav-link:hover { @apply bg-gray-100; }
     .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
-    .chat-bubble { max-width: 80%; }
-    .chat-bubble.user { @apply ml-auto bg-emerald-500 text-white; }
-    .chat-bubble.raso { @apply mr-auto bg-white border border-gray-200; }
+    .chat-bubble { max-width: 85%; word-wrap: break-word; }
+    .chat-bubble.user { @apply ml-auto bg-emerald-500 text-white rounded-2xl rounded-br-sm; }
+    .chat-bubble.raso { @apply mr-auto bg-white border border-gray-200 rounded-2xl rounded-bl-sm; }
+    .chat-bubble.error { @apply mr-auto bg-red-50 border border-red-200 text-red-700; }
+    .typing-indicator span { @apply inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce; }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -51,24 +55,33 @@
       </div>
       <div>
         <h2 class="font-semibold">Raso</h2>
-        <p class="text-xs text-gray-500">Your AI companion</p>
+        <p id="raso-status" class="text-xs text-gray-500">Your AI companion</p>
       </div>
     </div>
-    <div class="flex items-center gap-2">
-      <select id="provider-select" class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white">
-        <option value="qwen">Qwen</option>
-        <option value="openai">ChatGPT</option>
-        <option value="anthropic">Claude</option>
-        <option value="gemini">Gemini</option>
+    <div class="flex items-center gap-3">
+      <select id="provider-select" class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <option value="google">Google Gemini</option>
+        <option value="nvidia">NVIDIA NIM</option>
+        <option value="openai">OpenAI GPT</option>
+        <option value="anthropic">Anthropic Claude</option>
+        <option value="openrouter">OpenRouter</option>
+        <option value="deepseek">DeepSeek</option>
       </select>
+      <button onclick="clearChat()" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">
+        Clear
+      </button>
     </div>
   </div>
 
   <!-- Chat Messages -->
-  <div id="chat-messages" class="bg-white rounded-lg border border-gray-200 p-6 mb-6 min-h-96 max-h-[60vh] overflow-y-auto space-y-4">
-    <div class="text-center text-gray-400 py-12">
-      <p class="mb-2">Raso is ready to chat!</p>
+  <div id="chat-messages" class="bg-white rounded-lg border border-gray-200 p-6 mb-6 min-h-[50vh] max-h-[60vh] overflow-y-auto space-y-4">
+    <div id="welcome-message" class="text-center text-gray-400 py-12">
+      <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <span class="text-2xl">🤝</span>
+      </div>
+      <p class="mb-2 font-medium">Raso is ready to chat!</p>
       <p class="text-sm">Try: "Hey Raso, what is machine learning?"</p>
+      <p class="text-xs mt-4 text-gray-400">Or say "Hey Raso" to activate voice control</p>
     </div>
   </div>
 
@@ -77,20 +90,35 @@
     <div class="flex gap-3">
       <input type="text" id="chat-input" placeholder="Ask Raso anything..."
         class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        onkeypress="if(event.key==='Enter')sendMessage()">
-      <button onclick="sendMessage()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
-        Send
+        onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }">
+      <button id="send-btn" onclick="sendMessage()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors flex items-center gap-2">
+        <span>Send</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
       </button>
     </div>
-    <p class="text-xs text-gray-400 mt-2">Press Enter to send, or say "Hey Raso" to activate voice</p>
+    <div class="flex items-center justify-between mt-3">
+      <p class="text-xs text-gray-400">Press Enter to send, Shift+Enter for new line</p>
+      <button id="voice-btn" onclick="toggleVoice()" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+        </svg>
+        <span>Voice</span>
+      </button>
+    </div>
   </div>
 
   <!-- Quick Actions -->
-  <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-    <button onclick="quickAsk('What can you help me with?')" class="py-2 px-3 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Help me</button>
-    <button onclick="quickAsk('Tell me a joke')" class="py-2 px-3 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Tell me a joke</button>
-    <button onclick="quickAsk('Search the web for latest AI news')" class="py-2 px-3 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">AI News</button>
-    <button onclick="quickAsk('What did I last ask you about?')" class="py-2 px-3 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Recall memory</button>
+  <div class="mt-6">
+    <p class="text-sm text-gray-500 mb-3">Quick questions:</p>
+    <div class="flex flex-wrap gap-2">
+      <button onclick="quickAsk('What can you help me with?')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Help me</button>
+      <button onclick="quickAsk('Tell me a joke')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Tell me a joke</button>
+      <button onclick="quickAsk('Search the web for latest AI news')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">AI News</button>
+      <button onclick="quickAsk('What did I last ask you about?')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Recall memory</button>
+      <button onclick="quickAsk('Summarize our conversation')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Summarize</button>
+    </div>
   </div>
 
 </main>
@@ -106,20 +134,260 @@
 <script src="app.js"></script>
 
 <script>
-function toast(msg) {
+let conversationHistory = [];
+let isTyping = false;
+let voiceEnabled = false;
+let recognition = null;
+let synthesis = window.speechSynthesis;
+
+// Toast notification
+function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
   setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
 }
 
+// Escape HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Add message to chat
+function addMessage(role, content, isError = false) {
+  const messagesContainer = document.getElementById('chat-messages');
+  const welcome = document.getElementById('welcome-message');
+  if (welcome) welcome.remove();
+
+  const messageDiv = document.createElement('div');
+  const bubbleClass = isError ? 'chat-bubble error' : `chat-bubble ${role}`;
+
+  messageDiv.innerHTML = `
+    <div class="${bubbleClass} px-4 py-3">
+      <p class="whitespace-pre-wrap">${escapeHtml(content)}</p>
+    </div>
+    <p class="text-xs text-gray-400 mt-1 ${role === 'user' ? 'text-right' : ''}">
+      ${role === 'user' ? 'You' : 'Raso'} • Just now
+    </p>
+  `;
+
+  messagesContainer.appendChild(messageDiv);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+  return messageDiv;
+}
+
+// Show typing indicator
+function showTypingIndicator() {
+  const messagesContainer = document.getElementById('chat-messages');
+  const typingDiv = document.createElement('div');
+  typingDiv.id = 'typing-indicator';
+  typingDiv.innerHTML = `
+    <div class="chat-bubble raso px-4 py-3">
+      <div class="typing-indicator flex gap-1">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  `;
+  messagesContainer.appendChild(typingDiv);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Remove typing indicator
+function removeTypingIndicator() {
+  const indicator = document.getElementById('typing-indicator');
+  if (indicator) indicator.remove();
+}
+
+// Send message
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+
+  if (!message) return;
+  if (isTyping) return;
+
+  // Add user message
+  addMessage('user', message);
+  input.value = '';
+
+  // Add to history
+  conversationHistory.push({ role: 'user', content: message });
+
+  // Show typing
+  isTyping = true;
+  showTypingIndicator();
+
+  // Get provider
+  const provider = document.getElementById('provider-select').value;
+
+  try {
+    const resp = await fetch('/raso/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        provider
+      })
+    });
+
+    removeTypingIndicator();
+
+    if (resp.ok) {
+      const data = await resp.json();
+      const answer = data.answer || data.response || 'I apologize, but I could not generate a response.';
+
+      // Add assistant message
+      addMessage('raso', answer);
+      conversationHistory.push({ role: 'assistant', content: answer });
+
+      // Save to memory
+      await saveToMemory(message, answer);
+    } else {
+      const error = await resp.json().catch(() => ({ error: 'Request failed' }));
+      addMessage('raso', error.error || 'Sorry, something went wrong.', true);
+    }
+  } catch (err) {
+    removeTypingIndicator();
+    addMessage('raso', 'Connection error. Please check your API settings.', true);
+    console.error('Chat error:', err);
+  }
+
+  isTyping = false;
+}
+
+// Quick ask
 function quickAsk(question) {
   document.getElementById('chat-input').value = question;
   sendMessage();
 }
 
-// Override sendMessage to use chat page styling
-const originalSendMessage = window.sendMessage;
+// Save to memory
+async function saveToMemory(userMsg, rasoMsg) {
+  try {
+    await fetch('/memory/store', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key: `chat_${Date.now()}`,
+        value: { user: userMsg, raso: rasoMsg, timestamp: new Date().toISOString() },
+        category: 'conversation'
+      })
+    });
+  } catch (err) {
+    console.error('Failed to save to memory:', err);
+  }
+}
+
+// Clear chat
+function clearChat() {
+  if (!confirm('Clear all messages?')) return;
+
+  conversationHistory = [];
+  const messagesContainer = document.getElementById('chat-messages');
+  messagesContainer.innerHTML = `
+    <div id="welcome-message" class="text-center text-gray-400 py-12">
+      <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <span class="text-2xl">🤝</span>
+      </div>
+      <p class="mb-2 font-medium">Raso is ready to chat!</p>
+      <p class="text-sm">Try: "Hey Raso, what is machine learning?"</p>
+    </div>
+  `;
+  showToast('Chat cleared');
+}
+
+// Toggle voice input
+function toggleVoice() {
+  voiceEnabled = !voiceEnabled;
+  const btn = document.getElementById('voice-btn');
+
+  if (voiceEnabled) {
+    btn.classList.add('bg-emerald-500', 'text-white');
+    btn.classList.remove('bg-gray-100');
+    startVoiceRecognition();
+    showToast('Voice enabled - speak now');
+  } else {
+    btn.classList.remove('bg-emerald-500', 'text-white');
+    btn.classList.add('bg-gray-100');
+    stopVoiceRecognition();
+    showToast('Voice disabled');
+  }
+}
+
+// Start voice recognition
+function startVoiceRecognition() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Voice recognition not supported');
+    voiceEnabled = false;
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results)
+      .map(result => result[0].transcript)
+      .join('');
+
+    document.getElementById('chat-input').value = transcript;
+
+    if (event.results[0].isFinal) {
+      sendMessage();
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Voice error:', event.error);
+    if (event.error !== 'no-speech') {
+      showToast(`Voice error: ${event.error}`);
+    }
+  };
+
+  recognition.onend = () => {
+    if (voiceEnabled) {
+      // Restart if still enabled
+      recognition.start();
+    }
+  };
+
+  recognition.start();
+}
+
+// Stop voice recognition
+function stopVoiceRecognition() {
+  if (recognition) {
+    recognition.stop();
+    recognition = null;
+  }
+}
+
+// Initialize
+window.addEventListener('load', async () => {
+  // Check available providers
+  try {
+    const resp = await fetch('/qa/providers');
+    if (resp.ok) {
+      const data = await resp.json();
+      const providers = data.available || [];
+
+      if (providers.length > 0) {
+        document.getElementById('provider-select').innerHTML = providers.map(p =>
+          `<option value="${p}">${p.charAt(0).toUpperCase() + p.slice(1)}</option>`
+        ).join('');
+      }
+    }
+  } catch (err) {
+    console.log('Using default providers');
+  }
+});
 </script>
 
 </body>

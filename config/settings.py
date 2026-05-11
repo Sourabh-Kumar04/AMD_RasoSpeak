@@ -1,158 +1,225 @@
 """
 RasoSpeak v2 — Configuration
-AMD Developer Cloud endpoints, model names, ROCm settings.
+
+No GPU required - runs on 4GB RAM using external APIs.
+Supports: Google Gemini, NVIDIA NIM, OpenAI, Anthropic,
+HuggingFace, OpenRouter, OpenCode, xAI, DeepSeek.
 """
 
 import os
+from typing import Optional
+
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    """Application configuration loaded from environment variables.
 
-    # ── AMD HARDWARE ───────────────────────────────────
-    AMD_DEVICE:    str = "cuda"   # ROCm exposes as "cuda" to PyTorch
-    AMD_GPU_ID:    int = 0
-    ROCM_VERSION:  str = "6.1"
+    All settings can be overridden via .env file or environment variables.
+    Sensitive values (API keys) should be set via environment.
 
-    # ── vLLM SERVER (running on AMD MI300X) ───────────
-    VLLM_HOST:     str = os.getenv("VLLM_HOST", "localhost")
-    VLLM_PORT:     int = int(os.getenv("VLLM_PORT", "8001"))
+    Attributes:
+        default_provider: Primary LLM provider to use.
+        google_api_key: Google AI API key for Gemini.
+        openai_api_key: OpenAI API key for GPT models.
+        anthropic_api_key: Anthropic API key for Claude.
+        etc.
+    """
 
-    @property
-    def VLLM_BASE_URL(self) -> str:
-        return f"http://{self.VLLM_HOST}:{self.VLLM_PORT}/v1"
+    # ── DEFAULT LLM PROVIDER ─────────────────────────────
+    default_provider: str = os.getenv("DEFAULT_PROVIDER", "google")
 
-    # ── MODEL NAMES ────────────────────────────────────
-    WHISPER_MODEL:      str = "large-v3"           # Whisper on ROCm
-    SCORING_MODEL:      str = "Qwen/Qwen2.5-7B-Instruct"
-    COACHING_MODEL:     str = "Qwen/Qwen2.5-7B-Instruct"
-    SEGMENTATION_MODEL: str = "Qwen/Qwen2.5-3B-Instruct"   # smaller, faster
+    # ── GOOGLE GEMINI ───────────────────────────────────
+    google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
+    google_model: str = os.getenv("GOOGLE_MODEL", "gemini-2.0-flash-exp")
+    google_max_tokens: int = 8192
+    google_temperature: float = 0.15
 
-    # ── INFERENCE PARAMS ───────────────────────────────
-    SCORING_MAX_TOKENS:      int   = 512
-    COACHING_MAX_TOKENS:     int   = 768
-    SEGMENTATION_MAX_TOKENS: int   = 2048
-    LLM_TEMPERATURE:         float = 0.15   # low for deterministic scoring
-    LLM_TIMEOUT_SECONDS:     int   = 15
+    # ── NVIDIA NIM ───────────────────────────────────────
+    nvidia_api_key: str = os.getenv("NVIDIA_API_KEY", "")
+    nvidia_api_url: str = os.getenv(
+        "NVIDIA_API_URL", "https://integrate.api.nvidia.com/v1"
+    )
+    nvidia_model: str = os.getenv(
+        "NVIDIA_MODEL", "nvidia/llama-3.1-nemotron-70b-instruct"
+    )
+    nvidia_max_tokens: int = 4096
+    nvidia_temperature: float = 0.15
 
-    # ── WHISPER CONFIG ─────────────────────────────────
-    WHISPER_DEVICE:        str   = "cuda"   # ROCm = cuda for PyTorch
-    WHISPER_COMPUTE_TYPE:  str   = "float16"
-    WHISPER_BEAM_SIZE:     int   = 5
-    WHISPER_VAD_FILTER:    bool  = True     # voice activity detection
+    # ── OPENAI (ChatGPT) ─────────────────────────────────
+    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    openai_api_url: str = os.getenv(
+        "OPENAI_API_URL", "https://api.openai.com/v1"
+    )
+    openai_max_tokens: int = 4096
+    openai_temperature: float = 0.15
 
-    # ── REDIS (for session state) ──────────────────────
-    REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
-    REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
-    REDIS_DB:   int = 0
+    # ── ANTHROPIC (Claude) ───────────────────────────────
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    anthropic_model: str = os.getenv(
+        "ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022"
+    )
+    anthropic_max_tokens: int = 4096
+    anthropic_temperature: float = 0.15
 
-    # ── SERVER CONFIG ───────────────────────────────────
-    port:       int = 8000
-    log_level:  str = "info"
+    # ── HUGGINGFACE ─────────────────────────────────────
+    hf_api_key: str = os.getenv("HF_API_KEY", "")
+    hf_model: str = os.getenv("HF_MODEL", "meta-llama/Llama-3.2-1B-Instruct")
+    hf_max_tokens: int = 2048
+    hf_temperature: float = 0.15
 
-    # ── SECURITY ─────────────────────────────────────────
-    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
-    API_KEY: str = os.getenv("API_KEY", "")
+    # ── OPENROUTER (80+ models) ──────────────────────────
+    openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
+    openrouter_model: str = os.getenv(
+        "OPENROUTER_MODEL", "google/gemini-2.0-flash-exp"
+    )
+    openrouter_max_tokens: int = 4096
+    openrouter_temperature: float = 0.15
 
-    # ── SESSION SETTINGS ───────────────────────────────
-    MAX_SESSIONS:         int = 50
-    SESSION_TTL_SECONDS:  int = 3600      # 1 hour
-    MAX_HISTORY_SESSIONS: int = 20
+    # ── OPENCODE ─────────────────────────────────────────
+    opencode_api_key: str = os.getenv("OPENCODE_API_KEY", "")
+    opencode_model: str = os.getenv("OPENCODE_MODEL", "opencode")
+    opencode_api_url: str = os.getenv(
+        "OPENCODE_API_URL", "https://api.opencode.ai/v1"
+    )
+    opencode_max_tokens: int = 4096
+    opencode_temperature: float = 0.15
 
-    # ── SCORING THRESHOLDS ─────────────────────────────
-    # Maps strict level (2/3/4) → minimum overall score to pass
-    PASS_THRESHOLDS: dict = {
-        2: 42,   # Lenient
-        3: 55,   # Normal
-        4: 68,   # Strict
-    }
+    # ── XAI (Grok) ──────────────────────────────────────
+    xai_api_key: str = os.getenv("XAI_API_KEY", "")
+    xai_model: str = os.getenv("XAI_MODEL", "grok-2-1212")
+    xai_max_tokens: int = 4096
+    xai_temperature: float = 0.15
 
-    # ── AUTO-SKIP ──────────────────────────────────────
-    MAX_ATTEMPTS_BEFORE_SKIP: int = 4
+    # ── DEEPSEEK ─────────────────────────────────────────
+    deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
+    deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    deepseek_api_url: str = os.getenv(
+        "DEEPSEEK_API_URL", "https://api.deepseek.com/v1"
+    )
+    deepseek_max_tokens: int = 4096
+    deepseek_temperature: float = 0.15
 
-    # ═══════════════════════════════════════════════════
-    # Q&A AGENT - Multi-provider AI question answering
-    # ═══════════════════════════════════════════════════
-    QA_DEFAULT_PROVIDER: str = "qwen_local"  # openai | anthropic | google | xai | qwen_local
+    # ── TRANSCRIPTION ────────────────────────────────────
+    transcription_provider: str = os.getenv(
+        "TRANSCRIPTION_PROVIDER", "webspeech"
+    )
+    openai_whisper_api_key: str = os.getenv("OPENAI_WHISPER_API_KEY", "")
 
-    # OpenAI
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = "gpt-4o"
+    # ── SEARCH ───────────────────────────────────────────
+    tavily_api_key: str = os.getenv("TAVILY_API_KEY", "")
+    serp_api_key: str = os.getenv("SERP_API_KEY", "")
+    brave_api_key: str = os.getenv("BRAVE_API_KEY", "")
+    search_num_results: int = 5
 
-    # Anthropic
-    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
+    # ── NOTIFICATIONS ────────────────────────────────────
+    notification_webhook_url: str = os.getenv("NOTIFICATION_WEBHOOK_URL", "")
+    telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
+    pushover_token: str = os.getenv("PUSHOVER_TOKEN", "")
+    pushover_user_key: str = os.getenv("PUSHOVER_USER_KEY", "")
+    smtp_host: str = os.getenv("SMTP_HOST", "")
+    smtp_port: int = 587
+    smtp_user: str = os.getenv("SMTP_USER", "")
+    smtp_password: str = os.getenv("SMTP_PASSWORD", "")
 
-    # Google Gemini
-    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
-    GOOGLE_MODEL: str = "gemini-2.0-flash"
+    # ── SERVER ────────────────────────────────────────────
+    port: int = int(os.getenv("PORT", "7860"))
+    log_level: str = "info"
 
-    # xAI Grok
-    XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")
-    XAI_MODEL: str = "grok-2-1212"
+    # ── SECURITY ──────────────────────────────────────────
+    allowed_origins: str = os.getenv("ALLOWED_ORIGINS", "*")
+    api_key: str = os.getenv("API_KEY", "")
 
-    # Local Qwen (via vLLM)
-    QA_MODEL: str = "Qwen/Qwen2.5-7B-Instruct"
+    # ── SESSIONS ─────────────────────────────────────────
+    max_sessions: int = 50
+    session_ttl_seconds: int = 3600
+    max_history_sessions: int = 20
 
-    # ═══════════════════════════════════════════════════
-    # SEARCH AGENT - Web search for real-time info
-    # ═══════════════════════════════════════════════════
-    TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
-    SERP_API_KEY: str = os.getenv("SERP_API_KEY", "")
-    BRAVE_API_KEY: str = os.getenv("BRAVE_API_KEY", "")
-    SEARCH_NUM_RESULTS: int = 5
+    # ── STORAGE ──────────────────────────────────────────
+    shared_memory_path: str = "./memory"
+    documents_path: str = "./memory/documents"
+    recordings_path: str = "./recordings"
 
-    # ═══════════════════════════════════════════════════
-    # RECORDING AGENT - Audio/conversation storage
-    # ═══════════════════════════════════════════════════
-    RECORDINGS_PATH: str = "./recordings"
-    RECORD_AUDIO_ENABLED: bool = True
-    RECORD_QA_ENABLED: bool = True
-    RECORD_COACHING_ENABLED: bool = True
-
-    # ═══════════════════════════════════════════════════
-    # ANALYTICS AGENT - Session insights
-    # ═══════════════════════════════════════════════════
-    ANALYTICS_ENABLED: bool = True
-    ANALYTICS_RETENTION_DAYS: int = 90
-
-    # ═══════════════════════════════════════════════════
-    # SHARED MEMORY AGENT - Unified brain for all AIs
-    # ═══════════════════════════════════════════════════
-    SHARED_MEMORY_PATH: str = "./memory"
-
-    # ═══════════════════════════════════════════════════
-    # DOCUMENT AGENT - Import documents to memory
-    # ═══════════════════════════════════════════════════
-    DOCUMENTS_PATH: str = "./memory/documents"
-
-    # ═══════════════════════════════════════════════════
-    # NOTIFICATION AGENT - Phone notifications
-    # ═══════════════════════════════════════════════════
-    NOTIFICATION_WEBHOOK_URL: str = os.getenv("NOTIFICATION_WEBHOOK_URL", "")
-
-    # Twilio (SMS)
-    TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
-    TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
-    TWILIO_PHONE_FROM: str = os.getenv("TWILIO_PHONE_FROM", "")
-
-    # Telegram
-    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
-    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
-
-    # Pushover
-    PUSHOVER_TOKEN: str = os.getenv("PUSHOVER_TOKEN", "")
-    PUSHOVER_USER_KEY: str = os.getenv("PUSHOVER_USER_KEY", "")
-
-    # Email (SMTP)
-    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
-    SMTP_PORT: int = 587
-    SMTP_USER: str = os.getenv("SMTP_USER", "")
-    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    # ── SCORING THRESHOLDS ───────────────────────────────
+    pass_thresholds: dict = {2: 42, 3: 55, 4: 68}
+    max_attempts_before_skip: int = 4
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+
+    def get_provider_config(self, provider: str) -> dict:
+        """Get configuration dict for a specific provider.
+
+        Args:
+            provider: Provider name (google, nvidia, openai, etc.).
+
+        Returns:
+            Dict with api_key, model, max_tokens, temperature.
+        """
+        configs = {
+            "google": {
+                "api_key": self.google_api_key,
+                "model": self.google_model,
+                "max_tokens": self.google_max_tokens,
+                "temperature": self.google_temperature,
+            },
+            "nvidia": {
+                "api_key": self.nvidia_api_key,
+                "base_url": self.nvidia_api_url,
+                "model": self.nvidia_model,
+                "max_tokens": self.nvidia_max_tokens,
+                "temperature": self.nvidia_temperature,
+            },
+            "openai": {
+                "api_key": self.openai_api_key,
+                "base_url": self.openai_api_url,
+                "model": self.openai_model,
+                "max_tokens": self.openai_max_tokens,
+                "temperature": self.openai_temperature,
+            },
+            "anthropic": {
+                "api_key": self.anthropic_api_key,
+                "model": self.anthropic_model,
+                "max_tokens": self.anthropic_max_tokens,
+                "temperature": self.anthropic_temperature,
+            },
+            "huggingface": {
+                "api_key": self.hf_api_key,
+                "model": self.hf_model,
+                "max_tokens": self.hf_max_tokens,
+                "temperature": self.hf_temperature,
+            },
+            "openrouter": {
+                "api_key": self.openrouter_api_key,
+                "model": self.openrouter_model,
+                "max_tokens": self.openrouter_max_tokens,
+                "temperature": self.openrouter_temperature,
+            },
+            "opencode": {
+                "api_key": self.opencode_api_key,
+                "base_url": self.opencode_api_url,
+                "model": self.opencode_model,
+                "max_tokens": self.opencode_max_tokens,
+                "temperature": self.opencode_temperature,
+            },
+            "xai": {
+                "api_key": self.xai_api_key,
+                "model": self.xai_model,
+                "max_tokens": self.xai_max_tokens,
+                "temperature": self.xai_temperature,
+            },
+            "deepseek": {
+                "api_key": self.deepseek_api_key,
+                "base_url": self.deepseek_api_url,
+                "model": self.deepseek_model,
+                "max_tokens": self.deepseek_max_tokens,
+                "temperature": self.deepseek_temperature,
+            },
+        }
+        return configs.get(provider, {})
 
 
 settings = Settings()
