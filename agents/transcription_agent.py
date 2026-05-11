@@ -34,7 +34,7 @@ class TranscriptionAgent(BaseAgent):
     name = "TranscriptionAgent"
 
     def __init__(self):
-        self._use_api = bool(settings.OPENAI_WHISPER_API_KEY)
+        self._use_api = bool(settings.openai_whisper_api_key)
         self._client = None
 
     async def initialize(self):
@@ -93,7 +93,7 @@ class TranscriptionAgent(BaseAgent):
                 "model": (None, "whisper-1"),
                 "language": (None, language),
             }
-            headers = {"Authorization": f"Bearer {settings.OPENAI_WHISPER_API_KEY}"}
+            headers = {"Authorization": f"Bearer {settings.openai_whisper_api_key}"}
 
             resp = await self._client.post(
                 "https://api.openai.com/v1/audio/transcriptions",
@@ -155,7 +155,7 @@ class TranscriptionAgent(BaseAgent):
                 "model": (None, "whisper-1"),
                 "language": (None, language),
             }
-            headers = {"Authorization": f"Bearer {settings.OPENAI_WHISPER_API_KEY}"}
+            headers = {"Authorization": f"Bearer {settings.openai_whisper_api_key}"}
 
             resp = await self._client.post(
                 "https://api.openai.com/v1/audio/transcriptions",

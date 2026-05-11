@@ -37,11 +37,11 @@ class SearchAgent(BaseAgent):
         self._client = httpx.AsyncClient(timeout=30.0)
 
         # Determine which search backend to use
-        if settings.TAVILY_API_KEY:
+        if settings.tavily_api_key:
             log.info("✅ SearchAgent initialized with Tavily")
-        elif settings.SERP_API_KEY:
+        elif settings.serp_api_key:
             log.info("✅ SearchAgent initialized with SerpAPI")
-        elif settings.BRAVE_API_KEY:
+        elif settings.brave_api_key:
             log.info("✅ SearchAgent initialized with Brave Search")
         else:
             log.info("✅ SearchAgent initialized with DuckDuckGo (free)")
@@ -74,11 +74,11 @@ class SearchAgent(BaseAgent):
 
         try:
             # Try available search backends in priority order
-            if settings.TAVILY_API_KEY:
+            if settings.tavily_api_key:
                 results = await self._search_tavily(query, num_results)
-            elif settings.SERP_API_KEY:
+            elif settings.serp_api_key:
                 results = await self._search_serp(query, num_results)
-            elif settings.BRAVE_API_KEY:
+            elif settings.brave_api_key:
                 results = await self._search_brave(query, num_results)
             else:
                 results = await self._search_duckduckgo(query, num_results)
@@ -114,7 +114,7 @@ class SearchAgent(BaseAgent):
         resp = await self._client.post(
             "https://api.tavily.com/search",
             json={
-                "api_key": settings.TAVILY_API_KEY,
+                "api_key": settings.tavily_api_key,
                 "query": query,
                 "max_results": num_results,
                 "include_answer": True,
@@ -141,7 +141,7 @@ class SearchAgent(BaseAgent):
             "https://serpapi.com/search",
             params={
                 "q": query,
-                "api_key": settings.SERP_API_KEY,
+                "api_key": settings.serp_api_key,
                 "num": num_results,
                 "hl": "en",
             }
@@ -168,7 +168,7 @@ class SearchAgent(BaseAgent):
                 "q": query,
                 "count": num_results,
             },
-            headers={"Accept": "application/json", "X-Subscription-Token": settings.BRAVE_API_KEY},
+            headers={"Accept": "application/json", "X-Subscription-Token": settings.brave_api_key},
         )
         resp.raise_for_status()
         data = resp.json()

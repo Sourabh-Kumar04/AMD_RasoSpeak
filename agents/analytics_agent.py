@@ -40,14 +40,14 @@ class AnalyticsAgent(BaseAgent):
     name = "AnalyticsAgent"
 
     def __init__(self):
-        self._storage_path = Path(settings.RECORDINGS_PATH or "./recordings")
+        self._storage_path = Path(settings.recordings_path or "./recordings")
         self._client: Optional[httpx.AsyncClient] = None
 
     async def initialize(self):
         """Initialize analytics system."""
-        if settings.VLLM_BASE_URL:
+        if settings.vllm_base_url:
             self._client = httpx.AsyncClient(
-                base_url=settings.VLLM_BASE_URL,
+                base_url=settings.vllm_base_url,
                 timeout=30.0,
             )
         log.info("✅ AnalyticsAgent initialized")
@@ -456,7 +456,7 @@ Provide a brief assessment in JSON:
             resp = await self._client.post(
                 "/chat/completions",
                 json={
-                    "model": settings.QA_MODEL or "Qwen/Qwen2.5-7B-Instruct",
+                    "model": settings.qa_model or "Qwen/Qwen2.5-7B-Instruct",
                     "messages": [
                         {"role": "system", "content": "You are a speech coaching analytics expert."},
                         {"role": "user", "content": prompt},

@@ -46,7 +46,7 @@ class SharedMemoryAgent(BaseAgent):
     name = "SharedMemoryAgent"
 
     def __init__(self):
-        self._storage_path = Path(settings.SHARED_MEMORY_PATH or "./memory")
+        self._storage_path = Path(settings.shared_memory_path or "./memory")
         self._user_profile: dict = {}
         self._conversation_history: list = []
         self._session_summaries: list = []

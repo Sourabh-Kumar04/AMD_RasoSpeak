@@ -123,6 +123,9 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = os.getenv("SMTP_USER", "")
     smtp_password: str = os.getenv("SMTP_PASSWORD", "")
+    twilio_account_sid: str = os.getenv("TWILIO_ACCOUNT_SID", "")
+    twilio_auth_token: str = os.getenv("TWILIO_AUTH_TOKEN", "")
+    twilio_phone_from: str = os.getenv("TWILIO_PHONE_FROM", "")
 
     # ── SERVER ────────────────────────────────────────────
     port: int = int(os.getenv("PORT", "7860"))
@@ -136,6 +139,22 @@ class Settings(BaseSettings):
     max_sessions: int = 50
     session_ttl_seconds: int = 3600
     max_history_sessions: int = 20
+
+    # ── REDIS (optional) ────────────────────────────────
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    redis_db: int = 0
+
+    # ── LLM BACKEND (optional vLLM) ──────────────────────
+    vllm_base_url: str = ""
+    llm_timeout_seconds: int = 60
+
+    # ── SEGMENTATION ─────────────────────────────────────
+    segmentation_model: str = "Qwen/Qwen2.5-7B-Instruct"
+    segmentation_max_tokens: int = 512
+
+    # ── QA MODEL ──────────────────────────────────────────
+    qa_model: str = "Qwen/Qwen2.5-7B-Instruct"
 
     # ── STORAGE ──────────────────────────────────────────
     shared_memory_path: str = "./memory"

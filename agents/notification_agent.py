@@ -60,7 +60,7 @@ class NotificationAgent(BaseAgent):
     async def initialize(self):
         """Initialize notification agent."""
         # Load notification settings
-        self._webhook_url = settings.NOTIFICATION_WEBHOOK_URL
+        self._webhook_url = settings.notification_webhook_url
 
         # Load notification history
         self._load_history()
@@ -126,28 +126,28 @@ class NotificationAgent(BaseAgent):
                 notification["channels"].append("webhook")
 
         # 3. Twilio SMS
-        if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_PHONE_FROM:
+        if settings.twilio_account_sid and settings.twilio_auth_token and settings.twilio_phone_from:
             sms_result = await self._send_sms(notification)
             results["sms"] = sms_result
             if sms_result.get("sent"):
                 notification["channels"].append("sms")
 
         # 4. Telegram
-        if settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID:
+        if settings.telegram_bot_token and settings.telegram_chat_id:
             telegram_result = await self._send_telegram(notification)
             results["telegram"] = telegram_result
             if telegram_result.get("sent"):
                 notification["channels"].append("telegram")
 
         # 5. Pushover
-        if settings.PUSHOVER_TOKEN and settings.PUSHOVER_USER_KEY:
+        if settings.pushover_token and settings.pushover_user_key:
             pushover_result = await self._send_pushover(notification)
             results["pushover"] = pushover_result
             if pushover_result.get("sent"):
                 notification["channels"].append("pushover")
 
         # 6. Email
-        if settings.SMTP_HOST and settings.SMTP_USER:
+        if settings.smtp_host and settings.smtp_user:
             email_result = await self._send_email(notification)
             results["email"] = email_result
             if email_result.get("sent"):
@@ -199,16 +199,16 @@ class NotificationAgent(BaseAgent):
 
     async def _send_telegram(self, notification: dict) -> dict:
         """Send via Telegram Bot."""
-        if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHAT_ID:
+        if not settings.telegram_bot_token or not settings.telegram_chat_id:
             return {"sent": False}
 
         try:
             client = httpx.AsyncClient(timeout=10)
             text = f"📱 *{notification['title']}*\n\n{notification['message']}"
             resp = await client.post(
-                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
+                f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",
                 json={
-                    "chat_id": settings.TELEGRAM_CHAT_ID,
+                    "chat_id": settings.telegram_chat_id,
                     "text": text,
                     "parse_mode": "Markdown",
                 }

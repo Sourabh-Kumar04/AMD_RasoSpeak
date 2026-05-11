@@ -44,7 +44,7 @@ class DocumentAgent(BaseAgent):
     name = "DocumentAgent"
 
     def __init__(self):
-        self._storage_path = Path(settings.DOCUMENTS_PATH or "./memory/documents")
+        self._storage_path = Path(settings.documents_path or "./memory/documents")
         self._shared_memory: Optional[SharedMemoryAgent] = None
         self._ensure_storage()
 

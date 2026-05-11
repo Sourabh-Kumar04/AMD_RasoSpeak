@@ -78,9 +78,9 @@ class RasoAgent(BaseAgent):
 
     async def initialize(self):
         """Initialize Raso agent."""
-        if settings.VLLM_BASE_URL:
+        if settings.vllm_base_url:
             self._client = httpx.AsyncClient(
-                base_url=settings.VLLM_BASE_URL,
+                base_url=settings.vllm_base_url,
                 timeout=60.0,
             )
 
@@ -375,7 +375,7 @@ Answer naturally and helpfully as a partner would. If the context contains relev
                 resp = await self._client.post(
                     "/chat/completions",
                     json={
-                        "model": settings.QA_MODEL or "Qwen/Qwen2.5-7B-Instruct",
+                        "model": settings.qa_model or "Qwen/Qwen2.5-7B-Instruct",
                         "messages": [
                             {"role": "system", "content": "You are a helpful, personalized AI partner. Use the provided context from past conversations to give relevant answers."},
                             {"role": "user", "content": prompt}
@@ -392,13 +392,13 @@ Answer naturally and helpfully as a partner would. If the context contains relev
             log.warning(f"Partner LLM error: {e}")
 
         # Fallback: try OpenAI if available
-        if provider == "openai" and settings.OPENAI_API_KEY:
+        if provider == "openai" and settings.openai_api_key:
             try:
                 import httpx
                 client = httpx.AsyncClient(timeout=30)
                 resp = await client.post(
                     "https://api.openai.com/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
+                    headers={"Authorization": f"Bearer {settings.openai_api_key}"},
                     json={
                         "model": "gpt-4o",
                         "messages": [{"role": "user", "content": prompt}],

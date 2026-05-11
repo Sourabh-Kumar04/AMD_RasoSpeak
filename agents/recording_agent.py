@@ -41,7 +41,7 @@ class RecordingAgent(BaseAgent):
     name = "RecordingAgent"
 
     def __init__(self):
-        self._storage_path = Path(settings.RECORDINGS_PATH or "./recordings")
+        self._storage_path = Path(settings.recordings_path or "./recordings")
         self._current_session: Optional[str] = None
         self._session_records: dict = {}
         self._audio_lock = asyncio.Lock()  # Prevent race conditions in audio recording

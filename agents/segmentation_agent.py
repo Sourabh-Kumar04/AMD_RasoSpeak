@@ -32,10 +32,10 @@ class SegmentationAgent(BaseAgent):
 
     async def initialize(self):
         self._client = httpx.AsyncClient(
-            base_url=settings.VLLM_BASE_URL,
-            timeout=settings.LLM_TIMEOUT_SECONDS,
+            base_url=settings.vllm_base_url,
+            timeout=settings.llm_timeout_seconds,
         )
-        log.info(f"SegmentationAgent using {settings.SEGMENTATION_MODEL}")
+        log.info(f"SegmentationAgent using {settings.segmentation_model}")
 
     async def segment(
         self,
@@ -55,7 +55,7 @@ class SegmentationAgent(BaseAgent):
             result = await self._call_vllm(
                 system=SEGMENTATION_SYSTEM,
                 user=user_prompt,
-                max_tokens=settings.SEGMENTATION_MAX_TOKENS,
+                max_tokens=settings.segmentation_max_tokens,
             )
             parsed  = json.loads(result)
             elapsed = int((time.perf_counter() - t_start) * 1000)
@@ -71,7 +71,7 @@ class SegmentationAgent(BaseAgent):
             raise RuntimeError("SegmentationAgent not initialized")
 
         payload = {
-            "model":       settings.SEGMENTATION_MODEL,
+            "model":       settings.segmentation_model,
             "messages":    [
                 {"role": "system", "content": system},
                 {"role": "user",   "content": user},

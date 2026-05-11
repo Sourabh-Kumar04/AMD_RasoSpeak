@@ -46,7 +46,7 @@ class SessionMemoryAgent(BaseAgent):
         try:
             import redis.asyncio as aioredis
             self._redis = await aioredis.from_url(
-                f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}",
+                f"redis://{settings.redis_host}:{settings.redis_port}/{settings.redis_db}",
                 encoding="utf-8",
                 decode_responses=True,
             )
@@ -198,10 +198,10 @@ class SessionMemoryAgent(BaseAgent):
             try:
                 key     = f"rs:session:{session_id}"
                 hist_key= f"rs:history:{session_id.split('-')[0]}"  # user prefix
-                await self._redis.setex(key, settings.SESSION_TTL_SECONDS, json.dumps(record))
+                await self._redis.setex(key, settings.session_ttl_seconds, json.dumps(record))
                 # Push to history list (keep last 20)
                 await self._redis.lpush(hist_key, json.dumps(record))
-                await self._redis.ltrim(hist_key, 0, settings.MAX_HISTORY_SESSIONS - 1)
+                await self._redis.ltrim(hist_key, 0, settings.max_history_sessions - 1)
                 log.info(f"✅ Session {session_id} persisted to Redis")
             except Exception as e:
                 log.warning(f"Redis persist failed: {e}")

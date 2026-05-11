@@ -35,8 +35,8 @@ class ScoringAgent(BaseAgent):
 
     async def initialize(self):
         """Initialize LLM client."""
-        log.info(f"Initializing ScoringAgent with provider: {settings.DEFAULT_PROVIDER}")
-        self._llm_client = create_llm_client(settings.DEFAULT_PROVIDER)
+        log.info(f"Initializing ScoringAgent with provider: {settings.default_provider}")
+        self._llm_client = create_llm_client(settings.default_provider)
         log.info(f"✅ ScoringAgent ready (API mode, no GPU)")
 
     async def cleanup(self):
@@ -96,7 +96,7 @@ class ScoringAgent(BaseAgent):
                     "completeness": scores.get("completeness", 0.5),
                     "overall": scores.get("overall", 0.5),
                     "feedback": scores.get("feedback", ""),
-                    "provider": provider or settings.DEFAULT_PROVIDER,
+                    "provider": provider or settings.default_provider,
                     "processing_ms": elapsed_ms,
                 }
             except json.JSONDecodeError:
@@ -107,7 +107,7 @@ class ScoringAgent(BaseAgent):
                     "completeness": 0.5,
                     "overall": 0.5,
                     "feedback": result["content"],
-                    "provider": provider or settings.DEFAULT_PROVIDER,
+                    "provider": provider or settings.default_provider,
                     "processing_ms": elapsed_ms,
                 }
         except Exception as e:
