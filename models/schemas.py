@@ -166,3 +166,8 @@ class SessionInsights(BaseModel):
 class PartnerAskRequest(BaseModel):
     message:  str = Field(..., min_length=1, max_length=4_000)
     provider: str | None = None
+
+
+class ReminderRequest(BaseModel):
+    message:   str = Field(..., min_length=1, max_length=500)
+    remind_at: str | None = None  # ISO timestamp or "in 1 hour"

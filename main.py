@@ -39,7 +39,7 @@ from agents.notification_agent import NotificationAgent
 from models.schemas import (
     WSMessage, WSMessageType,
     SegmentRequest, AudioChunk,
-    SessionConfig, PartnerAskRequest
+    SessionConfig, PartnerAskRequest, ReminderRequest
 )
 from config.settings import settings
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -633,11 +633,6 @@ async def add_weak_word(req: WeakWordRequest, session_id: str = None):
 # ══════════════════════════════════════════════════════
 # RASO — Your AI Companion with Memory & Personality
 # ══════════════════════════════════════════════════════
-
-class ReminderRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=500)
-    remind_at: str | None  # ISO timestamp or "in 1 hour"
-
 
 @app.post("/raso/start")
 async def start_partner_mode(session_id: str = None):
