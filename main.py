@@ -17,7 +17,7 @@ from typing import Any
 
 import uvicorn
 from pydantic import BaseModel, Field
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
@@ -330,7 +330,7 @@ async def partner_status_alias():
 
 @app.post("/partner/ask")
 @limiter.limit("10/minute")
-async def partner_ask_alias(req: PartnerAskRequest):
+async def partner_ask_alias(request: Request, req: PartnerAskRequest):
     """Alias for /raso/ask (backward compatibility)"""
     return await agents["raso"].ask_partner(req.message, req.provider)
 
@@ -410,7 +410,7 @@ class QARequest(BaseModel):
 
 @app.post("/qa")
 @limiter.limit("10/minute")
-async def ask_question(req: QARequest, session_id: str = None):
+async def ask_question(request: Request, req: QARequest, session_id: str = None):
     """
     Ask a question to AI and get answer (streams to earpiece).
     Connect to OpenAI GPT, Anthropic Claude, Google Gemini, xAI Grok, or local Qwen.
@@ -447,7 +447,7 @@ class SearchRequest(BaseModel):
 
 @app.post("/search")
 @limiter.limit("30/minute")
-async def web_search(req: SearchRequest):
+async def web_search(request: Request, req: SearchRequest):
     """
     Search the web for real-time information.
     Uses Tavily (if API key), SerpAPI, Brave Search, or DuckDuckGo (fallback).
@@ -702,7 +702,7 @@ async def set_partner_provider(provider: str, temporary: bool = False):
 
 @app.post("/raso/ask")
 @limiter.limit("10/minute")
-async def ask_partner(req: PartnerAskRequest):
+async def ask_partner(request: Request, req: PartnerAskRequest):
     """
     Ask your AI partner anything.
     Uses past conversations + web search + knowledge.
