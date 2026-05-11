@@ -143,10 +143,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS - use ALLOWED_ORIGINS from settings (default "*" for dev, can restrict for prod)
+# CORS - use allowed_origins from settings (default "*" for dev, can restrict for prod)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS.split(",") if settings.ALLOWED_ORIGINS != "*" else ["*"],
+    allow_origins=settings.allowed_origins.split(",") if settings.allowed_origins != "*" else ["*"],
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
