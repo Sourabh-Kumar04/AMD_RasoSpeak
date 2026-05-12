@@ -151,29 +151,22 @@ async function loadMemoryStats() {
     const brainResp = await fetch('/brain/stats');
     if (brainResp.ok) {
       const brainData = await brainResp.json();
-      document.getElementById('mem-conversations').textContent = brainData.type_counts?.conversation || 0;
-      document.getElementById('mem-facts').textContent = brainData.type_counts?.fact || 0;
-      document.getElementById('mem-documents').textContent = brainData.type_counts?.document || 0;
-      document.getElementById('mem-sessions').textContent = brainData.type_counts?.event || 0;
+      document.getElementById('mem-conversations').textContent = brainData.type_counts?.conversation || brainData.conversations || 0;
+      document.getElementById('mem-facts').textContent = brainData.type_counts?.semantic || brainData.semantic || 0;
+      document.getElementById('mem-documents').textContent = brainData.type_counts?.document || brainData.documents || 0;
+      document.getElementById('mem-sessions').textContent = brainData.type_counts?.episodic || brainData.episodes || 0;
       return;
     }
 
-    // Fallback to shared memory stats
-    const memResp = await fetch('/memory/stats');
-    const memData = await memResp.json();
-
-    document.getElementById('mem-conversations').textContent = memData.conversations || 0;
-    document.getElementById('mem-facts').textContent = memData.facts || 0;
-
-    // Get documents count
-    const docResp = await fetch('/documents');
-    const docData = await docResp.json();
-    document.getElementById('mem-documents').textContent = docData.total || 0;
-
-    // Get recordings count
-    const recResp = await fetch('/recordings?limit=100');
-    const recData = await recResp.json();
-    document.getElementById('mem-sessions').textContent = recData.total || 0;
+    // localStorage fallback for stats only
+    try {
+      document.getElementById('mem-conversations').textContent = localStorage.getItem('rs_chat_count') || 0;
+      document.getElementById('mem-facts').textContent = localStorage.getItem('rs_facts_count') || 0;
+      document.getElementById('mem-documents').textContent = 0;
+      document.getElementById('mem-sessions').textContent = localStorage.getItem('rs_total_sessions') || 0;
+    } catch (e) {
+      console.warn('Stats fallback failed:', e);
+    }
 
   } catch (err) {
     console.error('Failed to load memory stats:', err);
@@ -216,21 +209,8 @@ async function searchMemory() {
       }
     }
 
-    // Fallback to shared memory
-    const resp = await fetch(`/memory/recall?query=${encodeURIComponent(query)}&limit=10`);
-
-    if (resp.ok) {
-      const data = await resp.json();
-      const memories = data.results || data.memories || [];
-
-      if (memories.length === 0) {
-        return queryRasoForMemory(query);
-      }
-
-      displayResults(memories, query);
-    } else {
-      return queryRasoForMemory(query);
-    }
+    // No results in Second Brain — use Raso as last resort
+    return queryRasoForMemory(query);
   } catch (err) {
     console.error('Memory search failed:', err);
     return queryRasoForMemory(query);
@@ -304,16 +284,26 @@ async function queryRasoForMemory(query) {
 function displayResults(memories, query) {
   const resultsContent = document.getElementById('results-content');
 
+  if (!memories || memories.length === 0) {
+    resultsContent.innerHTML = `<p class="text-gray-400 text-center py-4">No results for "${escapeHtml(query)}"</p>`;
+    return;
+  }
+
   resultsContent.innerHTML = `
     <div class="space-y-3">
       <p class="text-sm text-gray-500 mb-4">Found ${memories.length} results for "${escapeHtml(query)}"</p>
-      ${memories.map(mem => `
+      ${memories.map((mem, i) => {
+        const content = mem.content || mem.value || mem.text;
+        const display = content
+          ? escapeHtml(String(content).substring(0, 300))
+          : `<span class="text-gray-400 italic">Node ID: ${escapeHtml(mem.node_id || mem.id || 'unknown')}</span>`;
+        return `
         <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-          <p class="text-gray-800">${escapeHtml(mem.content || mem.value || mem.text || JSON.stringify(mem))}</p>
-          ${mem.category ? `<span class="inline-block mt-2 px-2 py-0.5 bg-gray-200 rounded text-xs text-gray-600">${mem.category}</span>` : ''}
-          ${mem.score ? `<span class="inline-block mt-2 ml-2 px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">Score: ${(mem.score * 100).toFixed(0)}%</span>` : ''}
-        </div>
-      `).join('')}
+          <p class="text-gray-800">${display}</p>
+          ${mem.memory_type || mem.category ? `<span class="inline-block mt-2 px-2 py-0.5 bg-gray-200 rounded text-xs text-gray-600">${mem.memory_type || mem.category}</span>` : ''}
+          ${mem.relevance ? `<span class="inline-block mt-2 ml-2 px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">${(mem.relevance * 100).toFixed(0)}%</span>` : ''}
+        </div>`;
+      }).join('')}
     </div>
   `;
 }
@@ -324,7 +314,7 @@ function quickSearch(query) {
   searchMemory();
 }
 
-// Add fact to memory (both systems)
+// Add fact to memory (Second Brain only — no legacy dual-write)
 async function addFactToMemory() {
   const input = document.getElementById('quick-fact-input');
   const catSelect = document.getElementById('fact-category');
@@ -337,37 +327,35 @@ async function addFactToMemory() {
   }
 
   try {
-    // Save to Second Brain (primary)
-    await fetch('/brain/fact', {
+    // Save to Second Brain via /brain/memory
+    const resp = await fetch('/brain/memory', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fact, category })
+      body: JSON.stringify({
+        content: fact,
+        memory_type: 'semantic',
+        tier: 'long_term',
+        importance: 3,
+        tags: [category],
+      })
     });
 
-    // Also save to shared memory (backward compatibility)
-    await fetch('/memory/fact', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fact, category })
-    });
+    if (resp.ok) {
+      showToast('Fact saved to Second Brain!');
+    } else {
+      throw new Error(`Server returned ${resp.status}`);
+    }
 
-    showToast('Fact saved to Second Brain!');
     input.value = '';
     loadMemoryStats();
     loadRecentFacts();
   } catch (err) {
-    // Save to localStorage as fallback
+    // Save to localStorage as offline fallback
+    console.warn('Second Brain unavailable, saving locally:', err.message);
     const facts = JSON.parse(localStorage.getItem('rs_facts') || '[]');
-    facts.unshift({
-      fact,
-      category,
-      timestamp: new Date().toISOString()
-    });
+    facts.unshift({ fact, category, timestamp: new Date().toISOString() });
     localStorage.setItem('rs_facts', JSON.stringify(facts.slice(0, 100)));
-
-    const count = parseInt(localStorage.getItem('rs_facts_count') || '0') + 1;
-    localStorage.setItem('rs_facts_count', count.toString());
-
+    localStorage.setItem('rs_facts_count', (parseInt(localStorage.getItem('rs_facts_count') || '0') + 1).toString());
     showToast('Fact saved (local mode)');
     input.value = '';
     loadMemoryStats();
@@ -375,99 +363,67 @@ async function addFactToMemory() {
   }
 }
 
-// Load recent facts (Second Brain primary)
+// Load recent facts (Second Brain → localStorage fallback)
 async function loadRecentFacts() {
   const container = document.getElementById('recent-facts');
 
   try {
-    // Try Second Brain first
+    // Second Brain primary
     const brainResp = await fetch('/brain/recall', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        memory_type: 'fact',
-        limit: 10,
-        time_range: 'all'
-      })
+      body: JSON.stringify({ memory_type: 'semantic', limit: 20, time_range: 'all' })
     });
 
     if (brainResp.ok) {
       const brainData = await brainResp.json();
-      const facts = brainData.results || [];
-
+      const facts = (brainData.results || []).map(r => r.content || r.value || r);
       if (facts.length > 0) {
-        container.innerHTML = facts.map(fact => {
-          const node = fact.node || fact;
-          const content = node.content;
-          const factText = typeof content === 'object' ? content.fact : content;
-          return `
-          <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <p class="text-gray-800">${escapeHtml(String(factText).substring(0, 200))}</p>
-              ${content.category ? `<span class="text-xs text-gray-500 mt-1">${content.category}</span>` : ''}
-            </div>
-            <button onclick="deleteFact('${node.id}')" class="text-gray-400 hover:text-red-500">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-        `}).join('');
+        container.innerHTML = facts.slice(0, 20).map((content, i) => {
+          const text = typeof content === 'object' ? (content.fact || content.content || JSON.stringify(content)) : String(content);
+          return `<div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+            <p class="text-gray-800">${escapeHtml(text.substring(0, 200))}</p>
+          </div>`;
+        }).join('');
         return;
       }
-    }
-
-    // Fallback to shared memory
-    const resp = await fetch('/memory/recall?category=general&limit=10');
-    if (resp.ok) {
-      const data = await resp.json();
-      const facts = data.results || [];
-
-      if (facts.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-center py-4">No facts saved yet</p>';
-        return;
-      }
-
-      container.innerHTML = facts.map(fact => `
-        <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
-          <div>
-            <p class="text-gray-800">${escapeHtml(fact.content || fact.value || fact.text || '')}</p>
-            ${fact.category ? `<span class="text-xs text-gray-500 mt-1">${fact.category}</span>` : ''}
-          </div>
-          <button onclick="deleteFact('${fact.id || fact.key}')" class="text-gray-400 hover:text-red-500">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-      `).join('');
     }
   } catch (err) {
-    // Load from localStorage
+    console.warn('Second Brain recall failed:', err.message);
+  }
+
+  // localStorage fallback only (no deprecated /memory/* endpoint)
+  try {
     const facts = JSON.parse(localStorage.getItem('rs_facts') || '[]');
     if (facts.length === 0) {
       container.innerHTML = '<p class="text-gray-400 text-center py-4">No facts saved yet</p>';
       return;
     }
-
-    container.innerHTML = facts.slice(0, 10).map(fact => `
+    container.innerHTML = facts.slice(0, 20).map(f => `
       <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
-        <div>
-          <p class="text-gray-800">${escapeHtml(fact.fact || '')}</p>
-          <span class="text-xs text-gray-500">${fact.category || 'general'}</span>
-        </div>
-      </div>
-    `).join('');
+        <p class="text-gray-800">${escapeHtml(String(f.fact || '').substring(0, 200))}</p>
+      </div>`).join('');
+  } catch (err) {
+    console.error('localStorage parse failed:', err);
+    showToast('Failed to load facts');
+    container.innerHTML = '<p class="text-red-400 text-center py-4">Error loading facts</p>';
   }
 }
 
-// Delete fact
-async function deleteFact(key) {
+// Delete fact from Second Brain
+async function deleteFact(nodeId) {
+  if (!nodeId) return;
   try {
-    // This would need a DELETE endpoint for facts
-    showToast('Fact deleted');
+    const resp = await fetch(`/brain/memory/${encodeURIComponent(nodeId)}`, { method: 'DELETE' });
+    if (resp.ok) {
+      showToast('Fact deleted');
+    } else {
+      throw new Error(`Server returned ${resp.status}`);
+    }
     loadRecentFacts();
+    loadMemoryStats();
   } catch (err) {
+    console.error('Delete failed:', err);
     showToast('Could not delete fact');
   }
 }

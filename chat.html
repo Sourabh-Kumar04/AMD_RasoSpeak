@@ -289,21 +289,9 @@ function quickAsk(question) {
   sendMessage();
 }
 
-// Save to memory (both systems)
+// Save to Second Brain (primary memory)
 async function saveToMemory(userMsg, rasoMsg) {
   try {
-    // Save to shared memory (backward compatibility)
-    await fetch('/memory/store', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        key: `chat_${Date.now()}`,
-        value: { user: userMsg, raso: rasoMsg, timestamp: new Date().toISOString() },
-        category: 'conversation'
-      })
-    });
-
-    // Save to Second Brain (enhanced memory)
     await fetch('/brain/conversation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -1435,8 +1435,12 @@ Question: {req.query}"""
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ]
-            result = await agents["qa"]._llm_client.chat(messages, temperature=0.15, max_tokens=2048)
-            answer = result.get("content") if isinstance(result, dict) else str(result)
+            # Use QAAgent public API instead of accessing _llm_client directly
+            result = await agents["qa"].ask(
+                question=user_prompt,
+                context=f"System: {system_prompt}\n\n{memory_context or '(no relevant memory found)'}\n\n{doc_context or '(no relevant documents found)'}"
+            )
+            answer = result.get("answer") if isinstance(result, dict) else str(result)
         except Exception as e:
             log.warning(f"LLM synthesis failed: {e}")
             answer = None

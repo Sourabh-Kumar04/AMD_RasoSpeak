@@ -573,22 +573,11 @@ async function stopRecording() {
   }
 }
 
-// Store memory of practice (both systems)
+// Store memory of practice (Second Brain only)
 async function storeMemory(chunkIdx, accuracy, wpm) {
   try {
-    // Store in shared memory (backward compatibility)
-    await fetch('/memory/store', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        key: `coach_session_${currentSessionId}_chunk_${chunkIdx}`,
-        value: { accuracy, wpm, timestamp: new Date().toISOString() },
-        category: 'coaching'
-      })
-    });
-
-    // Store session summary in Second Brain
-    await fetch('/brain/session-summary', {
+    // Store session summary in Second Brain (primary)
+    const resp = await fetch('/brain/session-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

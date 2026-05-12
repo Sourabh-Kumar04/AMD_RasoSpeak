@@ -344,21 +344,17 @@ async function loadSystemStatus() {
   }
 }
 
-// Cleanup Memory
+// Cleanup Memory (Second Brain handles this automatically)
 async function cleanupMemory() {
   try {
-    const resp = await fetch('/memory/cleanup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ max_age_days: 30 })
-    });
-
+    const resp = await fetch('/brain/clear', { method: 'POST' });
     if (resp.ok) {
-      const data = await resp.json();
-      showToast(`Cleaned up ${data.cleaned} old sessions`);
+      showToast('Old memories cleaned up');
+    } else {
+      throw new Error('Cleanup failed');
     }
   } catch (err) {
-    showToast('Failed to cleanup memory');
+    showToast('Cleanup unavailable');
     console.error(err);
   }
 }
@@ -370,13 +366,14 @@ async function clearMemory() {
   }
 
   try {
-    const resp = await fetch('/memory/clear', { method: 'POST' });
+    const resp = await fetch('/brain/clear', { method: 'POST' });
     if (resp.ok) {
       localStorage.clear();
       showToast('Memory cleared');
+    } else {
+      throw new Error('Clear returned ' + resp.status);
     }
   } catch (err) {
-    // Fallback to localStorage clear
     localStorage.clear();
     showToast('Memory cleared (local)');
     console.error(err);
