@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     # ── GOOGLE GEMINI ───────────────────────────────────
     google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
-    google_model: str = os.getenv("GOOGLE_MODEL", "gemini-1.5-flash")
+    google_model: str = os.getenv("GOOGLE_MODEL", "gemini-2.0-flash")
     google_max_tokens: int = 8192
     google_temperature: float = 0.15
 
@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     # ── OPENROUTER (80+ models) ──────────────────────────
     openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
     openrouter_model: str = os.getenv(
-        "OPENROUTER_MODEL", "google/gemini-1.5-flash"
+        "OPENROUTER_MODEL", "google/gemini-2.0-flash"
     )
     openrouter_max_tokens: int = 4096
     openrouter_temperature: float = 0.15
