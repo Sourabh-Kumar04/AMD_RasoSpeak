@@ -138,20 +138,12 @@ class RasoAgent(BaseAgent):
 
         log.info(f"🎧 Raso mode STARTED: {self._current_session_id}")
 
-        # Store in Second Brain (primary)
+        # Store in Second Brain (SharedMemoryAgent handles dual-write to legacy)
         if self._second_brain:
             await self._second_brain.store(
                 content={"started_at": datetime.utcnow().isoformat(), "mode": "continuous", "agent": "Raso"},
                 memory_type="event",
                 source="raso",
-            )
-
-        # Store in shared memory (backward compatibility)
-        if self._shared_memory:
-            await self._shared_memory.store(
-                f"continuous_session_{self._current_session_id}",
-                {"started_at": datetime.utcnow().isoformat(), "mode": "continuous", "agent": "Raso"},
-                category="session"
             )
 
         return {
@@ -200,20 +192,17 @@ class RasoAgent(BaseAgent):
             "type": "user_input",
         }
 
-        # Store in Second Brain (primary - with entity extraction, graph relationships)
+        # Store in Second Brain (SharedMemoryAgent handles dual-write to legacy)
         if self._second_brain:
             await self._second_brain.store(
-                content=memory_entry,
+                content={
+                    "content": user_input,
+                    "timestamp": ts,
+                    "session_id": self._current_session_id,
+                    "type": "user_input",
+                },
                 memory_type="conversation",
                 source="raso_continuous",
-            )
-
-        # Store in shared memory (backward compatibility)
-        if self._shared_memory:
-            await self._shared_memory.store(
-                f"memory_{int(time.time() * 1000)}",
-                memory_entry,
-                category="conversation"
             )
 
         log.debug(f"🧠 Remembered: {user_input[:50]}...")
@@ -269,8 +258,8 @@ class RasoAgent(BaseAgent):
             except Exception as e:
                 log.warning(f"Second Brain query failed: {e}")
 
-        # Fallback to shared memory
-        if self._shared_memory:
+        # Fallback to shared memory (rarely needed - Second Brain handles everything)
+        if not results and self._shared_memory:
             memory_results = await self._shared_memory.recall(
                 query=query,
                 category=None if search_type == "all" else search_type,
@@ -348,18 +337,14 @@ class RasoAgent(BaseAgent):
         t_start = time.perf_counter()
 
         # If no explicit provider, check preferences
-        if not provider and self._shared_memory:
+        if not provider:
             provider = await self.get_current_provider()
 
         log.info(f"🤖 Partner answering: provider={provider}, question={question[:50]}...")
 
-        # Check for provider switch in the question
-        # Only handle in ask_partner, not in get_partner_response to avoid double processing
-        # (get_partner_response will pass through to ask_partner)
-
-        # Get relevant past context
+        # Get relevant past context from Second Brain
         past_context = ""
-        if include_context and self._shared_memory:
+        if include_context and self._second_brain:
             past_results = await self._query_past_internal(question)
             if past_results.get("results_count", 0) > 0:
                 past_context = f"\n\nRelevant past conversations: {past_results.get('summary', '')[:500]}"
@@ -381,16 +366,7 @@ class RasoAgent(BaseAgent):
         # Generate response using LLM
         answer = await self._generate_response(question, full_context, provider)
 
-        # Store this conversation in BOTH memory systems
-        if self._shared_memory:
-            await self._shared_memory.add_conversation(
-                user_input=question,
-                ai_response=answer,
-                ai_provider="partner",
-                context="continuous_partner_mode"
-            )
-
-        # Store in Second Brain for enhanced memory
+        # Store conversation in Second Brain (SharedMemoryAgent handles dual-write)
         if self._second_brain:
             await self._second_brain.add_conversation(
                 user_input=question,
@@ -410,29 +386,23 @@ class RasoAgent(BaseAgent):
         }
 
     async def _query_past_internal(self, query: str) -> dict:
-        """Internal method to query past."""
-        # Try Second Brain first (more advanced)
-        if self._second_brain:
-            try:
-                results = await self._second_brain.recall_conversation(query=query, limit=10)
-                if results:
-                    summary_parts = []
-                    for r in results[:5]:
-                        content = r.get("node", {}).get("content", {})
-                        if isinstance(content, dict):
-                            summary_parts.append(f"{content.get('user', '')[:80]} -> {content.get('ai_provider', 'AI')}")
-                    return {"results_count": len(results), "summary": "; ".join(summary_parts)}
-            except Exception:
-                pass
-
-        # Fallback to shared memory
-        if not self._shared_memory:
+        """Query past conversations using Second Brain."""
+        if not self._second_brain:
             return {"results_count": 0}
 
-        results = await self._shared_memory.recall(query=query, limit=10)
-        results_list = results.get("results", [])
-        summary_str = "; ".join(r.get("text", "")[:100] for r in results_list)
-        return {"results_count": len(results_list), "summary": summary_str}
+        try:
+            results = await self._second_brain.recall_conversation(query=query, limit=10)
+            if results:
+                summary_parts = []
+                for r in results[:5]:
+                    content = r.get("node", {}).get("content", {})
+                    if isinstance(content, dict):
+                        summary_parts.append(f"{content.get('user', '')[:80]} -> {content.get('ai_provider', 'AI')}")
+                return {"results_count": len(results), "summary": "; ".join(summary_parts)}
+        except Exception as e:
+            log.warning(f"Second Brain query failed: {e}")
+
+        return {"results_count": 0}
 
     async def _generate_response(self, question: str, context: str, provider: str = None) -> str:
         """Generate response using LLM client."""
@@ -595,13 +565,10 @@ class RasoAgent(BaseAgent):
         provider = provider_info["provider"]
         is_temporary = provider_info["temporary"]
 
-        # Store preference in shared memory
-        if self._shared_memory:
-            preference_key = "preferred_ai_provider"
-            if is_temporary:
-                preference_key = "temporary_ai_provider"
-
-            await self._shared_memory.set_user_preference(preference_key, provider)
+        # Store preference in Second Brain (SharedMemoryAgent handles persistence)
+        if self._second_brain:
+            preference_key = "preferred_ai_provider" if not is_temporary else "temporary_ai_provider"
+            await self._second_brain.update_persona_field(preference_key, provider)
 
         # Map provider to display name
         provider_names = {
@@ -629,22 +596,22 @@ class RasoAgent(BaseAgent):
 
     async def get_current_provider(self) -> str:
         """Get the current AI provider (checks temp first, then default)."""
-        if self._shared_memory:
-            # Check temporary first
-            temp = await self._shared_memory.get_user_preferences()
-            if temp.get("temporary_ai_provider"):
-                return temp["temporary_ai_provider"]
-
-            # Then check default
-            if temp.get("preferred_ai_provider"):
-                return temp["preferred_ai_provider"]
-
+        if self._second_brain:
+            try:
+                persona = await self._second_brain.get_persona()
+                temp = persona.get("preferences", {})
+                if temp.get("temporary_ai_provider"):
+                    return temp["temporary_ai_provider"]
+                if temp.get("preferred_ai_provider"):
+                    return temp["preferred_ai_provider"]
+            except Exception:
+                pass
         return settings.default_provider  # Default
 
     async def clear_temporary_provider(self):
         """Clear temporary provider so it reverts to default."""
-        if self._shared_memory:
-            await self._shared_memory.set_user_preference("temporary_ai_provider", None)
+        if self._second_brain:
+            await self._second_brain.update_persona_field("temporary_ai_provider", None)
 
     def _load_reminders(self):
         """Load reminders from disk."""
@@ -665,18 +632,22 @@ class RasoAgent(BaseAgent):
     # ══════════════════════════════════════════════════════
 
     async def summarize_conversations(self, days: int = 7) -> dict:
-        """Summarize conversations over the past N days."""
-        if not self._shared_memory:
-            return {"error": "Shared memory not available"}
+        """Summarize conversations over the past N days using Second Brain."""
+        if not self._second_brain:
+            return {"error": "Second Brain not available"}
 
-        # Get all recent conversations
-        results = await self._shared_memory.recall(category="conversation", limit=100)
+        # Get all recent conversations from Second Brain
+        results = await self._second_brain.recall_conversation(limit=50)
 
-        if not results.get("results"):
+        if not results:
             return {"summary": "No conversations to summarize yet."}
 
-        # Use LLM to summarize
-        convos = [r.get("value", {}) for r in results["results"][:20]]
+        # Parse conversations
+        convos = []
+        for r in results:
+            content = r.get("node", {}).get("content", {})
+            if isinstance(content, dict) and content.get("user"):
+                convos.append(content)
 
         summary_text = self._create_summary(convos)
 

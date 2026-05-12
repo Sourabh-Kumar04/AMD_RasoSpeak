@@ -99,7 +99,7 @@ class RecordingAgent(BaseAgent):
             # Save to disk
             await self._save_session_record(session_id, record)
 
-            # Store in Second Brain (primary - with semantic search, entity extraction)
+            # Store in Second Brain (handles dual-write to legacy automatically)
             if self._second_brain:
                 # Store audio conversation transcript
                 if record.get("transcripts"):
@@ -118,14 +118,6 @@ class RecordingAgent(BaseAgent):
                         ai_provider="recording_agent",
                         context=f"session:{session_id}",
                     )
-
-            # Store in shared memory (backward compatibility)
-            if self._shared_memory:
-                await self._shared_memory.store(
-                    f"session_{session_id}",
-                    record,
-                    category="session"
-                )
 
             log.info(f"📹 Recording stopped: {session_id}, duration={record['duration_seconds']}s")
             del self._session_records[session_id]

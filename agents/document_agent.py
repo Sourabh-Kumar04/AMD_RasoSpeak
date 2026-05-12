@@ -107,7 +107,7 @@ class DocumentAgent(BaseAgent):
         # Save to disk
         await self._save_document(doc_id, document)
 
-        # Store in Second Brain (primary - with semantic search, entity extraction)
+        # Store in Second Brain (handles dual-write to legacy automatically)
         if self._second_brain:
             await self._second_brain.add_document(
                 content=content,
@@ -116,16 +116,7 @@ class DocumentAgent(BaseAgent):
                 tags=tags,
             )
 
-        # Also store in shared memory for easy recall (backward compatibility)
-        if self._shared_memory:
-            await self._shared_memory.store(
-                f"doc_{doc_id}",
-                document,
-                category="document"
-            )
-
-        # Extract and store key points in Second Brain
-        if self._second_brain:
+            # Extract and store key points
             key_points = self._extract_key_points(content)
             for point in key_points:
                 await self._second_brain.add_user_fact(

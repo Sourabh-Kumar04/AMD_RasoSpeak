@@ -102,7 +102,7 @@ class QAAgent(BaseAgent):
         # Build messages with context
         messages = [{"role": "system", "content": "You are RasoSpeak, a helpful AI assistant with perfect memory. Be concise and friendly."}]
 
-        # Add memory context if available (Second Brain primary)
+        # Add memory context from Second Brain
         if self._second_brain and session_id:
             try:
                 brain_context = await self._second_brain.get_context_for_ai("qa", max_tokens=3000)
@@ -110,15 +110,6 @@ class QAAgent(BaseAgent):
                     messages.append({"role": "system", "content": f"User context: {brain_context}"})
             except Exception as e:
                 log.warning(f"Failed to get Second Brain context: {e}")
-
-        # Fallback to shared memory
-        if self._shared_memory and session_id and len([m for m in messages if "User context" in str(m)]) == 0:
-            try:
-                memory_context = await self._shared_memory.get_context_for_ai("qa")
-                if memory_context:
-                    messages.append({"role": "system", "content": f"User context: {memory_context}"})
-            except Exception as e:
-                log.warning(f"Failed to get memory context: {e}")
 
         # Add provided context
         if context:
