@@ -28,7 +28,6 @@ import hashlib
 import json
 import logging
 import os
-import pickle
 import re
 import shutil
 import tempfile
@@ -228,16 +227,20 @@ class EmbeddingIndex:
     def save(self, path: Path):
         """Save index to disk."""
         path.parent.mkdir(parents=True, exist_ok=True)
-        data = {"node_ids": self._node_ids, "vectors": self._vectors, "dim": self._dim}
-        with open(path, "wb") as f:
-            pickle.dump(data, f)
+        data = {
+            "node_ids": self._node_ids,
+            "vectors": self._vectors,
+            "dim": self._dim
+        }
+        with open(path, "w") as f:
+            json.dump(data, f)
 
     def load(self, path: Path):
         """Load index from disk."""
         if path.exists():
             try:
-                with open(path, "rb") as f:
-                    data = pickle.load(f)
+                with open(path, "r") as f:
+                    data = json.load(f)
                 self._node_ids = data["node_ids"]
                 self._vectors = data["vectors"]
                 self._dim = data.get("dim", self._dim)

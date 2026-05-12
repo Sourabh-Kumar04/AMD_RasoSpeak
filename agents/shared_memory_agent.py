@@ -107,7 +107,7 @@ class SharedMemoryAgent(BaseAgent):
     async def get_memory_stats(self) -> dict:
         """Get stats from Second Brain. Deprecated — use /brain/stats instead."""
         if self._second_brain:
-            stats = await self._second_brain.get_stats()
+            stats = await self._second_brain.get_memory_stats()
             return {
                 "total_memories": stats.get("total_memories", 0),
                 "total_conversations": stats.get("conversations", 0),

@@ -6,12 +6,13 @@ Tracks per-chunk results, WPM, accuracy trends, and weak words.
 Feeds user history context to ScoringAgent and CoachingAgent.
 """
 
+import asyncio
 import json
 import logging
 import time
 import uuid
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from .base_agent import BaseAgent
@@ -55,6 +56,9 @@ class SessionMemoryAgent(BaseAgent):
         except Exception as e:
             log.warning(f"Redis unavailable ({e}) — using in-memory store only")
             self._redis = None
+
+        # Start background cleanup task for session TTL enforcement
+        self._cleanup_task = asyncio.create_task(self._cleanup_expired_sessions())
 
     async def create_session(self, session_id: str) -> dict:
         """Initialize a new coaching session."""
@@ -252,6 +256,25 @@ class SessionMemoryAgent(BaseAgent):
         except Exception:
             return []
 
+    async def _cleanup_expired_sessions(self):
+        """Background task: remove in-memory sessions older than session_ttl_seconds."""
+        while True:
+            await asyncio.sleep(300)  # Check every 5 minutes
+            try:
+                cutoff = datetime.utcnow() - timedelta(seconds=settings.session_ttl_seconds)
+                cutoff_ts = cutoff.timestamp()
+                removed = 0
+                for session_id in list(self._sessions.keys()):
+                    session = self._sessions[session_id]
+                    started_at = session.get("_started_at", 0)
+                    if started_at > 0 and started_at < cutoff_ts:
+                        del self._sessions[session_id]
+                        removed += 1
+                if removed > 0:
+                    log.info(f"🧹 TTL cleanup: removed {removed} expired sessions")
+            except Exception as e:
+                log.warning(f"TTL cleanup task error: {e}")
+
     async def cleanup_old_sessions(self, max_age_days: int = 30) -> int:
         """Remove sessions older than max_age_days to prevent memory leaks."""
         import time
@@ -274,6 +297,13 @@ class SessionMemoryAgent(BaseAgent):
         return len(self._sessions)
 
     async def shutdown(self):
+        # Cancel the cleanup background task
+        if hasattr(self, "_cleanup_task") and self._cleanup_task:
+            self._cleanup_task.cancel()
+            try:
+                await self._cleanup_task
+            except asyncio.CancelledError:
+                pass
         if self._redis:
             await self._redis.aclose()
         log.info("SessionMemoryAgent shut down")

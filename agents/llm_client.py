@@ -54,6 +54,12 @@ class LLMClient:
         self.provider = provider or settings.default_provider
         self._client = httpx.AsyncClient(timeout=120.0)
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        await self.close()
+
     async def close(self) -> None:
         """Close the HTTP client."""
         await self._client.aclose()
@@ -146,6 +152,68 @@ class LLMClient:
         else:
             async for chunk in self._google_stream(messages, model, temperature, max_tokens):
                 yield chunk
+
+    # ── SHARED OPENAI-COMPATIBLE HELPERS ──────────────────
+
+    async def _openai_compatible_chat(
+        self,
+        messages: list[dict[str, str]],
+        model: Optional[str],
+        temperature: float,
+        max_tokens: int,
+        url: str,
+        api_key: str,
+        headers_extra: Optional[dict] = None,
+    ) -> dict[str, str]:
+        """OpenAI-compatible non-streaming chat (used by nvidia, openai, openrouter, opencode, deepseek, xai, huggingface)."""
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        if headers_extra:
+            headers.update(headers_extra)
+        body = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        resp = await self._client.post(url, headers=headers, json=body)
+        resp.raise_for_status()
+        data = resp.json()
+        return {
+            "content": data["choices"][0]["message"]["content"],
+            "finish_reason": data["choices"][0].get("finish_reason", "stop"),
+        }
+
+    async def _openai_compatible_stream(
+        self,
+        messages: list[dict[str, str]],
+        model: Optional[str],
+        temperature: float,
+        max_tokens: int,
+        url: str,
+        api_key: str,
+        headers_extra: Optional[dict] = None,
+    ) -> AsyncIterator[str]:
+        """OpenAI-compatible streaming (used by nvidia, openai, openrouter, deepseek)."""
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        if headers_extra:
+            headers.update(headers_extra)
+        body = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        async with self._client.stream("POST", url, headers=headers, json=body) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if line.startswith("data: "):
+                    if line.strip() == "data: [DONE]":
+                        break
+                    data = json.loads(line[6:])
+                    delta = data.get("choices", [{}])[0].get("delta", {})
+                    if delta.get("content"):
+                        yield delta["content"]
 
     # ── GOOGLE GEMINI ───────────────────────────────────
     async def _google_chat(
@@ -248,25 +316,10 @@ class LLMClient:
         config = settings.get_provider_config("nvidia")
         if not config.get("api_key"):
             raise ValueError("NVIDIA API key not configured")
-
-        url = f"{config['base_url']}/chat/completions"
-        headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json"}
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-
-        resp = await self._client.post(url, headers=headers, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-
-        return {
-            "content": data["choices"][0]["message"]["content"],
-            "finish_reason": data["choices"][0]["finish_reason"],
-        }
+        return await self._openai_compatible_chat(
+            messages, model or config["model"], temperature, max_tokens,
+            f"{config['base_url']}/chat/completions", config["api_key"]
+        )
 
     async def _nvidia_stream(
         self,
@@ -279,28 +332,11 @@ class LLMClient:
         config = settings.get_provider_config("nvidia")
         if not config.get("api_key"):
             raise ValueError("NVIDIA API key not configured")
-
-        url = f"{config['base_url']}/chat/completions"
-        headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json"}
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": True,
-        }
-
-        async with self._client.stream("POST", url, headers=headers, json=body) as resp:
-            resp.raise_for_status()
-            async for line in resp.aiter_lines():
-                if line.startswith("data: "):
-                    if line.strip() == "data: [DONE]":
-                        break
-                    data = json.loads(line[6:])
-                    delta = data.get("choices", [{}])[0].get("delta", {})
-                    if delta.get("content"):
-                        yield delta["content"]
+        async for chunk in self._openai_compatible_stream(
+            messages, model or config["model"], temperature, max_tokens,
+            f"{config['base_url']}/chat/completions", config["api_key"]
+        ):
+            yield chunk
 
     # ── OPENAI ──────────────────────────────────────────
     async def _openai_chat(
@@ -314,25 +350,10 @@ class LLMClient:
         config = settings.get_provider_config("openai")
         if not config.get("api_key"):
             raise ValueError("OpenAI API key not configured")
-
-        url = f"{config['base_url']}/chat/completions"
-        headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json"}
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-
-        resp = await self._client.post(url, headers=headers, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-
-        return {
-            "content": data["choices"][0]["message"]["content"],
-            "finish_reason": data["choices"][0]["finish_reason"],
-        }
+        return await self._openai_compatible_chat(
+            messages, model or config["model"], temperature, max_tokens,
+            f"{config['base_url']}/chat/completions", config["api_key"]
+        )
 
     async def _openai_stream(
         self,
@@ -345,28 +366,11 @@ class LLMClient:
         config = settings.get_provider_config("openai")
         if not config.get("api_key"):
             raise ValueError("OpenAI API key not configured")
-
-        url = f"{config['base_url']}/chat/completions"
-        headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json"}
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": True,
-        }
-
-        async with self._client.stream("POST", url, headers=headers, json=body) as resp:
-            resp.raise_for_status()
-            async for line in resp.aiter_lines():
-                if line.startswith("data: "):
-                    if line.strip() == "data: [DONE]":
-                        break
-                    data = json.loads(line[6:])
-                    delta = data.get("choices", [{}])[0].get("delta", {})
-                    if delta.get("content"):
-                        yield delta["content"]
+        async for chunk in self._openai_compatible_stream(
+            messages, model or config["model"], temperature, max_tokens,
+            f"{config['base_url']}/chat/completions", config["api_key"]
+        ):
+            yield chunk
 
     # ── ANTHROPIC ───────────────────────────────────────
     async def _anthropic_chat(
@@ -471,25 +475,12 @@ class LLMClient:
         config = settings.get_provider_config("huggingface")
         if not config.get("api_key"):
             raise ValueError("HuggingFace API key not configured")
-
         model_name = model or config["model"]
-        url = f"https://api-inference.huggingface.co/models/{model_name}/v1/chat/completions"
-        headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json"}
-
-        body = {
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-
-        resp = await self._client.post(url, headers=headers, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-
-        return {
-            "content": data["choices"][0]["message"]["content"],
-            "finish_reason": data["choices"][0].get("finish_reason", "stop"),
-        }
+        return await self._openai_compatible_chat(
+            messages, model_name, temperature, max_tokens,
+            f"https://api-inference.huggingface.co/models/{model_name}/v1/chat/completions",
+            config["api_key"]
+        )
 
     # ── OPENROUTER ──────────────────────────────────────
     async def _openrouter_chat(
@@ -503,30 +494,14 @@ class LLMClient:
         config = settings.get_provider_config("openrouter")
         if not config.get("api_key"):
             raise ValueError("OpenRouter API key not configured")
-
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {config['api_key']}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://rasospeak.ai",
-            "X-Title": "RasoSpeak",
-        }
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-
-        resp = await self._client.post(url, headers=headers, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-
-        return {
-            "content": data["choices"][0]["message"]["content"],
-            "finish_reason": data["choices"][0]["finish_reason"],
-        }
+        return await self._openai_compatible_chat(
+            messages, model or config["model"], temperature, max_tokens,
+            "https://openrouter.ai/api/v1/chat/completions", config["api_key"],
+            headers_extra={
+                "HTTP-Referer": "https://rasospeak.ai",
+                "X-Title": "RasoSpeak",
+            }
+        )
 
     async def _openrouter_stream(
         self,
@@ -539,33 +514,15 @@ class LLMClient:
         config = settings.get_provider_config("openrouter")
         if not config.get("api_key"):
             raise ValueError("OpenRouter API key not configured")
-
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {config['api_key']}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://rasospeak.ai",
-            "X-Title": "RasoSpeak",
-        }
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": True,
-        }
-
-        async with self._client.stream("POST", url, headers=headers, json=body) as resp:
-            resp.raise_for_status()
-            async for line in resp.aiter_lines():
-                if line.startswith("data: "):
-                    if line.strip() == "data: [DONE]":
-                        break
-                    data = json.loads(line[6:])
-                    delta = data.get("choices", [{}])[0].get("delta", {})
-                    if delta.get("content"):
-                        yield delta["content"]
+        async for chunk in self._openai_compatible_stream(
+            messages, model or config["model"], temperature, max_tokens,
+            "https://openrouter.ai/api/v1/chat/completions", config["api_key"],
+            headers_extra={
+                "HTTP-Referer": "https://rasospeak.ai",
+                "X-Title": "RasoSpeak",
+            }
+        ):
+            yield chunk
 
     # ── OPENCODE ────────────────────────────────────────
     async def _opencode_chat(
@@ -579,25 +536,10 @@ class LLMClient:
         config = settings.get_provider_config("opencode")
         if not config.get("api_key"):
             raise ValueError("OpenCode API key not configured")
-
-        url = f"{config['base_url']}/chat/completions"
-        headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json"}
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-
-        resp = await self._client.post(url, headers=headers, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-
-        return {
-            "content": data["choices"][0]["message"]["content"],
-            "finish_reason": data["choices"][0]["finish_reason"],
-        }
+        return await self._openai_compatible_chat(
+            messages, model or config["model"], temperature, max_tokens,
+            f"{config['base_url']}/chat/completions", config["api_key"]
+        )
 
     # ── XAI (GROK) ─────────────────────────────────────
     async def _xai_chat(
@@ -611,25 +553,10 @@ class LLMClient:
         config = settings.get_provider_config("xai")
         if not config.get("api_key"):
             raise ValueError("xAI API key not configured")
-
-        url = "https://api.x.ai/v1/chat/completions"
-        headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json"}
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-
-        resp = await self._client.post(url, headers=headers, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-
-        return {
-            "content": data["choices"][0]["message"]["content"],
-            "finish_reason": data["choices"][0]["finish_reason"],
-        }
+        return await self._openai_compatible_chat(
+            messages, model or config["model"], temperature, max_tokens,
+            "https://api.x.ai/v1/chat/completions", config["api_key"]
+        )
 
     # ── DEEPSEEK ────────────────────────────────────────
     async def _deepseek_chat(
@@ -643,25 +570,10 @@ class LLMClient:
         config = settings.get_provider_config("deepseek")
         if not config.get("api_key"):
             raise ValueError("DeepSeek API key not configured")
-
-        url = f"{config['base_url']}/chat/completions"
-        headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json"}
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-
-        resp = await self._client.post(url, headers=headers, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-
-        return {
-            "content": data["choices"][0]["message"]["content"],
-            "finish_reason": data["choices"][0]["finish_reason"],
-        }
+        return await self._openai_compatible_chat(
+            messages, model or config["model"], temperature, max_tokens,
+            f"{config['base_url']}/chat/completions", config["api_key"]
+        )
 
     async def _deepseek_stream(
         self,
@@ -674,28 +586,11 @@ class LLMClient:
         config = settings.get_provider_config("deepseek")
         if not config.get("api_key"):
             raise ValueError("DeepSeek API key not configured")
-
-        url = f"{config['base_url']}/chat/completions"
-        headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json"}
-
-        body = {
-            "model": model or config["model"],
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": True,
-        }
-
-        async with self._client.stream("POST", url, headers=headers, json=body) as resp:
-            resp.raise_for_status()
-            async for line in resp.aiter_lines():
-                if line.startswith("data: "):
-                    if line.strip() == "data: [DONE]":
-                        break
-                    data = json.loads(line[6:])
-                    delta = data.get("choices", [{}])[0].get("delta", {})
-                    if delta.get("content"):
-                        yield delta["content"]
+        async for chunk in self._openai_compatible_stream(
+            messages, model or config["model"], temperature, max_tokens,
+            f"{config['base_url']}/chat/completions", config["api_key"]
+        ):
+            yield chunk
 
 
 def create_llm_client(provider: Optional[str] = None) -> LLMClient:

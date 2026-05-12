@@ -12,13 +12,13 @@ Supported formats:
 
 import json
 import logging
-import re
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import httpx
+from bs4 import BeautifulSoup
 
 from .base_agent import BaseAgent
 from .shared_memory_agent import SharedMemoryAgent
@@ -351,24 +351,15 @@ class DocumentAgent(BaseAgent):
         path.write_text(json.dumps(document, indent=2))
 
     def _extract_text_from_html(self, html: str) -> str:
-        """Extract readable text from HTML."""
-        # Remove script and style
-        text = re.sub(r'<script.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r'<style.*?</style>', '', text, flags=re.DOTALL | re.IGNORECASE)
-
-        # Replace common tags with newlines
-        text = re.sub(r'</div>', '\n', text, flags=re.IGNORECASE)
-        text = re.sub(r'</p>', '\n', text, flags=re.IGNORECASE)
-        text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
-
-        # Remove remaining tags
-        text = re.sub(r'<[^>]+>', '', text)
-
+        """Extract readable text from HTML using BeautifulSoup."""
+        soup = BeautifulSoup(html, "html.parser")
+        # Remove script and style elements
+        for tag in soup(["script", "style", "nav", "header", "footer", "aside"]):
+            tag.decompose()
+        text = soup.get_text(separator="\n")
         # Clean up whitespace
-        text = re.sub(r'\n\s*\n', '\n\n', text)
-        text = text.strip()
-
-        return text[:50000]  # Limit to 50k chars
+        lines = [line.strip() for line in text.split("\n") if line.strip()]
+        return "\n".join(lines)[:50000]
 
     def _extract_key_points(self, content: str) -> list:
         """Extract key points from content for memory."""
