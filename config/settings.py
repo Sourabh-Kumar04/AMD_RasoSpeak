@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     """
 
     # ── DEFAULT LLM PROVIDER ─────────────────────────────
-    default_provider: str = os.getenv("DEFAULT_PROVIDER", "google")
+    default_provider: str = os.getenv("DEFAULT_PROVIDER", "nvidia")
 
     # ── GOOGLE GEMINI ───────────────────────────────────
     google_api_key: str = os.getenv("GOOGLE_API_KEY", "")

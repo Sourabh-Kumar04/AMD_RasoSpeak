@@ -404,7 +404,7 @@ async def get_session_insights(session_id: str):
 
 class QARequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2_000)
-    provider: str | None = Field(default=None, pattern="^(openai|anthropic|google|xai|qwen_local)$")
+    provider: str | None = Field(default=None, pattern="^(openai|anthropic|google|google|xai|nvidia|deepseek|huggingface|openrouter|opencode)$")
     context: str | None = Field(default=None, max_length=10_000)
     stream_to_earpiece: bool = True
 
