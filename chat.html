@@ -313,71 +313,71 @@ function clearChat() {
 }
 
 // Toggle voice input
-function toggleVoice() {
-  voiceEnabled = !voiceEnabled;
-  const btn = document.getElementById('voice-btn');
-
+async function toggleVoice() {
   if (voiceEnabled) {
-    btn.classList.add('bg-emerald-500', 'text-white');
-    btn.classList.remove('bg-gray-100');
-    startVoiceRecognition();
-    showToast('Voice enabled - speak now');
-  } else {
+    // Turn off
+    voiceEnabled = false;
+    const btn = document.getElementById('voice-btn');
     btn.classList.remove('bg-emerald-500', 'text-white');
     btn.classList.add('bg-gray-100');
     stopVoiceRecognition();
     showToast('Voice disabled');
+    return;
   }
-}
 
-// Start voice recognition
-async function startVoiceRecognition() {
-  // Request microphone permission first
+  // Turn on - request microphone permission first
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach(track => track.stop()); // Stop immediately after permission check
+    stream.getTracks().forEach(track => track.stop());
   } catch (err) {
     showToast('Microphone permission denied');
-    voiceEnabled = false;
-    document.getElementById('voice-btn').classList.remove('bg-emerald-500', 'text-white');
-    document.getElementById('voice-btn').classList.add('bg-gray-100');
     return;
   }
 
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    showToast('Voice recognition not supported');
-    voiceEnabled = false;
+  // Check for Web Speech API
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast('Voice not supported in this browser');
     return;
   }
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
+  // Enable and start
+  voiceEnabled = true;
+  const btn = document.getElementById('voice-btn');
+  btn.classList.add('bg-emerald-500', 'text-white');
+  btn.classList.remove('bg-gray-100');
+  showToast('Voice enabled - speak now');
+
+  recognition = new SR();
+  recognition.continuous = true;
   recognition.interimResults = true;
 
   recognition.onresult = (event) => {
-    const transcript = Array.from(event.results)
-      .map(result => result[0].transcript)
-      .join('');
-
-    document.getElementById('chat-input').value = transcript;
-
-    if (event.results[0].isFinal) {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        transcript += event.results[i][0].transcript + ' ';
+      }
+    }
+    if (transcript.trim()) {
+      document.getElementById('chat-input').value = transcript.trim();
       sendMessage();
     }
   };
 
   recognition.onerror = (event) => {
     console.error('Voice error:', event.error);
-    if (event.error !== 'no-speech') {
-      showToast(`Voice error: ${event.error}`);
+    if (event.error !== 'no-speech' && event.error !== 'aborted') {
+      showToast('Voice error: ' + event.error);
+    }
+    if (voiceEnabled) {
+      setTimeout(() => { try { recognition.start(); } catch(e) {} }, 1000);
     }
   };
 
   recognition.onend = () => {
     if (voiceEnabled) {
-      // Restart if still enabled
-      recognition.start();
+      setTimeout(() => { try { recognition.start(); } catch(e) {} }, 500);
     }
   };
 
@@ -387,7 +387,7 @@ async function startVoiceRecognition() {
 // Stop voice recognition
 function stopVoiceRecognition() {
   if (recognition) {
-    recognition.stop();
+    try { recognition.stop(); } catch(e) {}
     recognition = null;
   }
 }
