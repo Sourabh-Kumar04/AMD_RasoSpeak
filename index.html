@@ -57,6 +57,7 @@
         <div id="wake-pulse" class="absolute inset-0 w-20 h-20 rounded-full bg-emerald-500/40 animate-ping -z-10 hidden"></div>
       </div>
       <p id="wake-status" class="mt-4 text-sm text-gray-500">Click to start listening</p>
+      <p class="text-xs text-gray-400 mt-2">Brave: Allow microphone in <span class="font-mono">brave://settings/content</span></p>
     </div>
   </section>
 
@@ -183,34 +184,53 @@ function toggleWakeMode() {
 
 function startWakeDetection() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  // Check browser support
+  const isBrave = navigator.userAgent.includes('Braves');
+  const isChrome = navigator.userAgent.includes('Chrome') && !isBrave;
+  const isEdge = navigator.userAgent.includes('Edg');
+
   if (!SR) {
-    toast('Voice not supported in this browser - use Chrome or Edge');
+    if (isBrave) {
+      toast('Brave: Enable speech in settings → Shields → Global defaults');
+    } else {
+      toast('Voice not supported - use Chrome or Edge');
+    }
     wakeModeActive = false;
     return;
   }
+
+  // Check microphone permission explicitly
+  navigator.permissions.query({ name: 'microphone' }).then(result => {
+    if (result.state === 'denied') {
+      toast('Microphone blocked - click lock icon in address bar to allow');
+      wakeModeActive = false;
+      document.getElementById('wake-btn').classList.remove('ring-4', 'ring-emerald-500/30');
+      document.getElementById('wake-pulse').classList.add('hidden');
+      return;
+    }
+  }).catch(e => console.log('Permission check failed:', e));
 
   console.log('Starting wake detection...');
 
   wakeRecognition = new SR();
   wakeRecognition.continuous = true;
   wakeRecognition.interimResults = false;
+  wakeRecognition.lang = 'en-US';
 
   wakeRecognition.onresult = (event) => {
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript.toLowerCase().trim();
       console.log('Heard:', transcript);
       if (transcript.includes('hey raso') || transcript.includes('hey')) {
-        // Wake word detected
         const status = document.getElementById('wake-status');
         status.textContent = '👋 "Hey Raso" activated!';
         toast('Hey Raso activated!');
 
-        // Visual feedback
         const btn = document.getElementById('wake-btn');
         btn.classList.add('bg-yellow-500');
         btn.classList.remove('bg-emerald-500');
 
-        // Auto-redirect to chat
         setTimeout(() => {
           window.location.href = 'chat.html';
         }, 2000);
@@ -220,14 +240,19 @@ function startWakeDetection() {
 
   wakeRecognition.onerror = (event) => {
     console.error('Wake detection error:', event.error);
-    if (event.error !== 'no-speech' && event.error !== 'aborted') {
-      toast('Voice error: ' + event.error);
+    const ignorable = ['no-speech', 'aborted'];
+    if (!ignorable.includes(event.error)) {
+      if (event.error === 'network') {
+        toast('Network error - check internet connection');
+      } else if (event.error === 'not-allowed') {
+        toast('Microphone not allowed - check browser permissions');
+      } else {
+        toast('Voice error: ' + event.error);
+      }
     }
     if (wakeModeActive && event.error !== 'aborted') {
       setTimeout(() => {
-        try { wakeRecognition.start(); } catch(e) {
-          console.error('Failed to restart:', e);
-        }
+        try { wakeRecognition.start(); } catch(e) { console.error('Restart failed:', e); }
       }, 2000);
     }
   };
@@ -236,9 +261,7 @@ function startWakeDetection() {
     console.log('Recognition ended');
     if (wakeModeActive) {
       setTimeout(() => {
-        try { wakeRecognition.start(); } catch(e) {
-          console.error('Failed to restart after end:', e);
-        }
+        try { wakeRecognition.start(); } catch(e) { console.error('Restart failed:', e); }
       }, 500);
     }
   };
