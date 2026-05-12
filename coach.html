@@ -373,49 +373,89 @@ function togglePractice() {
 
 // Start recording
 function startRecording() {
-  showToast('Recording started - speak the current chunk');
+  showToast('Listen first, then speak...');
+  practiceRunning = true;
 
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    showToast('Speech not supported - use Chrome or Edge');
-    return;
-  }
-
-  // Request permission first
+  // Check microphone permission
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(stream => {
       stream.getTracks().forEach(track => track.stop());
-      startSpeechRecognition();
+      startCoachSession();
     })
     .catch(err => {
       showToast('Microphone permission denied');
+      practiceRunning = false;
     });
 }
 
-function startSpeechRecognition() {
+function startCoachSession() {
+  const currentChunk = chunks[currentChunkIndex];
+  if (!currentChunk) {
+    showToast('No chunk to practice');
+    return;
+  }
+
+  const btn = document.getElementById('practice-btn');
+  btn.innerHTML = '🎤 Speaking...';
+  btn.disabled = true;
+
+  // Step 1: Speak the chunk aloud (TTS)
+  const utterance = new SpeechSynthesisUtterance(currentChunk);
+  utterance.rate = 0.85;
+  utterance.pitch = 1;
+
+  utterance.onend = () => {
+    showToast('Now speak the same text...');
+
+    // Step 2: Start recording user
+    setTimeout(() => {
+      startUserRecording();
+    }, 500);
+  };
+
+  utterance.onerror = () => {
+    showToast('TTS failed - start speaking now');
+    startUserRecording();
+  };
+
+  speechSynthesis.speak(utterance);
+}
+
+let userTranscript = '';
+
+function startUserRecording() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast('Speech not supported');
+    return;
+  }
+
+  userTranscript = '';
   window.coachRecognition = new SR();
   window.coachRecognition.continuous = true;
   window.coachRecognition.interimResults = true;
   window.coachRecognition.lang = 'en-US';
+
+  const btn = document.getElementById('practice-btn');
+  btn.innerHTML = '🎤 Recording... (click to stop)';
+  btn.disabled = false;
+  btn.onclick = stopRecording;
 
   window.coachRecognition.onresult = (event) => {
     let finalText = '';
     for (let i = event.resultIndex; i < event.results.length; i++) {
       if (event.results[i].isFinal) {
         finalText += event.results[i][0].transcript + ' ';
+        userTranscript += event.results[i][0].transcript + ' ';
       }
     }
 
-    if (finalText.trim()) {
-      document.getElementById('feedback-content').innerHTML = `
-        <p class="text-sm text-gray-600">You said: <strong>${finalText.trim()}</strong></p>
-      `;
-    }
+    document.getElementById('feedback-content').innerHTML = `
+      <p class="text-sm text-gray-600">You said: <strong>${userTranscript.trim()}</strong></p>
+    `;
   };
 
   window.coachRecognition.onerror = (event) => {
-    console.error('Speech error:', event.error);
     if (event.error !== 'no-speech' && event.error !== 'aborted') {
       showToast('Speech error: ' + event.error);
     }
@@ -430,54 +470,85 @@ function startSpeechRecognition() {
   };
 
   window.coachRecognition.start();
+  showToast('Speak the text you heard!');
 }
 
 // Stop recording
 async function stopRecording() {
+  practiceRunning = false;
+
   if (window.coachRecognition) {
     try { window.coachRecognition.stop(); } catch(e) {}
     window.coachRecognition = null;
   }
-  showToast('Recording stopped');
 
-  practiceRunning = false;
+  speechSynthesis.cancel(); // Stop any TTS
+
   const btn = document.getElementById('practice-btn');
   btn.innerHTML = '<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  btn.onclick = togglePractice;
 
-  // Show evaluation
-  const accuracy = Math.floor(Math.random() * 30) + 70;
-  const fluency = Math.floor(Math.random() * 20) + 75;
-  const wpm = Math.floor(Math.random() * 60) + 120;
+  const currentChunk = chunks[currentChunkIndex];
+  const spoken = userTranscript.trim();
 
-  sessionStats.chunks_done++;
-  sessionStats.accuracy_sum += accuracy;
-  sessionStats.wpm_sum += wpm;
+  // Simple word match comparison
+  const chunkWords = currentChunk.toLowerCase().split(/\s+/);
+  const spokenWords = spoken.toLowerCase().split(/\s+/);
+
+  let matches = 0;
+  chunkWords.forEach(word => {
+    if (spokenWords.includes(word)) matches++;
+  });
+
+  const accuracy = Math.round((matches / chunkWords.length) * 100);
+  const wpm = Math.round(spokenWords.length * 2); // Rough estimate
+  const threshold = 75;
 
   document.getElementById('feedback-content').innerHTML = `
     <div class="text-left">
-      <p class="font-medium text-emerald-600 mb-2">Here's your feedback:</p>
+      <p class="font-medium ${accuracy >= threshold ? 'text-emerald-600' : 'text-orange-600'} mb-2">
+        ${accuracy >= threshold ? '✓ Great job!' : '↻ Try again'}
+      </p>
       <div class="grid grid-cols-3 gap-4 mb-4">
         <div class="text-center p-3 bg-blue-50 rounded-lg">
           <div class="text-2xl font-bold text-blue-600">${accuracy}%</div>
           <div class="text-xs text-gray-500">Accuracy</div>
         </div>
         <div class="text-center p-3 bg-purple-50 rounded-lg">
-          <div class="text-2xl font-bold text-purple-600">${fluency}%</div>
-          <div class="text-xs text-gray-500">Fluency</div>
-        </div>
-        <div class="text-center p-3 bg-emerald-50 rounded-lg">
-          <div class="text-2xl font-bold text-emerald-600">${wpm}</div>
+          <div class="text-2xl font-bold text-purple-600">${wpm}</div>
           <div class="text-xs text-gray-500">WPM</div>
         </div>
+        <div class="text-center p-3 bg-emerald-50 rounded-lg">
+          <div class="text-2xl font-bold text-emerald-600">${threshold}%</div>
+          <div class="text-xs text-gray-500">Need</div>
+        </div>
       </div>
-      ${accuracy >= 80 ? '<p class="text-emerald-600">Excellent! Move on to the next chunk.</p>' : '<p class="text-orange-600">Keep practicing this chunk for better accuracy.</p>'}
+      <p class="text-sm text-gray-500">Expected: ${currentChunk}</p>
+      <p class="text-sm text-gray-500">You said: ${spoken || '(nothing)'}</p>
     </div>
   `;
 
-  updateProgress();
-  renderChunks();
-  updateScoreDisplay(accuracy, fluency, wpm);
-  storeMemory(currentChunkIndex, accuracy, wpm);
+  if (accuracy >= threshold) {
+    sessionStats.chunks_done++;
+    sessionStats.accuracy_sum += accuracy;
+    sessionStats.wpm_sum += wpm;
+    localStorage.setItem(`chunk_${currentSessionId}_${currentChunkIndex}`, 'complete');
+
+    showToast('✓ Correct! Moving to next chunk...');
+    setTimeout(() => {
+      if (currentChunkIndex < chunks.length - 1) {
+        currentChunkIndex++;
+        updateCurrentChunk();
+        renderChunks();
+        updateProgress();
+        showToast(`Chunk ${currentChunkIndex + 1} of ${chunks.length}`);
+      } else {
+        showToast('🎉 Practice complete!');
+      }
+    }, 1500);
+  } else {
+    showToast(`Need ${threshold}% accuracy - try again`);
+  }
 }
 
 // Store memory of practice
