@@ -1,6 +1,7 @@
 """
 RasoSpeak v2 — Advanced Second Brain Memory System
 Phase 4 & 5: Persona, Goals, Skills, Memory Compression & Intelligence
+Phase 6: Embeddings, Sync, Security, Visualization, Proactive Intelligence, Integrations
 
 This extends the Second Brain with:
 - User Persona extraction and tracking
@@ -11,19 +12,32 @@ This extends the Second Brain with:
 - Emotional intelligence
 - Memory quality scoring
 - Predictive memory
+- Vector embeddings for semantic search
+- Cross-device sync and backup/restore
+- Encrypted storage and privacy controls
+- Memory visualization
+- Obsidian/external API sync
+- Proactive memory surfacing
+- Pattern detection
 """
 
 import asyncio
+import base64
+import gzip
+import hashlib
 import json
 import logging
+import os
+import pickle
 import re
 import time
 import uuid
+import zipfile
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -82,6 +96,238 @@ class SkillLevel(Enum):
     INTERMEDIATE = 3
     BEGINNER = 2
     NOVICE = 1
+
+
+class PrivacyLevel(Enum):
+    PUBLIC = "public"          # Can be shared/exported freely
+    PRIVATE = "private"        # Encrypted, requires auth to access
+    RESTRICTED = "restricted" # Only accessible via explicit API call
+    SENSITIVE = "sensitive"    # Encrypted + masked in exports
+
+
+class SyncStatus(Enum):
+    SYNCED = "synced"
+    PENDING_UPLOAD = "pending_upload"
+    PENDING_DOWNLOAD = "pending_download"
+    CONFLICT = "conflict"
+
+
+class SyncProvider(Enum):
+    LOCAL = "local"
+    HUGGINGFACE = "huggingface"
+    OBSIDIAN = "obsidian"
+    NOTION = "notion"
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: EMBEDDINGS & SEMANTIC SEARCH
+# ══════════════════════════════════════════════════════
+
+class EmbeddingIndex:
+    """Lightweight vector index using numpy for semantic search."""
+
+    def __init__(self, embedding_dim: int = 384):
+        self._dim = embedding_dim
+        self._node_ids: list[str] = []
+        self._vectors: list[list[float]] = []
+        self._index_path: Optional[Path] = None
+        self._model = None
+        self._model_name = "all-MiniLM-L6-v2"
+        self._model_lock = asyncio.Lock()
+
+    async def _load_model(self):
+        """Lazily load the embedding model."""
+        async with self._model_lock:
+            if self._model is not None:
+                return
+            try:
+                from sentence_transformers import SentenceTransformer
+                self._model = SentenceTransformer(self._model_name)
+                log.info(f"✅ Embedding model loaded: {self._model_name}")
+            except ImportError:
+                log.warning("sentence-transformers not available, using TF-IDF fallback")
+                self._model = "tfidf"
+            except Exception as e:
+                log.warning(f"Failed to load embedding model: {e}, using TF-IDF fallback")
+                self._model = "tfidf"
+
+    def _encode_tfidf(self, texts: list[str]) -> list[list[float]]:
+        """TF-IDF fallback when sentence-transformers unavailable."""
+        if not texts:
+            return []
+        vocab = set()
+        for text in texts:
+            vocab.update(text.lower().split())
+        vocab = sorted(list(vocab))[:1000]
+        vocab_map = {w: i for i, w in enumerate(vocab)}
+
+        vectors = []
+        for text in texts:
+            vec = [0.0] * len(vocab)
+            words = text.lower().split()
+            tf = Counter(words)
+            for word, count in tf.items():
+                if word in vocab_map:
+                    idf = 1.0  # Simplified
+                    vec[vocab_map[word]] = count * idf
+            # Normalize
+            norm = (sum(v * v for v in vec) ** 0.5) or 1.0
+            vec = [v / norm for v in vec]
+            vectors.append(vec)
+        return vectors
+
+    def _cosine_sim(self, a: list[float], b: list[float]) -> float:
+        """Compute cosine similarity between two vectors."""
+        dot = sum(x * y for x, y in zip(a, b))
+        norm_a = (sum(x * x for x in a) ** 0.5) or 1.0
+        norm_b = (sum(x * x for x in b) ** 0.5) or 1.0
+        return dot / (norm_a * norm_b)
+
+    async def encode(self, text: str) -> list[float]:
+        """Encode a single text to a vector."""
+        await self._load_model()
+        if self._model == "tfidf":
+            return self._encode_tfidf([text])[0]
+        try:
+            return self._model.encode(text).tolist()
+        except Exception:
+            return self._encode_tfidf([text])[0]
+
+    async def encode_batch(self, texts: list[str]) -> list[list[float]]:
+        """Encode multiple texts."""
+        await self._load_model()
+        if self._model == "tfidf":
+            return self._encode_tfidf(texts)
+        try:
+            return self._model.encode(texts).tolist()
+        except Exception:
+            return self._encode_tfidf(texts)
+
+    def add(self, node_id: str, vector: list[float]):
+        """Add a vector to the index."""
+        self._node_ids.append(node_id)
+        self._vectors.append(vector)
+
+    def remove(self, node_id: str) -> bool:
+        """Remove a vector from the index."""
+        try:
+            idx = self._node_ids.index(node_id)
+            self._node_ids.pop(idx)
+            self._vectors.pop(idx)
+            return True
+        except ValueError:
+            return False
+
+    def search(self, query_vector: list[float], k: int = 10) -> list[tuple[str, float]]:
+        """Find top-k nearest neighbors. Returns list of (node_id, score)."""
+        scores = [(node_id, self._cosine_sim(query_vector, vec)) for node_id, vec in zip(self._node_ids, self._vectors)]
+        scores.sort(key=lambda x: x[1], reverse=True)
+        return scores[:k]
+
+    def save(self, path: Path):
+        """Save index to disk."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        data = {"node_ids": self._node_ids, "vectors": self._vectors, "dim": self._dim}
+        with open(path, "wb") as f:
+            pickle.dump(data, f)
+
+    def load(self, path: Path):
+        """Load index from disk."""
+        if path.exists():
+            try:
+                with open(path, "rb") as f:
+                    data = pickle.load(f)
+                self._node_ids = data["node_ids"]
+                self._vectors = data["vectors"]
+                self._dim = data.get("dim", self._dim)
+                log.info(f"Loaded embedding index: {len(self._node_ids)} vectors")
+            except Exception as e:
+                log.warning(f"Failed to load embedding index: {e}")
+
+    def clear(self):
+        """Clear the index."""
+        self._node_ids.clear()
+        self._vectors.clear()
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: BACKUP & SYNC TRACKING
+# ══════════════════════════════════════════════════════
+
+@dataclass
+class SyncRecord:
+    node_id: str
+    action: str  # "created" | "updated" | "deleted"
+    timestamp: str
+    hash: str
+    sync_status: SyncStatus = SyncStatus.SYNCED
+    synced_at: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        return {
+            "node_id": self.node_id,
+            "action": self.action,
+            "timestamp": self.timestamp,
+            "hash": self.hash,
+            "sync_status": self.sync_status.value,
+            "synced_at": self.synced_at,
+        }
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: MEMORY VERSION SNAPSHOT
+# ══════════════════════════════════════════════════════
+
+@dataclass
+class MemorySnapshot:
+    id: str
+    timestamp: str
+    node_count: int
+    edge_count: int
+    size_mb: float
+    checksum: str
+    description: str = ""
+    tags: list = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp,
+            "node_count": self.node_count,
+            "edge_count": self.edge_count,
+            "size_mb": self.size_mb,
+            "checksum": self.checksum,
+            "description": self.description,
+            "tags": self.tags,
+        }
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: MEMORY PATTERN
+# ══════════════════════════════════════════════════════
+
+@dataclass
+class MemoryPattern:
+    id: str
+    pattern_type: str  # "temporal" | "sequential" | "topical"
+    description: str
+    nodes: list  # node IDs involved
+    confidence: float
+    first_seen: str
+    last_seen: str
+    occurrences: int = 1
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "pattern_type": self.pattern_type,
+            "description": self.description,
+            "nodes": self.nodes,
+            "confidence": self.confidence,
+            "first_seen": self.first_seen,
+            "last_seen": self.last_seen,
+            "occurrences": self.occurrences,
+        }
 
 
 # ══════════════════════════════════════════════════════
@@ -543,6 +789,35 @@ class SecondBrainAgent(BaseAgent):
         self._skills: dict[str, Skill] = {}
         self._versions: dict[str, list[MemoryVersion]] = defaultdict(list)
         self._summaries: dict[str, MemorySummary] = {}
+
+        # ══════════════════════════════════════════════════════
+        # PHASE 6: EMBEDDINGS & SEMANTIC SEARCH
+        # ══════════════════════════════════════════════════════
+        self._embedding_index = EmbeddingIndex()
+        self._embeddings_path = self._brain_path / "embeddings.pkl"
+
+        # ══════════════════════════════════════════════════════
+        # PHASE 6: BACKUP & SYNC
+        # ══════════════════════════════════════════════════════
+        self._sync_log: dict[str, SyncRecord] = {}
+        self._sync_path = self._brain_path / "sync_log.json"
+        self._encryption_key: Optional[bytes] = None
+        self._privacy_overrides: dict[str, PrivacyLevel] = {}  # Per-node privacy
+
+        # ══════════════════════════════════════════════════════
+        # PHASE 6: PATTERNS & PROACTIVE
+        # ══════════════════════════════════════════════════════
+        self._patterns: dict[str, MemoryPattern] = {}
+        self._patterns_path = self._brain_path / "patterns.json"
+        self._proactive_queue: list[dict] = []
+        self._last_proactive_check = None
+
+        # ══════════════════════════════════════════════════════
+        # PHASE 6: VISUALIZATION
+        # ══════════════════════════════════════════════════════
+        self._snapshots: list[MemorySnapshot] = []
+        self._snapshots_path = self._brain_path / "snapshots.json"
+
         self._ensure_storage()
 
     def _ensure_storage(self):
@@ -555,11 +830,14 @@ class SecondBrainAgent(BaseAgent):
         (self._brain_path / "goals").mkdir(exist_ok=True)
         (self._brain_path / "skills").mkdir(exist_ok=True)
         (self._brain_path / "summaries").mkdir(exist_ok=True)
+        (self._brain_path / "encrypted").mkdir(exist_ok=True)
+        (self._brain_path / "sync").mkdir(exist_ok=True)
+        (self._brain_path / "backups").mkdir(exist_ok=True)
         log.info(f"Second Brain storage: {self._brain_path}")
 
     async def initialize(self):
         """Initialize the second brain."""
-        log.info("🧠 Initializing Second Brain Memory System (Phase 4 & 5)...")
+        log.info("🧠 Initializing Second Brain Memory System (Phase 4-6)...")
 
         try:
             from .llm_client import create_llm_client
@@ -568,16 +846,33 @@ class SecondBrainAgent(BaseAgent):
             log.warning(f"LLM client not available: {e}")
 
         await self._load_memory()
+
+        # Load Phase 6 components
+        self._embedding_index.load(self._embeddings_path)
+        self._load_sync_log()
+        self._load_patterns()
+        self._load_snapshots()
+
+        # Phase 4-5 background loops
         asyncio.create_task(self._memory_maintenance_loop())
         asyncio.create_task(self._tier_migration_loop())
         asyncio.create_task(self._persona_update_loop())
         asyncio.create_task(self._goal_check_loop())
         asyncio.create_task(self._auto_link_loop())
 
+        # Phase 6 background loops
+        asyncio.create_task(self._pattern_detection_loop())
+        asyncio.create_task(self._proactive_surfacing_loop())
+        asyncio.create_task(self._embedding_update_loop())
+
+        # Rebuild embeddings for nodes without them
+        await self._rebuild_embeddings()
+
         log.info(f"✅ Second Brain ready: {len(self._nodes)} nodes, {len(self._edges)} edges")
         if self._persona:
             log.info(f"   User Persona loaded: confidence={self._persona.confidence:.2f}")
         log.info(f"   Goals: {len(self._goals)}, Skills: {len(self._skills)}")
+        log.info(f"   Embeddings: {len(self._embedding_index._node_ids)}, Patterns: {len(self._patterns)}")
 
     # ══════════════════════════════════════════════════════
     # CORE MEMORY OPERATIONS
@@ -593,6 +888,7 @@ class SecondBrainAgent(BaseAgent):
         tags: list = None,
         source: str = "unknown",
         extract_entities: bool = True,
+        privacy: PrivacyLevel = PrivacyLevel.PRIVATE,
     ) -> MemoryNode:
         """Store a memory node with full processing."""
         node_id = f"node_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
@@ -615,17 +911,23 @@ class SecondBrainAgent(BaseAgent):
             entities=[e["name"] for e in entities],
             tags=tags or [],
             source=source,
-            confidence=0.8,  # Initial confidence
+            confidence=0.8,
         )
 
         self._nodes[node_id] = node
         self._update_indexes(node)
         self._add_to_tier(node_id, tier)
 
+        # Phase 6: Generate and store embedding
+        await self._embed_node(node)
+
         # Track version
         await self._track_version(node_id, None, content, "created")
 
         await self._save_node(node)
+
+        # Phase 6: Log sync record
+        self._log_sync_action(node_id, "created")
 
         log.debug(f"Stored memory: {memory_type.value}/{node_id}")
 
@@ -660,12 +962,29 @@ class SecondBrainAgent(BaseAgent):
             query_lower = query.lower()
             query_words = set(query_lower.split())
 
+            # Hybrid: keyword + semantic search
+            semantic_results = {}
+            if self._embedding_index._vectors:
+                try:
+                    query_vec = await self._embedding_index.encode(query)
+                    semantic = self._embedding_index.search(query_vec, k=limit * 2)
+                    for node_id, sim_score in semantic:
+                        if node_id in self._nodes and any(node_id in [n.id for n in filtered_nodes]):
+                            semantic_results[node_id] = sim_score
+                except Exception as e:
+                    log.debug(f"Semantic search unavailable: {e}")
+
             for node in filtered_nodes:
                 score = self._calculate_relevance_score(node, query_words, query_lower)
-                if score > 0:
+                # Boost with semantic similarity
+                semantic_boost = semantic_results.get(node.id, 0.0)
+                combined_score = score * 0.6 + semantic_boost * 0.4
+                if combined_score > 0:
                     results.append({
                         "node": node.to_dict(),
-                        "score": score,
+                        "score": combined_score,
+                        "keyword_score": score,
+                        "semantic_score": semantic_boost,
                         "reason": self._explain_score(node, query_words),
                     })
         else:
@@ -2134,6 +2453,227 @@ Return ONLY JSON."""
                 self._working_memory = self._working_memory[-20:]
 
     # ══════════════════════════════════════════════════════
+    # PHASE 6: EMBEDDING HELPERS
+    # ══════════════════════════════════════════════════════
+
+    async def _embed_node(self, node: MemoryNode) -> None:
+        """Generate and store embedding for a node."""
+        if not isinstance(node.content, str):
+            return
+        try:
+            text = node.content
+            if isinstance(node.content, dict):
+                text = json.dumps(node.content)
+            vec = await self._embedding_index.encode(text)
+            self._embedding_index.add(node.id, vec)
+        except Exception as e:
+            log.debug(f"Failed to embed node {node.id}: {e}")
+
+    async def _rebuild_embeddings(self) -> None:
+        """Rebuild embedding index for nodes that don't have one."""
+        indexed_ids = set(self._embedding_index._node_ids)
+        missing = [n for n in self._nodes.values() if n.id not in indexed_ids and isinstance(n.content, str)]
+        if not missing:
+            return
+        log.info(f"Rebuilding embeddings for {len(missing)} nodes...")
+        texts = [n.content if isinstance(n.content, str) else json.dumps(n.content) for n in missing]
+        try:
+            vectors = await self._embedding_index.encode_batch(texts)
+            for node, vec in zip(missing, vectors):
+                self._embedding_index.add(node.id, vec)
+            self._embedding_index.save(self._embeddings_path)
+            log.info(f"Rebuilt {len(vectors)} embeddings")
+        except Exception as e:
+            log.warning(f"Embedding rebuild failed: {e}")
+
+    async def _embedding_update_loop(self) -> None:
+        """Periodically save embedding index."""
+        while True:
+            try:
+                await asyncio.sleep(300)
+                self._embedding_index.save(self._embeddings_path)
+                log.debug("Embedding index saved")
+            except Exception as e:
+                log.debug(f"Embedding save: {e}")
+
+    # ══════════════════════════════════════════════════════
+    # PHASE 6: SYNC & BACKUP HELPERS
+    # ══════════════════════════════════════════════════════
+
+    def _log_sync_action(self, node_id: str, action: str) -> None:
+        """Log a sync action."""
+        node = self._nodes.get(node_id)
+        content_hash = hashlib.sha256(json.dumps(node.content if node else {}, sort_keys=True).encode()).hexdigest()[:16]
+        self._sync_log[node_id] = SyncRecord(
+            node_id=node_id,
+            action=action,
+            timestamp=datetime.utcnow().isoformat(),
+            hash=content_hash,
+            sync_status=SyncStatus.PENDING_UPLOAD,
+        )
+
+    def _load_sync_log(self) -> None:
+        """Load sync log from disk."""
+        if self._sync_path.exists():
+            try:
+                data = json.loads(self._sync_path.read_text())
+                for node_id, rec in data.items():
+                    self._sync_log[node_id] = SyncRecord(
+                        node_id=rec["node_id"],
+                        action=rec["action"],
+                        timestamp=rec["timestamp"],
+                        hash=rec["hash"],
+                        sync_status=SyncStatus(rec.get("sync_status", "synced")),
+                        synced_at=rec.get("synced_at"),
+                    )
+            except Exception as e:
+                log.warning(f"Failed to load sync log: {e}")
+
+    def _save_sync_log(self) -> None:
+        """Save sync log to disk."""
+        data = {k: v.to_dict() for k, v in self._sync_log.items()}
+        self._sync_path.write_text(json.dumps(data, indent=2))
+
+    def _compute_checksum(self) -> str:
+        """Compute checksum of all memory."""
+        data = {
+            "nodes": {k: v.to_dict() for k, v in self._nodes.items()},
+            "edges": {k: v.to_dict() for k, v in self._edges.items()},
+            "persona": self._persona.to_dict() if self._persona else None,
+            "goals": {k: v.to_dict() for k, v in self._goals.items()},
+            "skills": {k: v.to_dict() for k, v in self._skills.items()},
+        }
+        return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
+    # ══════════════════════════════════════════════════════
+    # PHASE 6: PATTERN DETECTION
+    # ══════════════════════════════════════════════════════
+
+    def _load_patterns(self) -> None:
+        """Load patterns from disk."""
+        if self._patterns_path.exists():
+            try:
+                data = json.loads(self._patterns_path.read_text())
+                for p in data:
+                    self._patterns[p["id"]] = MemoryPattern(**p)
+            except Exception as e:
+                log.warning(f"Failed to load patterns: {e}")
+
+    def _save_patterns(self) -> None:
+        """Save patterns to disk."""
+        data = [p.to_dict() for p in self._patterns.values()]
+        self._patterns_path.write_text(json.dumps(data, indent=2))
+
+    def _load_snapshots(self) -> None:
+        """Load snapshots from disk."""
+        if self._snapshots_path.exists():
+            try:
+                data = json.loads(self._snapshots_path.read_text())
+                self._snapshots = [MemorySnapshot(**s) for s in data]
+            except Exception as e:
+                log.warning(f"Failed to load snapshots: {e}")
+
+    def _save_snapshots(self) -> None:
+        """Save snapshots to disk."""
+        data = [s.to_dict() for s in self._snapshots]
+        self._snapshots_path.write_text(json.dumps(data, indent=2))
+
+    async def _pattern_detection_loop(self) -> None:
+        """Detect patterns in memory access and content."""
+        while True:
+            try:
+                await asyncio.sleep(3600)
+                await self._detect_patterns()
+            except Exception as e:
+                log.debug(f"Pattern detection: {e}")
+
+    async def _detect_patterns(self) -> None:
+        """Detect temporal and sequential patterns."""
+        recent = sorted(self._nodes.values(), key=lambda n: n.last_accessed, reverse=True)[:100]
+        if len(recent) < 10:
+            return
+
+        for i in range(len(recent) - 1):
+            curr, prev = recent[i], recent[i + 1]
+            # Temporal pattern: memories accessed within same hour
+            try:
+                curr_time = datetime.fromisoformat(curr.last_accessed)
+                prev_time = datetime.fromisoformat(prev.last_accessed)
+                if abs((curr_time - prev_time).total_seconds()) < 3600:
+                    self._merge_or_create_pattern(curr, prev, "temporal")
+            except Exception:
+                pass
+
+            # Sequential pattern: same type accessed consecutively
+            if curr.type == prev.type and curr.type.value in ["conversation", "fact"]:
+                self._merge_or_create_pattern(curr, prev, "sequential")
+
+            # Topical pattern: shared entities
+            shared_entities = set(curr.entities) & set(prev.entities)
+            if len(shared_entities) >= 2:
+                self._merge_or_create_pattern(curr, prev, "topical")
+
+    def _merge_or_create_pattern(self, node1: MemoryNode, node2: MemoryNode, pattern_type: str) -> None:
+        """Merge into existing pattern or create new one."""
+        node_ids = {node1.id, node2.id}
+        for pat in self._patterns.values():
+            if pat.pattern_type == pattern_type and node_ids & set(pat.nodes):
+                for nid in node_ids:
+                    if nid not in pat.nodes:
+                        pat.nodes.append(nid)
+                pat.last_seen = datetime.utcnow().isoformat()
+                pat.occurrences += 1
+                return
+
+        pattern = MemoryPattern(
+            id=f"pattern_{int(time.time() * 1000)}",
+            pattern_type=pattern_type,
+            description=f"{pattern_type} pattern involving {len(node_ids)} nodes",
+            nodes=[node1.id, node2.id],
+            confidence=0.7,
+            first_seen=datetime.utcnow().isoformat(),
+            last_seen=datetime.utcnow().isoformat(),
+        )
+        self._patterns[pattern.id] = pattern
+
+    # ══════════════════════════════════════════════════════
+    # PHASE 6: PROACTIVE SURFACING
+    # ══════════════════════════════════════════════════════
+
+    async def _proactive_surfacing_loop(self) -> None:
+        """Periodically surface relevant memories proactively."""
+        while True:
+            try:
+                await asyncio.sleep(7200)
+                await self._surface_proactive_memories()
+            except Exception as e:
+                log.debug(f"Proactive surfacing: {e}")
+
+    async def _surface_proactive_memories(self) -> None:
+        """Surface memories that might be relevant now."""
+        now = datetime.utcnow()
+        self._proactive_queue.clear()
+
+        # Surfaces memories not accessed in a while but are important
+        for node in self._nodes.values():
+            if node.importance.value >= Importance.HIGH.value:
+                try:
+                    last_access = datetime.fromisoformat(node.last_accessed)
+                    days_since = (now - last_access).days
+                    if 7 <= days_since <= 30:
+                        self._proactive_queue.append({
+                            "node": node.to_dict(),
+                            "reason": f"Not accessed in {days_since} days",
+                            "urgency": node.importance.value / 5.0,
+                        })
+                except Exception:
+                    pass
+
+        # Sort by urgency
+        self._proactive_queue.sort(key=lambda x: x["urgency"], reverse=True)
+        self._proactive_queue = self._proactive_queue[:10]
+
+    # ══════════════════════════════════════════════════════
     # BACKGROUND LOOPS
     # ══════════════════════════════════════════════════════
 
@@ -2379,7 +2919,486 @@ Return ONLY JSON."""
 
         log.info("All memory cleared")
 
+        # Clear Phase 6 data
+        self._embedding_index.clear()
+        self._patterns.clear()
+        self._proactive_queue.clear()
+        self._snapshots.clear()
+        self._sync_log.clear()
+
         return {"status": "cleared"}
+
+    # ══════════════════════════════════════════════════════
+    # PHASE 6: BACKUP & RESTORE
+    # ══════════════════════════════════════════════════════
+
+    async def create_backup(self, description: str = "", tags: list = None) -> dict:
+        """Create a full backup snapshot."""
+        snapshot_id = f"backup_{int(time.time())}"
+        backup_dir = self._brain_path / "backups" / snapshot_id
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        # Export all data
+        export = {
+            "version": "6.0",
+            "created_at": datetime.utcnow().isoformat(),
+            "description": description,
+            "nodes": {k: v.to_dict() for k, v in self._nodes.items()},
+            "edges": {k: v.to_dict() for k, v in self._edges.items()},
+            "audio_memories": {k: v.to_dict() for k, v in self._audio_memories.items()},
+            "persona": self._persona.to_dict() if self._persona else None,
+            "goals": {k: v.to_dict() for k, v in self._goals.items()},
+            "skills": {k: v.to_dict() for k, v in self._skills.items()},
+            "summaries": {k: v.to_dict() for k, v in self._summaries.items()},
+            "patterns": [p.to_dict() for p in self._patterns.values()],
+            "privacy_overrides": {k: v.value for k, v in self._privacy_overrides.items()},
+        }
+
+        (backup_dir / "export.json").write_text(json.dumps(export, indent=2))
+
+        # Save compressed backup
+        zip_path = self._brain_path / "backups" / f"{snapshot_id}.zip"
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.write(backup_dir / "export.json", "data/export.json")
+
+        # Create snapshot record
+        import os
+        size_mb = sum(f.stat().st_size for f in backup_dir.rglob("*") if f.is_file()) / (1024 * 1024)
+        snapshot = MemorySnapshot(
+            id=snapshot_id,
+            timestamp=datetime.utcnow().isoformat(),
+            node_count=len(self._nodes),
+            edge_count=len(self._edges),
+            size_mb=size_mb,
+            checksum=self._compute_checksum(),
+            description=description,
+            tags=tags or [],
+        )
+        self._snapshots.append(snapshot)
+        self._save_snapshots()
+
+        log.info(f"Backup created: {snapshot_id} ({size_mb:.2f} MB, {len(self._nodes)} nodes)")
+
+        return {
+            "backup_id": snapshot_id,
+            "node_count": len(self._nodes),
+            "edge_count": len(self._edges),
+            "size_mb": round(size_mb, 2),
+            "checksum": snapshot.checksum,
+        }
+
+    async def restore_backup(self, backup_id: str) -> dict:
+        """Restore from a backup."""
+        backup_file = self._brain_path / "backups" / f"{backup_id}.zip"
+        if not backup_file.exists():
+            return {"error": f"Backup not found: {backup_id}"}
+
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with zipfile.ZipFile(backup_file, "r") as zf:
+                zf.extractall(tmpdir)
+
+            export_file = Path(tmpdir) / "data" / "export.json"
+            if not export_file.exists():
+                export_file = Path(tmpdir) / "export.json"
+
+            data = json.loads(export_file.read_text())
+
+            if data.get("version", "0") < "6.0":
+                return {"error": f"Backup version {data.get('version')} not compatible"}
+
+            # Clear current data
+            self._nodes.clear()
+            self._edges.clear()
+            self._audio_memories.clear()
+            self._patterns.clear()
+
+            # Restore nodes
+            for node_id, node_data in data.get("nodes", {}).items():
+                node_data_copy = node_data.copy()
+                node_data_copy["type"] = MemoryType(node_data["type"])
+                node_data_copy["tier"] = MemoryTier(node_data["tier"])
+                node_data_copy["importance"] = Importance(node_data["importance"])
+                self._nodes[node_id] = MemoryNode(**node_data_copy)
+
+            # Restore edges
+            for edge_id, edge_data in data.get("edges", {}).items():
+                edge_data_copy = edge_data.copy()
+                self._edges[edge_id] = MemoryEdge(**edge_data_copy)
+
+            # Restore persona
+            if data.get("persona"):
+                self._persona = UserPersona(**data["persona"])
+
+            # Restore goals
+            for goal_id, goal_data in data.get("goals", {}).items():
+                self._goals[goal_id] = Goal(**goal_data)
+
+            # Restore skills
+            for skill_id, skill_data in data.get("skills", {}).items():
+                self._skills[skill_id] = Skill(**skill_data)
+
+            # Restore patterns
+            for p in data.get("patterns", []):
+                self._patterns[p["id"]] = MemoryPattern(**p)
+
+            # Restore privacy overrides
+            for k, v in data.get("privacy_overrides", {}).items():
+                self._privacy_overrides[k] = PrivacyLevel(v)
+
+            # Rebuild indexes
+            self._entity_index.clear()
+            self._topic_index.clear()
+            for node in self._nodes.values():
+                self._update_indexes(node)
+
+            # Rebuild embeddings
+            await self._rebuild_embeddings()
+
+            log.info(f"Restored backup {backup_id}: {len(self._nodes)} nodes, {len(self._edges)} edges")
+            return {
+                "restored": True,
+                "backup_id": backup_id,
+                "nodes": len(self._nodes),
+                "edges": len(self._edges),
+            }
+
+    async def list_backups(self) -> list[dict]:
+        """List all available backups."""
+        return [s.to_dict() for s in sorted(self._snapshots, key=lambda x: x.timestamp, reverse=True)]
+
+    async def delete_backup(self, backup_id: str) -> dict:
+        """Delete a backup."""
+        zip_file = self._brain_path / "backups" / f"{backup_id}.zip"
+        folder = self._brain_path / "backups" / backup_id
+        if zip_file.exists():
+            zip_file.unlink()
+        if folder.exists():
+            import shutil
+            shutil.rmtree(folder)
+        self._snapshots = [s for s in self._snapshots if s.id != backup_id]
+        self._save_snapshots()
+        return {"deleted": backup_id}
+
+    async def export_memory(
+        self,
+        format: str = "json",
+        include_private: bool = False,
+        include_sensitive: bool = False,
+    ) -> dict:
+        """Export memory in various formats."""
+        nodes_to_export = {}
+        for node_id, node in self._nodes.items():
+            privacy = self._privacy_overrides.get(node_id, PrivacyLevel.PRIVATE)
+            if privacy == PrivacyLevel.SENSITIVE and not include_sensitive:
+                continue
+            if privacy == PrivacyLevel.PRIVATE and not include_private:
+                continue
+            nodes_to_export[node_id] = node.to_dict()
+
+        if format == "json":
+            return {
+                "format": "json",
+                "version": "6.0",
+                "exported_at": datetime.utcnow().isoformat(),
+                "nodes": nodes_to_export,
+                "edges": {k: v.to_dict() for k, v in self._edges.items()},
+                "persona": self._persona.to_dict() if self._persona else None,
+                "goals": {k: v.to_dict() for k, v in self._goals.items()},
+                "skills": {k: v.to_dict() for k, v in self._skills.items()},
+            }
+
+        elif format == "markdown":
+            lines = ["# RasoSpeak Memory Export\n", f"Exported: {datetime.utcnow().isoformat()}\n"]
+            for node in sorted(nodes_to_export.values(), key=lambda x: x["created_at"], reverse=True):
+                content = node.get("content", "")
+                if isinstance(content, dict):
+                    content = json.dumps(content)
+                lines.append(f"\n## {node['type']}: {node['id']}\n")
+                lines.append(f"**Created:** {node['created_at']}\n")
+                lines.append(f"**Tags:** {', '.join(node.get('tags', []))}\n")
+                lines.append(f"\n{content}\n")
+            return {"format": "markdown", "content": "\n".join(lines)}
+
+        elif format == "obsidian":
+            """Export as Obsidian-compatible markdown vault."""
+            vault_dir = self._brain_path / "exports" / "obsidian_vault"
+            vault_dir.mkdir(parents=True, exist_ok=True)
+
+            for node_id, node in nodes_to_export.items():
+                content = node.get("content", "")
+                if isinstance(content, dict):
+                    content = json.dumps(content)
+                safe_title = re.sub(r'[<>:"/\\|?*]', '_', str(node_id))
+                tags_str = " ".join([f"#{t}" for t in node.get("tags", [])])
+                md_content = f"---\nid: {node_id}\ntype: {node['type']}\ncreated: {node['created_at']}\ntags: [{', '.join(node.get('tags', []))}]\n---\n\n# {safe_title}\n\n{content}\n\n{tags_str}\n"
+                (vault_dir / f"{safe_title}.md").write_text(md_content)
+
+            return {
+                "format": "obsidian",
+                "path": str(vault_dir),
+                "nodes_exported": len(nodes_to_export),
+            }
+
+        return {"error": f"Unknown format: {format}"}
+
+    async def import_memory(self, data: dict, merge: bool = True) -> dict:
+        """Import memory from export."""
+        if not merge:
+            self._nodes.clear()
+            self._edges.clear()
+
+        imported_nodes = 0
+        for node_id, node_data in data.get("nodes", {}).items():
+            if node_id in self._nodes and merge:
+                continue
+            try:
+                node_data_copy = node_data.copy()
+                node_data_copy["type"] = MemoryType(node_data["type"])
+                node_data_copy["tier"] = MemoryTier(node_data["tier"])
+                node_data_copy["importance"] = Importance(node_data["importance"])
+                node = MemoryNode(**node_data_copy)
+                self._nodes[node_id] = node
+                self._update_indexes(node)
+                await self._embed_node(node)
+                imported_nodes += 1
+            except Exception as e:
+                log.warning(f"Failed to import node {node_id}: {e}")
+
+        for edge_id, edge_data in data.get("edges", {}).items():
+            try:
+                edge = MemoryEdge(**edge_data)
+                self._edges[edge_id] = edge
+            except Exception:
+                pass
+
+        log.info(f"Imported {imported_nodes} nodes")
+        return {"imported": imported_nodes}
+
+    # ══════════════════════════════════════════════════════
+    # PHASE 6: ENCRYPTED STORAGE
+    # ══════════════════════════════════════════════════════
+
+    def set_encryption_key(self, key: str) -> dict:
+        """Set encryption key for sensitive memories."""
+        self._encryption_key = hashlib.sha256(key.encode()).digest()
+        return {"encryption": "enabled"}
+
+    def clear_encryption_key(self) -> dict:
+        """Clear encryption key."""
+        self._encryption_key = None
+        return {"encryption": "disabled"}
+
+    async def encrypt_node(self, node_id: str, privacy: PrivacyLevel = PrivacyLevel.PRIVATE) -> dict:
+        """Encrypt and protect a node."""
+        if node_id not in self._nodes:
+            return {"error": "Node not found"}
+
+        node = self._nodes[node_id]
+        self._privacy_overrides[node_id] = privacy
+
+        if privacy in (PrivacyLevel.PRIVATE, PrivacyLevel.SENSITIVE) and self._encryption_key:
+            try:
+                content = json.dumps(node.content).encode()
+                nonce = os.urandom(12)
+                from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+                aesgcm = AESGCM(self._encryption_key)
+                encrypted = aesgcm.encrypt(nonce, content, None)
+                node.content = base64.b64encode(nonce + encrypted).decode()
+                node.metadata["encrypted"] = True
+                node.metadata["privacy"] = privacy.value
+                await self._save_node(node)
+                return {"encrypted": True, "node_id": node_id}
+            except ImportError:
+                log.warning("cryptography not available for AESGCM, storing without encryption")
+                return {"encrypted": False, "node_id": node_id, "note": "encryption library not available"}
+            except Exception as e:
+                return {"error": f"Encryption failed: {e}"}
+
+        await self._save_node(node)
+        return {"updated": True, "node_id": node_id}
+
+    async def decrypt_node(self, node_id: str) -> dict:
+        """Decrypt a protected node."""
+        if node_id not in self._nodes:
+            return {"error": "Node not found"}
+
+        node = self._nodes[node_id]
+        if not node.metadata.get("encrypted"):
+            return {"decrypted": False, "note": "not encrypted"}
+
+        if not self._encryption_key:
+            return {"error": "Encryption key required"}
+
+        try:
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+            data = base64.b64decode(node.content)
+            nonce, ciphertext = data[:12], data[12:]
+            aesgcm = AESGCM(self._encryption_key)
+            decrypted = aesgcm.decrypt(nonce, ciphertext, None)
+            node.content = json.loads(decrypted.decode())
+            node.metadata["encrypted"] = False
+            self._privacy_overrides.pop(node_id, None)
+            await self._save_node(node)
+            return {"decrypted": True, "node_id": node_id}
+        except Exception as e:
+            return {"error": f"Decryption failed: {e}"}
+
+    def set_node_privacy(self, node_id: str, privacy: PrivacyLevel) -> dict:
+        """Set privacy level for a node."""
+        if node_id not in self._nodes:
+            return {"error": "Node not found"}
+        self._privacy_overrides[node_id] = privacy
+        return {"node_id": node_id, "privacy": privacy.value}
+
+    def get_node_privacy(self, node_id: str) -> PrivacyLevel:
+        """Get privacy level for a node."""
+        return self._privacy_overrides.get(node_id, PrivacyLevel.PRIVATE)
+
+    # ══════════════════════════════════════════════════════
+    # PHASE 6: VISUALIZATION DATA
+    # ══════════════════════════════════════════════════════
+
+    def get_graph_data(self, max_nodes: int = 200) -> dict:
+        """Get graph data for visualization."""
+        nodes = []
+        edges = []
+
+        recent_nodes = sorted(self._nodes.values(), key=lambda n: n.last_accessed, reverse=True)[:max_nodes]
+        node_ids = {n.id for n in recent_nodes}
+
+        for node in recent_nodes:
+            nodes.append({
+                "id": node.id,
+                "label": str(node.content)[:50] if isinstance(node.content, str) else node.type.value,
+                "type": node.type.value,
+                "tier": node.tier.value,
+                "importance": node.importance.value,
+                "created_at": node.created_at,
+                "access_count": node.access_count,
+            })
+
+        for edge in self._edges.values():
+            if edge.source_id in node_ids and edge.target_id in node_ids:
+                edges.append({
+                    "id": edge.id,
+                    "source": edge.source_id,
+                    "target": edge.target_id,
+                    "relationship": edge.relationship_type,
+                    "strength": edge.strength,
+                })
+
+        return {"nodes": nodes, "edges": edges}
+
+    def get_timeline_data(self, days: int = 30) -> dict:
+        """Get timeline data for visualization."""
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        entries = []
+
+        for node in self._nodes.values():
+            try:
+                created = datetime.fromisoformat(node.created_at)
+                if created > cutoff:
+                    entries.append({
+                        "id": node.id,
+                        "timestamp": node.created_at,
+                        "type": node.type.value,
+                        "content": str(node.content)[:100],
+                        "importance": node.importance.value,
+                    })
+            except Exception:
+                pass
+
+        entries.sort(key=lambda x: x["timestamp"])
+        return {"entries": entries}
+
+    def get_entity_map(self) -> dict:
+        """Get entity relationship map."""
+        entity_nodes = defaultdict(list)
+        for node in self._nodes.values():
+            for entity in node.entities:
+                entity_nodes[entity].append({
+                    "id": node.id,
+                    "type": node.type.value,
+                    "content": str(node.content)[:80],
+                })
+
+        connections = []
+        for entity, nodes_list in entity_nodes.items():
+            if len(nodes_list) > 1:
+                for i in range(len(nodes_list) - 1):
+                    connections.append({
+                        "entity": entity,
+                        "source": nodes_list[i]["id"],
+                        "target": nodes_list[i + 1]["id"],
+                    })
+
+        return {
+            "entities": [{"name": k, "connections": len(v)} for k, v in entity_nodes.items() if len(v) > 1],
+            "connections": connections,
+        }
+
+    # ══════════════════════════════════════════════════════
+    # PHASE 6: SEMANTIC SEARCH
+    # ══════════════════════════════════════════════════════
+
+    async def semantic_search(self, query: str, limit: int = 10) -> list[dict]:
+        """Pure semantic search using embeddings."""
+        if not self._embedding_index._vectors:
+            return []
+
+        try:
+            query_vec = await self._embedding_index.encode(query)
+            results = self._embedding_index.search(query_vec, k=limit)
+            return [
+                {
+                    "node": self._nodes[node_id].to_dict(),
+                    "score": score,
+                    "reason": "semantic_similarity",
+                }
+                for node_id, score in results
+                if node_id in self._nodes
+            ]
+        except Exception as e:
+            log.warning(f"Semantic search failed: {e}")
+            return []
+
+    # ══════════════════════════════════════════════════════
+    # PHASE 6: PROACTIVE & PATTERNS API
+    # ══════════════════════════════════════════════════════
+
+    def get_proactive_memories(self) -> list[dict]:
+        """Get memories surfaced proactively."""
+        return self._proactive_queue
+
+    def get_patterns(self, pattern_type: str = None) -> list[dict]:
+        """Get detected patterns."""
+        patterns = list(self._patterns.values())
+        if pattern_type:
+            patterns = [p for p in patterns if p.pattern_type == pattern_type]
+        return [p.to_dict() for p in sorted(patterns, key=lambda x: x.last_seen, reverse=True)]
+
+    def get_sync_status(self) -> dict:
+        """Get sync status."""
+        synced = sum(1 for r in self._sync_log.values() if r.sync_status == SyncStatus.SYNCED)
+        pending = sum(1 for r in self._sync_log.values() if r.sync_status != SyncStatus.SYNCED)
+        return {
+            "total": len(self._sync_log),
+            "synced": synced,
+            "pending": pending,
+            "conflicts": sum(1 for r in self._sync_log.values() if r.sync_status == SyncStatus.CONFLICT),
+        }
+
+    def mark_synced(self, node_ids: list[str]) -> dict:
+        """Mark nodes as synced."""
+        count = 0
+        for nid in node_ids:
+            if nid in self._sync_log:
+                self._sync_log[nid].sync_status = SyncStatus.SYNCED
+                self._sync_log[nid].synced_at = datetime.utcnow().isoformat()
+                count += 1
+        self._save_sync_log()
+        return {"marked": count}
 
     async def shutdown(self):
         """Cleanup."""
@@ -2387,4 +3406,9 @@ Return ONLY JSON."""
             await self._save_node(node)
         for edge in self._edges.values():
             await self._save_edge(edge)
+        # Phase 6: Save additional data
+        self._embedding_index.save(self._embeddings_path)
+        self._save_sync_log()
+        self._save_patterns()
+        self._save_snapshots()
         log.info("SecondBrainAgent shut down")

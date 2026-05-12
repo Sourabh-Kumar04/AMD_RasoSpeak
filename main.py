@@ -1153,6 +1153,162 @@ async def brain_predict_next():
 
 
 # ══════════════════════════════════════════════════════
+# PHASE 6: BACKUP & RESTORE
+# ══════════════════════════════════════════════════════
+
+@app.post("/brain/backup")
+async def brain_create_backup(description: str = "", tags: list[str] = None):
+    """Create a full backup snapshot."""
+    return await agents["brain"].create_backup(description, tags)
+
+
+@app.get("/brain/backups")
+async def brain_list_backups():
+    """List all available backups."""
+    return {"backups": await agents["brain"].list_backups()}
+
+
+@app.post("/brain/restore/{backup_id}")
+async def brain_restore_backup(backup_id: str):
+    """Restore from a backup."""
+    return await agents["brain"].restore_backup(backup_id)
+
+
+@app.delete("/brain/backup/{backup_id}")
+async def brain_delete_backup(backup_id: str):
+    """Delete a backup."""
+    return await agents["brain"].delete_backup(backup_id)
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: EXPORT & IMPORT
+# ══════════════════════════════════════════════════════
+
+@app.get("/brain/export")
+async def brain_export_memory(
+    format: str = "json",
+    include_private: bool = False,
+    include_sensitive: bool = False,
+):
+    """Export memory in various formats (json, markdown, obsidian)."""
+    return await agents["brain"].export_memory(format, include_private, include_sensitive)
+
+
+@app.post("/brain/import")
+async def brain_import_memory(request: Request, merge: bool = True):
+    """Import memory from exported data."""
+    data = await request.json()
+    return await agents["brain"].import_memory(data, merge)
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: ENCRYPTED STORAGE & PRIVACY
+# ══════════════════════════════════════════════════════
+
+@app.post("/brain/encrypt/key")
+async def brain_set_encryption_key(key: str):
+    """Set encryption key for sensitive memories."""
+    return agents["brain"].set_encryption_key(key)
+
+
+@app.delete("/brain/encrypt/key")
+async def brain_clear_encryption_key():
+    """Clear encryption key."""
+    return agents["brain"].clear_encryption_key()
+
+
+@app.post("/brain/encrypt/{node_id}")
+async def brain_encrypt_node(node_id: str, privacy: str = "private"):
+    """Encrypt and protect a node."""
+    from agents.second_brain_agent import PrivacyLevel
+    return await agents["brain"].encrypt_node(node_id, PrivacyLevel(privacy))
+
+
+@app.post("/brain/decrypt/{node_id}")
+async def brain_decrypt_node(node_id: str):
+    """Decrypt a protected node."""
+    return await agents["brain"].decrypt_node(node_id)
+
+
+@app.put("/brain/privacy/{node_id}")
+async def brain_set_node_privacy(node_id: str, privacy: str):
+    """Set privacy level for a node (public, private, restricted, sensitive)."""
+    from agents.second_brain_agent import PrivacyLevel
+    return agents["brain"].set_node_privacy(node_id, PrivacyLevel(privacy))
+
+
+@app.get("/brain/privacy/{node_id}")
+async def brain_get_node_privacy(node_id: str):
+    """Get privacy level for a node."""
+    level = agents["brain"].get_node_privacy(node_id)
+    return {"node_id": node_id, "privacy": level.value}
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: VISUALIZATION
+# ══════════════════════════════════════════════════════
+
+@app.get("/brain/graph")
+async def brain_get_graph(max_nodes: int = 200):
+    """Get graph data for visualization."""
+    return agents["brain"].get_graph_data(max_nodes)
+
+
+@app.get("/brain/timeline")
+async def brain_get_timeline(days: int = 30):
+    """Get timeline data for memory visualization."""
+    return agents["brain"].get_timeline_data(days)
+
+
+@app.get("/brain/entity-map")
+async def brain_get_entity_map():
+    """Get entity relationship map."""
+    return agents["brain"].get_entity_map()
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: SEMANTIC SEARCH
+# ══════════════════════════════════════════════════════
+
+@app.get("/brain/semantic")
+async def brain_semantic_search(query: str, limit: int = 10):
+    """Pure semantic search using vector embeddings."""
+    return {"results": await agents["brain"].semantic_search(query, limit)}
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: PROACTIVE & PATTERNS
+# ══════════════════════════════════════════════════════
+
+@app.get("/brain/proactive")
+async def brain_get_proactive():
+    """Get memories surfaced proactively."""
+    return {"memories": agents["brain"].get_proactive_memories()}
+
+
+@app.get("/brain/patterns")
+async def brain_get_patterns(pattern_type: str = None):
+    """Get detected patterns (temporal, sequential, topical)."""
+    return {"patterns": agents["brain"].get_patterns(pattern_type)}
+
+
+# ══════════════════════════════════════════════════════
+# PHASE 6: SYNC STATUS
+# ══════════════════════════════════════════════════════
+
+@app.get("/brain/sync")
+async def brain_get_sync_status():
+    """Get sync status of all nodes."""
+    return agents["brain"].get_sync_status()
+
+
+@app.post("/brain/sync")
+async def brain_mark_synced(node_ids: list[str]):
+    """Mark nodes as synced."""
+    return agents["brain"].mark_synced(node_ids)
+
+
+# ══════════════════════════════════════════════════════
 # RASO — Your AI Companion with Memory & Personality
 # ══════════════════════════════════════════════════════
 
