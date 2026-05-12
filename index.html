@@ -158,6 +158,7 @@
 
 <script>
 let wakeModeActive = false;
+let wakeRecognition = null;
 
 function toggleWakeMode() {
   wakeModeActive = !wakeModeActive;
@@ -169,14 +170,72 @@ function toggleWakeMode() {
     btn.classList.add('ring-4', 'ring-emerald-500/30');
     pulse.classList.remove('hidden');
     status.textContent = 'Listening for "Hey Raso"...';
-    if (typeof startWakeWord === 'function') startWakeWord();
+    startWakeDetection();
     toast('Wake word detection active!');
   } else {
     btn.classList.remove('ring-4', 'ring-emerald-500/30');
     pulse.classList.add('hidden');
     status.textContent = 'Click to start listening';
-    if (typeof stopWakeWord === 'function') stopWakeWord();
+    stopWakeDetection();
     toast('Wake word detection stopped');
+  }
+}
+
+function startWakeDetection() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    toast('Voice not supported in this browser');
+    wakeModeActive = false;
+    return;
+  }
+
+  wakeRecognition = new SR();
+  wakeRecognition.continuous = true;
+  wakeRecognition.interimResults = false;
+
+  wakeRecognition.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript.toLowerCase().trim();
+      if (transcript.includes('hey raso') || transcript.includes('hey')) {
+        // Wake word detected
+        const status = document.getElementById('wake-status');
+        status.textContent = '👋 Hey Raso activated!';
+        toast('Hey Raso activated!');
+
+        // Auto-redirect to chat
+        setTimeout(() => {
+          window.location.href = 'chat.html';
+        }, 1500);
+      }
+    }
+  };
+
+  wakeRecognition.onerror = (event) => {
+    if (event.error !== 'no-speech' && event.error !== 'aborted') {
+      console.error('Wake detection error:', event.error);
+    }
+    if (wakeModeActive && event.error !== 'aborted') {
+      setTimeout(() => {
+        try { wakeRecognition.start(); } catch(e) {}
+      }, 2000);
+    }
+  };
+
+  wakeRecognition.onend = () => {
+    if (wakeModeActive) {
+      setTimeout(() => {
+        try { wakeRecognition.start(); } catch(e) {}
+      }, 500);
+    }
+  };
+
+  wakeRecognition.start();
+}
+
+function stopWakeDetection() {
+  if (wakeRecognition) {
+    try { wakeRecognition.stop(); } catch(e) {}
+    wakeRecognition = null;
   }
 }
 
