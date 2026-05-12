@@ -20,6 +20,7 @@ from typing import Optional
 import httpx
 
 from .base_agent import BaseAgent
+from .llm_client import create_llm_client
 from .shared_memory_agent import SharedMemoryAgent
 from config.settings import settings
 
@@ -360,83 +361,35 @@ class RasoAgent(BaseAgent):
         return {"results_count": len(results_list), "summary": summary_str}
 
     async def _generate_response(self, question: str, context: str, provider: str = None) -> str:
-        """Generate response using available AI."""
-        provider = provider or "nvidia"
+        """Generate response using LLM client."""
+        provider = provider or settings.default_provider
 
-        # Build prompt with context
-        prompt = f"""You are a helpful AI partner/assistant. The user is talking to their personal AI companion.
+        # Build system prompt with Raso's personality
+        system_prompt = """You are Raso, a helpful, friendly AI companion. Keep responses conversational and warm.
+        You have perfect memory and remember everything from past conversations."""
 
-User's question: {question}
+        # Build messages
+        messages = [
+            {"role": "system", "content": system_prompt},
+        ]
 
-{context}
+        if context:
+            messages.append({"role": "system", "content": f"Context from past: {context}"})
 
-Answer naturally and helpfully as a partner would. If the context contains relevant past conversations, use that information to give personalized answers."""
+        messages.append({"role": "user", "content": question})
 
-        # Try NVIDIA NIM (default)
-        if provider == "nvidia" and settings.nvidia_api_key:
-            try:
-                client = httpx.AsyncClient(timeout=60.0)
-                resp = await client.post(
-                    f"{settings.nvidia_api_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {settings.nvidia_api_key}"},
-                    json={
-                        "model": settings.nvidia_model,
-                        "messages": [
-                            {"role": "system", "content": "You are a helpful, personalized AI companion. Keep responses conversational and friendly."},
-                            {"role": "user", "content": prompt}
-                        ],
-                        "temperature": 0.7,
-                        "max_tokens": 512,
-                    }
-                )
-                await client.aclose()
-                if resp.status_code == 200:
-                    return resp.json()["choices"][0]["message"]["content"]
-                else:
-                    log.warning(f"NVIDIA NIM returned status: {resp.status_code}, body: {resp.text[:200]}")
-            except Exception as e:
-                log.warning(f"NVIDIA NIM error: {e}")
+        # Use the same LLM client as QAAgent
+        try:
+            client = create_llm_client(provider)
+            result = await client.chat(messages, temperature=0.7, max_tokens=512)
+            await client.close()
 
-        # Try OpenAI if available
-        if provider == "openai" and settings.openai_api_key:
-            try:
-                client = httpx.AsyncClient(timeout=30)
-                resp = await client.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {settings.openai_api_key}"},
-                    json={
-                        "model": "gpt-4o",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "temperature": 0.7,
-                    }
-                )
-                await client.aclose()
-                if resp.status_code == 200:
-                    return resp.json()["choices"][0]["message"]["content"]
-            except Exception as e:
-                log.warning(f"OpenAI fallback error: {e}")
-
-        # Try vLLM local if configured
-        if self._client:
-            try:
-                resp = await self._client.post(
-                    "/chat/completions",
-                    json={
-                        "model": settings.qa_model or "Qwen/Qwen2.5-7B-Instruct",
-                        "messages": [
-                            {"role": "system", "content": "You are a helpful, personalized AI partner. Use the provided context from past conversations to give relevant answers."},
-                            {"role": "user", "content": prompt}
-                        ],
-                        "temperature": 0.7,
-                        "max_tokens": 512,
-                    }
-                )
-                if resp.status_code == 200:
-                    return resp.json()["choices"][0]["message"]["content"]
-                else:
-                    log.warning(f"vLLM returned status: {resp.status_code}")
-            except Exception as e:
-                log.warning(f"vLLM error: {e}")
+            if "content" in result:
+                return result["content"]
+            elif "error" in result:
+                log.warning(f"LLM client error: {result['error']}")
+        except Exception as e:
+            log.warning(f"Partner LLM error: {e}")
 
         return "I'm here to help! Currently, I'm having trouble connecting to the AI. Please try again in a moment."
 
