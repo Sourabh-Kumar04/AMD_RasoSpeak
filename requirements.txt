@@ -44,6 +44,13 @@ wikipedia>=1.4.0
 # ── DOCUMENT LOADERS ─────────────────────────────────
 beautifulsoup4>=4.12.0
 
+# ── ENCRYPTION ─────────────────────────────────────────
+cryptography>=44.0.0
+
+# ── LLM CLIENTS ────────────────────────────────────────
+openai>=1.0.0
+gradio>=5.0.0
+
 # ── OPTIONAL: Semantic Search (uncomment if needed) ────
 # faiss-cpu>=1.8.0
 # sentence-transformers>=2.7.0
