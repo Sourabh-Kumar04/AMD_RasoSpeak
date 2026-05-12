@@ -119,7 +119,12 @@
 
   <!-- Quick Actions -->
   <div class="mt-6">
-    <p class="text-sm text-gray-500 mb-3">Quick questions:</p>
+    <div class="flex items-center justify-between mb-3">
+      <p class="text-sm text-gray-500">Quick questions:</p>
+      <a href="memory.html" class="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1">
+        🧠 View Memory
+      </a>
+    </div>
     <div class="flex flex-wrap gap-2">
       <button onclick="quickAsk('What can you help me with?')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Help me</button>
       <button onclick="quickAsk('Tell me a joke')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Tell me a joke</button>
@@ -285,21 +290,10 @@ function quickAsk(question) {
   sendMessage();
 }
 
-// Save to memory (both systems)
+// Save to Second Brain (primary memory system)
 async function saveToMemory(userMsg, rasoMsg) {
   try {
-    // Save to shared memory (backward compatibility)
-    await fetch('/memory/store', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        key: `chat_${Date.now()}`,
-        value: { user: userMsg, raso: rasoMsg, timestamp: new Date().toISOString() },
-        category: 'conversation'
-      })
-    });
-
-    // Save to Second Brain (enhanced memory)
+    // Save to Second Brain (enhanced memory with compression, linking, quality scoring)
     await fetch('/brain/conversation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

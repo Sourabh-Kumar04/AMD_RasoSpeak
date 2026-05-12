@@ -178,6 +178,16 @@
     </div>
   </div>
 
+  <!-- Second Brain Context -->
+  <div id="brain-context" class="bg-purple-50 rounded-lg border border-purple-200 p-4 mb-6 hidden">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="font-semibold text-purple-800">🧠 Second Brain Insights</h3>
+      <a href="memory.html" class="text-sm text-purple-600 hover:text-purple-800 font-medium">Open Memory →</a>
+    </div>
+    <div id="weak-words-display" class="text-sm text-purple-700"></div>
+    <div id="proactive-tips" class="text-sm text-purple-700 mt-2"></div>
+  </div>
+
   <!-- Tips -->
   <div class="bg-white rounded-lg border border-gray-200 p-6">
     <h3 class="font-semibold mb-4">Tips for Better Practice</h3>
@@ -570,21 +580,10 @@ async function stopRecording() {
   }
 }
 
-// Store memory of practice (both systems)
+// Store memory of practice (Second Brain primary)
 async function storeMemory(chunkIdx, accuracy, wpm) {
   try {
-    // Store in shared memory (backward compatibility)
-    await fetch('/memory/store', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        key: `coach_session_${currentSessionId}_chunk_${chunkIdx}`,
-        value: { accuracy, wpm, timestamp: new Date().toISOString() },
-        category: 'coaching'
-      })
-    });
-
-    // Store session summary in Second Brain
+    // Store session summary in Second Brain (primary)
     await fetch('/brain/session-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -598,6 +597,33 @@ async function storeMemory(chunkIdx, accuracy, wpm) {
         }
       })
     });
+
+    // Track weak words in Second Brain
+    if (accuracy < 75) {
+      const chunkWords = chunks[chunkIdx]?.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/) || [];
+      const spokenWords = userTranscript?.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/) || [];
+
+      chunkWords.forEach(word => {
+        if (word.length > 3 && !spokenWords.includes(word)) {
+          fetch('/brain/memory', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: `Struggled with word "${word}" in practice session`,
+              memory_type: 'coaching',
+              tier: 'short_term',
+              importance: 3,
+              tags: ['weak-word', 'practice', currentSessionId],
+              metadata: {
+                accuracy: accuracy,
+                wpm: wpm,
+                context: chunks[chunkIdx]
+              }
+            })
+          }).catch(() => {});
+        }
+      });
+    }
   } catch (err) {
     console.error('Failed to store memory:', err);
   }
@@ -747,9 +773,48 @@ async function loadAnalytics() {
   loadSessionHistory();
 }
 
+// Load Second Brain context for coaching
+async function loadBrainContext() {
+  const brainContext = document.getElementById('brain-context');
+  const weakWordsDisplay = document.getElementById('weak-words-display');
+  const proactiveTips = document.getElementById('proactive-tips');
+
+  try {
+    // Get weak words from memory stats
+    const statsResp = await fetch('/brain/stats');
+    if (statsResp.ok) {
+      const stats = await statsResp.json();
+      const weakWords = stats.top_weak_words || [];
+
+      if (weakWords.length > 0) {
+        const words = weakWords.slice(0, 5).map(w => `<span class="inline-block bg-purple-200 px-2 py-1 rounded mr-2 text-xs font-medium">${w.word}</span>`).join('');
+        weakWordsDisplay.innerHTML = `<strong>Words to watch:</strong> ${words}`;
+      } else {
+        weakWordsDisplay.innerHTML = '<em>No weak words tracked yet. Practice to build your profile!</em>';
+      }
+    }
+
+    // Get proactive memories
+    const proactiveResp = await fetch('/brain/proactive?limit=3');
+    if (proactiveResp.ok) {
+      const proactive = await proactiveResp.json();
+      const memories = proactive.memories || [];
+
+      if (memories.length > 0) {
+        proactiveTips.innerHTML = `<strong>Proactive tip:</strong> ${memories[0].content?.substring(0, 100) || ''}...`;
+      }
+    }
+
+    brainContext.classList.remove('hidden');
+  } catch (err) {
+    console.log('Second Brain not available:', err);
+  }
+}
+
 // Initialize
 window.addEventListener('load', () => {
   loadAnalytics();
+  loadBrainContext();
 });
 </script>
 

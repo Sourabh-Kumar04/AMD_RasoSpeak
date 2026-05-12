@@ -106,7 +106,12 @@
 
   <!-- Memory Settings -->
   <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-4">Memory Settings</h2>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold">Memory Settings</h2>
+      <a href="memory.html" class="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1">
+        🧠 Open Second Brain
+      </a>
+    </div>
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <div>
@@ -128,9 +133,13 @@
           <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
         </label>
       </div>
+      <div id="memory-stats" class="pt-2 text-sm text-gray-600"></div>
       <div class="pt-4 border-t border-gray-100">
         <button onclick="cleanupMemory()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 mr-2">
           Cleanup Old Sessions
+        </button>
+        <button onclick="createBackup()" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg font-medium hover:bg-purple-200 mr-2">
+          Create Backup
         </button>
         <button onclick="clearMemory()" class="text-red-600 text-sm hover:underline">
           Clear all memory data
@@ -341,6 +350,29 @@ async function loadSystemStatus() {
   }
 }
 
+// Load Memory Stats
+async function loadMemoryStats() {
+  try {
+    const resp = await fetch('/brain/stats');
+    if (resp.ok) {
+      const stats = await resp.json();
+      document.getElementById('memory-stats').innerHTML = `
+        <span class="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs mr-2">
+          🧠 ${stats.total_memories || 0} memories
+        </span>
+        <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mr-2">
+          📊 ${stats.quality_score || 0}% quality
+        </span>
+        <span class="inline-block bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs">
+          🔗 ${stats.auto_links || 0} auto-links
+        </span>
+      `;
+    }
+  } catch (err) {
+    console.log('Second Brain not available');
+  }
+}
+
 // Cleanup Memory
 async function cleanupMemory() {
   try {
@@ -356,6 +388,27 @@ async function cleanupMemory() {
     }
   } catch (err) {
     showToast('Failed to cleanup memory');
+    console.error(err);
+  }
+}
+
+// Create Backup
+async function createBackup() {
+  try {
+    const resp = await fetch('/brain/backup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      showToast(`Backup created: ${data.backup_id}`);
+    } else {
+      showToast('Failed to create backup');
+    }
+  } catch (err) {
+    showToast('Backup failed - check server logs');
     console.error(err);
   }
 }
@@ -383,6 +436,7 @@ async function clearMemory() {
 // Initialize
 window.addEventListener('load', () => {
   loadSystemStatus();
+  loadMemoryStats();
 
   // Load saved settings
   const savedProvider = localStorage.getItem('rs_provider');
