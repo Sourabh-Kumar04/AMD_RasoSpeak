@@ -862,9 +862,9 @@ class SecondBrainAgent(BaseAgent):
 
         # Load Phase 6 components
         self._embedding_index.load(self._embeddings_path)
-        self._load_sync_log()
-        self._load_patterns()
-        self._load_snapshots()
+        await self._load_sync_log()
+        await self._load_patterns()
+        await self._load_snapshots()
 
         # Phase 4-5 background loops (tracked for cleanup)
         self._tasks.append(asyncio.create_task(self._memory_maintenance_loop()))
@@ -1476,18 +1476,24 @@ class SecondBrainAgent(BaseAgent):
                 result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
                 content = result.get("content", "{}")
 
-                json_match = re.search(r'\{[\s\S]*\}', content)
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
                 if json_match:
-                    data = json.loads(json_match.group())
+                    try:
+                        data = json.loads(json_match.group())
+                    except (json.JSONDecodeError, ValueError):
+                        log.warning("Compression batch: malformed JSON from LLM")
+                        continue
+
+                    summary_text = data.get("summary", "")
 
                     summary = MemorySummary(
                         id=f"summary_{hashlib.sha256(summary_text.encode()).hexdigest()[:16]}",
                         original_ids=[n.id for n in batch],
-                        summary_text=data.get("summary", ""),
+                        summary_text=summary_text,
                         key_entities=data.get("key_entities", []),
                         key_points=data.get("key_points", []),
                         sentiment=data.get("sentiment", "neutral"),
-                        compression_ratio=1 - (len(data.get("summary", "")) / max(1, len(memories_text))),
+                        compression_ratio=1 - (len(summary_text) / max(1, len(memories_text))),
                     )
 
                     self._summaries[summary.id] = summary
@@ -2571,11 +2577,11 @@ Return ONLY JSON."""
             sync_status=SyncStatus.PENDING_UPLOAD,
         )
 
-    def _load_sync_log(self) -> None:
+    async def _load_sync_log(self) -> None:
         """Load sync log from disk."""
         if self._sync_path.exists():
             try:
-                data = json.loads(self._sync_path.read_text())
+                data = json.loads(await asyncio.to_thread(self._sync_path.read_text))
                 for node_id, rec in data.items():
                     self._sync_log[node_id] = SyncRecord(
                         node_id=rec["node_id"],
@@ -2610,11 +2616,11 @@ Return ONLY JSON."""
     # PHASE 6: PATTERN DETECTION
     # ══════════════════════════════════════════════════════
 
-    def _load_patterns(self) -> None:
+    async def _load_patterns(self) -> None:
         """Load patterns from disk."""
         if self._patterns_path.exists():
             try:
-                data = json.loads(self._patterns_path.read_text())
+                data = json.loads(await asyncio.to_thread(self._patterns_path.read_text))
                 for p in data:
                     self._patterns[p["id"]] = MemoryPattern(**p)
             except Exception as e:
@@ -2627,11 +2633,11 @@ Return ONLY JSON."""
             self._patterns_path.write_text, json.dumps(data, indent=2)
         ))
 
-    def _load_snapshots(self) -> None:
+    async def _load_snapshots(self) -> None:
         """Load snapshots from disk."""
         if self._snapshots_path.exists():
             try:
-                data = json.loads(self._snapshots_path.read_text())
+                data = json.loads(await asyncio.to_thread(self._snapshots_path.read_text))
                 self._snapshots = [MemorySnapshot(**s) for s in data]
             except Exception as e:
                 log.warning(f"Failed to load snapshots: {e}")
@@ -2818,9 +2824,15 @@ Return ONLY JSON."""
         if nodes_dir.exists():
             for node_file in nodes_dir.glob("*.json"):
                 try:
-                    node = MemoryNode.from_dict(json.loads(node_file.read_text()))
-                    self._nodes[node.id] = node
+                    node = MemoryNode.from_dict(json.loads(
+                        await asyncio.to_thread(node_file.read_text)
+                    ))
+                    async with self._node_lock:
+                        self._nodes[node.id] = node
                     self._update_indexes(node)
+                    if isinstance(node.content, str):
+                        normalized = " ".join(node.content.split())
+                        self._content_index[normalized] = node.id
                 except Exception as e:
                     log.warning(f"Failed to load node {node_file}: {e}")
 
@@ -2829,7 +2841,9 @@ Return ONLY JSON."""
         if edges_dir.exists():
             for edge_file in edges_dir.glob("*.json"):
                 try:
-                    edge_data = json.loads(edge_file.read_text())
+                    edge_data = json.loads(
+                        await asyncio.to_thread(edge_file.read_text)
+                    )
                     edge = MemoryEdge(**edge_data)
                     self._edges[edge.id] = edge
                 except Exception as e:
@@ -2840,7 +2854,9 @@ Return ONLY JSON."""
         if audio_dir.exists():
             for audio_file in audio_dir.glob("*.json"):
                 try:
-                    audio = AudioMemory(**json.loads(audio_file.read_text()))
+                    audio = AudioMemory(**json.loads(
+                        await asyncio.to_thread(audio_file.read_text)
+                    ))
                     self._audio_memories[audio.id] = audio
                 except Exception as e:
                     log.warning(f"Failed to load audio {audio_file}: {e}")
@@ -2849,7 +2865,9 @@ Return ONLY JSON."""
         persona_file = self._brain_path / "persona" / "persona.json"
         if persona_file.exists():
             try:
-                self._persona = UserPersona(**json.loads(persona_file.read_text()))
+                self._persona = UserPersona(**json.loads(
+                    await asyncio.to_thread(persona_file.read_text)
+                ))
             except Exception as e:
                 log.warning(f"Failed to load persona: {e}")
 
@@ -2858,7 +2876,9 @@ Return ONLY JSON."""
         if goals_dir.exists():
             for goal_file in goals_dir.glob("*.json"):
                 try:
-                    goal = Goal(**json.loads(goal_file.read_text()))
+                    goal = Goal(**json.loads(
+                        await asyncio.to_thread(goal_file.read_text)
+                    ))
                     self._goals[goal.id] = goal
                 except Exception as e:
                     log.warning(f"Failed to load goal {goal_file}: {e}")
@@ -2868,7 +2888,9 @@ Return ONLY JSON."""
         if skills_dir.exists():
             for skill_file in skills_dir.glob("*.json"):
                 try:
-                    skill = Skill(**json.loads(skill_file.read_text()))
+                    skill = Skill(**json.loads(
+                        await asyncio.to_thread(skill_file.read_text)
+                    ))
                     self._skills[skill.id] = skill
                 except Exception as e:
                     log.warning(f"Failed to load skill {skill_file}: {e}")
