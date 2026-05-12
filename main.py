@@ -918,6 +918,233 @@ async def brain_clear_all():
 
 
 # ══════════════════════════════════════════════════════
+# PERSONA — User Profile & Identity
+# ══════════════════════════════════════════════════════
+
+@app.get("/brain/persona")
+async def brain_get_persona():
+    """Get the current user persona profile."""
+    return await agents["brain"].get_persona()
+
+
+@app.put("/brain/persona/{field}")
+async def brain_update_persona(field: str, value: str = None, values: list[str] = None):
+    """Update a specific field in the user persona."""
+    if values is not None:
+        return await agents["brain"].update_persona_field(field, values)
+    elif value is not None:
+        return await agents["brain"].update_persona_field(field, value)
+    return {"error": "Provide 'value' or 'values' parameter"}
+
+
+@app.post("/brain/persona/extract")
+async def brain_extract_persona(conversation: str = None):
+    """Extract persona from recent conversations."""
+    return await agents["brain"].extract_and_update_persona(conversation)
+
+
+# ══════════════════════════════════════════════════════
+# GOALS — Goal Management
+# ══════════════════════════════════════════════════════
+
+@app.post("/brain/goals")
+async def brain_add_goal(
+    title: str,
+    description: str = None,
+    deadline: str = None,
+    priority: int = 3,
+    category: str = "general"
+):
+    """Add a new goal."""
+    return await agents["brain"].add_goal(title, description, deadline, priority, category)
+
+
+@app.put("/brain/goals/{goal_id}/progress")
+async def brain_update_goal_progress(goal_id: str, progress: float, note: str = None):
+    """Update progress on a goal."""
+    return await agents["brain"].update_goal_progress(goal_id, progress, note)
+
+
+@app.put("/brain/goals/{goal_id}/status")
+async def brain_set_goal_status(goal_id: str, status: str):
+    """Set goal status (active, completed, paused, abandoned)."""
+    from agents.second_brain_agent import GoalStatus
+    goal_status = GoalStatus(status)
+    return await agents["brain"].set_goal_status(goal_id, goal_status)
+
+
+@app.post("/brain/goals/{goal_id}/blocker")
+async def brain_add_goal_blocker(goal_id: str, blocker: str):
+    """Add a blocker to a goal."""
+    return await agents["brain"].add_goal_blocker(goal_id, blocker)
+
+
+@app.get("/brain/goals/active")
+async def brain_get_active_goals():
+    """Get all active goals."""
+    return {"goals": await agents["brain"].get_active_goals()}
+
+
+@app.get("/brain/goals")
+async def brain_get_all_goals():
+    """Get all goals."""
+    return {"goals": await agents["brain"].get_all_goals()}
+
+
+@app.post("/brain/goals/extract")
+async def brain_extract_goals(conversation: str):
+    """Extract goals from conversation text."""
+    goals = await agents["brain"].extract_goals_from_conversation(conversation)
+    return {"goals": [g.to_dict() for g in goals]}
+
+
+# ══════════════════════════════════════════════════════
+# SKILLS — Knowledge & Capability Tracking
+# ══════════════════════════════════════════════════════
+
+@app.post("/brain/skills")
+async def brain_add_skill(
+    name: str,
+    level: str = "beginner",
+    category: str = "general",
+    description: str = None
+):
+    """Add a skill to track."""
+    from agents.second_brain_agent import SkillLevel
+    skill_level = SkillLevel(level)
+    return await agents["brain"].add_skill(name, skill_level, category, description)
+
+
+@app.put("/brain/skills/{skill_name}/level")
+async def brain_update_skill_level(skill_name: str, level: str):
+    """Update skill level (beginner, intermediate, advanced, expert)."""
+    from agents.second_brain_agent import SkillLevel
+    skill_level = SkillLevel(level)
+    return await agents["brain"].update_skill_level(skill_name, skill_level)
+
+
+@app.get("/brain/skills")
+async def brain_get_all_skills():
+    """Get all tracked skills."""
+    return {"skills": await agents["brain"].get_all_skills()}
+
+
+@app.get("/brain/skills/{category}")
+async def brain_get_skills_by_category(category: str):
+    """Get skills in a specific category."""
+    return {"skills": await agents["brain"].get_skills_by_category(category)}
+
+
+@app.post("/brain/skills/extract")
+async def brain_extract_skills(conversation: str):
+    """Extract skills from conversation text."""
+    skills = await agents["brain"].extract_skills_from_conversation(conversation)
+    return {"skills": [s.to_dict() for s in skills]}
+
+
+# ══════════════════════════════════════════════════════
+# COMPRESSION — Memory Summarization
+# ══════════════════════════════════════════════════════
+
+@app.post("/brain/compress")
+async def brain_compress_memories(days_old: int = 30):
+    """Compress memories older than specified days into summaries."""
+    return await agents["brain"].compress_old_memories(days_old)
+
+
+@app.get("/brain/summaries/{summary_id}")
+async def brain_get_summary(summary_id: str):
+    """Get a specific memory summary."""
+    return await agents["brain"].get_summary(summary_id)
+
+
+@app.get("/brain/summaries")
+async def brain_search_summaries(query: str):
+    """Search through memory summaries."""
+    return {"summaries": await agents["brain"].search_summaries(query)}
+
+
+# ══════════════════════════════════════════════════════
+# AUTO-LINKING — Cross-Reference Memories
+# ══════════════════════════════════════════════════════
+
+@app.post("/brain/links/auto")
+async def brain_auto_link():
+    """Automatically link related memories."""
+    return await agents["brain"].auto_link_memories()
+
+
+# ══════════════════════════════════════════════════════
+# EMOTIONAL INTELLIGENCE
+# ══════════════════════════════════════════════════════
+
+@app.post("/brain/emotions/analyze")
+async def brain_analyze_emotions(conversation: str):
+    """Analyze emotions in a conversation."""
+    return await agents["brain"].analyze_emotions(conversation)
+
+
+@app.post("/brain/emotions")
+async def brain_store_emotional(
+    conversation: str,
+    emotion_type: str,
+    intensity: float = 0.5,
+    topic: str = None
+):
+    """Store emotional memory from conversation."""
+    return await agents["brain"].store_emotional_memory(conversation, emotion_type, intensity, topic)
+
+
+# ══════════════════════════════════════════════════════
+# VERSIONING — Memory History
+# ══════════════════════════════════════════════════════
+
+@app.get("/brain/versions/{node_id}")
+async def brain_get_node_versions(node_id: str):
+    """Get all versions of a memory node."""
+    return {"versions": await agents["brain"].get_node_versions(node_id)}
+
+
+@app.post("/brain/versions/{node_id}")
+async def brain_revert_to_version(node_id: str, version: int):
+    """Revert a memory node to a previous version."""
+    return await agents["brain"].revert_to_version(node_id, version)
+
+
+# ══════════════════════════════════════════════════════
+# QUALITY — Memory Quality Scoring
+# ══════════════════════════════════════════════════════
+
+@app.get("/brain/quality/{node_id}")
+async def brain_score_quality(node_id: str):
+    """Get quality score for a specific memory."""
+    score = await agents["brain"].score_memory_quality(node_id)
+    return {"node_id": node_id, "quality_score": score}
+
+
+@app.get("/brain/quality")
+async def brain_quality_report():
+    """Get comprehensive memory quality report."""
+    return await agents["brain"].get_quality_report()
+
+
+# ══════════════════════════════════════════════════════
+# PREDICTIVE — Next Memory Suggestions
+# ══════════════════════════════════════════════════════
+
+@app.get("/brain/suggest/{node_id}")
+async def brain_suggest_related(node_id: str):
+    """Suggest memories related to a given memory."""
+    return {"suggestions": await agents["brain"].suggest_related_memories(node_id)}
+
+
+@app.get("/brain/predict")
+async def brain_predict_next():
+    """Predict the next likely memory based on patterns."""
+    return await agents["brain"].predict_next_memory()
+
+
+# ══════════════════════════════════════════════════════
 # RASO — Your AI Companion with Memory & Personality
 # ══════════════════════════════════════════════════════
 

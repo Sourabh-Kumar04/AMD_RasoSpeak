@@ -1,22 +1,16 @@
 """
-RasoSpeak v2 — Complete Second Brain Memory System
-Multi-tier, graph-based, AI-native memory architecture.
+RasoSpeak v2 — Advanced Second Brain Memory System
+Phase 4 & 5: Persona, Goals, Skills, Memory Compression & Intelligence
 
-Memory Layers:
-- Working Memory (WM): Immediate context, last 5 minutes
-- Short-term Memory (STM): Recent context, last 24 hours
-- Long-term Memory (LTM): Permanent storage, organized in knowledge graph
-- Episodic Memory: Timestamped events and conversations
-- Semantic Memory: Facts, concepts, relationships
-
-Features:
-- Graph-based entity and relationship storage
-- LLM-powered entity extraction
-- Temporal indexing and retrieval
-- Active forgetting based on importance/decay
-- Memory revision and conflict resolution
-- Audio conversation processing and storage
-- Cross-session persistence with temporal reasoning
+This extends the Second Brain with:
+- User Persona extraction and tracking
+- Goal management and progress tracking
+- Skills/knowledge tracking
+- Memory summarization and compression
+- Cross-reference automatic linking
+- Emotional intelligence
+- Memory quality scoring
+- Predictive memory
 """
 
 import asyncio
@@ -29,9 +23,9 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, Callable
+from typing import Any, Optional
 from dataclasses import dataclass, field
-from queue import PriorityQueue
+from typing import Callable
 
 from .base_agent import BaseAgent
 from config.settings import settings
@@ -40,15 +34,15 @@ log = logging.getLogger("rasospeak.brain")
 
 
 # ══════════════════════════════════════════════════════
-# MEMORY ENUMS & CONSTANTS
+# ENUMS
 # ══════════════════════════════════════════════════════
 
 class MemoryTier(Enum):
-    WORKING = "working"      # Last 5 minutes
-    SHORT_TERM = "short_term" # Last 24 hours
-    LONG_TERM = "long_term"   # Permanent storage
-    EPISODIC = "episodic"     # Timestamped events
-    SEMANTIC = "semantic"     # Facts and concepts
+    WORKING = "working"
+    SHORT_TERM = "short_term"
+    LONG_TERM = "long_term"
+    EPISODIC = "episodic"
+    SEMANTIC = "semantic"
 
 
 class MemoryType(Enum):
@@ -62,6 +56,9 @@ class MemoryType(Enum):
     PREFERENCE = "preference"
     GOAL = "goal"
     WEAK_WORD = "weak_word"
+    SKILL = "skill"
+    PERSONA = "persona"
+    EMOTION = "emotion"
 
 
 class Importance(Enum):
@@ -72,13 +69,27 @@ class Importance(Enum):
     FORGOTTEN = 1
 
 
+class GoalStatus(Enum):
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    PAUSED = "paused"
+    ABANDONED = "abandoned"
+
+
+class SkillLevel(Enum):
+    EXPERT = 5
+    ADVANCED = 4
+    INTERMEDIATE = 3
+    BEGINNER = 2
+    NOVICE = 1
+
+
 # ══════════════════════════════════════════════════════
-# GRAPH NODES & EDGES
+# ENHANCED NODES & EDGES
 # ══════════════════════════════════════════════════════
 
 @dataclass
 class MemoryNode:
-    """A node in the knowledge graph."""
     id: str
     type: MemoryType
     content: Any
@@ -90,10 +101,12 @@ class MemoryNode:
     access_count: int = 0
     decay_score: float = 1.0
     metadata: dict = field(default_factory=dict)
-    entities: list = field(default_factory=list)  # Extracted entities
-    relationships: list = field(default_factory=list)  # Connected node IDs
+    entities: list = field(default_factory=list)
+    relationships: list = field(default_factory=list)
     tags: list = field(default_factory=list)
     source: str = "unknown"
+    confidence: float = 1.0  # Quality score
+    version: int = 1  # For tracking changes
 
     def to_dict(self) -> dict:
         return {
@@ -112,6 +125,8 @@ class MemoryNode:
             "relationships": self.relationships,
             "tags": self.tags,
             "source": self.source,
+            "confidence": self.confidence,
+            "version": self.version,
         }
 
     @classmethod
@@ -120,8 +135,8 @@ class MemoryNode:
             id=data["id"],
             type=MemoryType(data["type"]),
             content=data["content"],
-            tier=MemoryTier(data["tier"]),
-            importance=Importance(data["importance"]),
+            tier=MemoryTier(data.get("tier", "long_term")),
+            importance=Importance(data.get("importance", 3)),
             created_at=data["created_at"],
             updated_at=data["updated_at"],
             last_accessed=data["last_accessed"],
@@ -132,16 +147,17 @@ class MemoryNode:
             relationships=data["relationships"],
             tags=data["tags"],
             source=data["source"],
+            confidence=data.get("confidence", 1.0),
+            version=data.get("version", 1),
         )
 
 
 @dataclass
 class MemoryEdge:
-    """An edge connecting nodes in the knowledge graph."""
     id: str
     source_id: str
     target_id: str
-    relation_type: str  # "related_to", "part_of", "caused_by", "temporal", etc.
+    relation_type: str
     weight: float = 1.0
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     metadata: dict = field(default_factory=dict)
@@ -158,20 +174,15 @@ class MemoryEdge:
         }
 
 
-# ══════════════════════════════════════════════════════
-# AUDIO MEMORY STRUCTURE
-# ══════════════════════════════════════════════════════
-
 @dataclass
 class AudioMemory:
-    """Audio conversation memory with transcription and summary."""
     id: str
     session_id: str
     timestamp: str
     duration_seconds: float
     transcription: str
     summary: str
-    speakers: list = field(default_factory=list)  # "user", "raso", "other"
+    speakers: list = field(default_factory=list)
     entities: list = field(default_factory=list)
     topics: list = field(default_factory=list)
     sentiment: str = "neutral"
@@ -200,54 +211,318 @@ class AudioMemory:
 
 
 # ══════════════════════════════════════════════════════
-# ENTITY EXTRACTION PROMPT
+# PERSONA & USER PROFILE
 # ══════════════════════════════════════════════════════
 
-ENTITY_EXTRACTION_PROMPT = """Extract entities and relationships from the following text.
+@dataclass
+class UserPersona:
+    """Complete user profile extracted from conversations."""
+    id: str
+    name: str = "Unknown"
+    bio: str = ""
+    interests: list = field(default_factory=list)
+    goals: list = field(default_factory=list)
+    skills: dict = field(default_factory=dict)  # skill_name -> level
+    preferences: dict = field(default_factory=dict)
+    communication_style: str = "neutral"
+    values: list = field(default_factory=list)
+    personality_traits: list = field(default_factory=list)
+    strengths: list = field(default_factory=list)
+    weaknesses: list = field(default_factory=list)
+    relationships: dict = field(default_factory=dict)  # person_name -> relationship_type
+    emotional_patterns: dict = field(default_factory=dict)
+    learning_style: str = "unknown"
+    work_style: str = "unknown"
+    last_updated: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    confidence: float = 0.0  # How confident we are in this persona
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "bio": self.bio,
+            "interests": self.interests,
+            "goals": self.goals,
+            "skills": self.skills,
+            "preferences": self.preferences,
+            "communication_style": self.communication_style,
+            "values": self.values,
+            "personality_traits": self.personality_traits,
+            "strengths": self.strengths,
+            "weaknesses": self.weaknesses,
+            "relationships": self.relationships,
+            "emotional_patterns": self.emotional_patterns,
+            "learning_style": self.learning_style,
+            "work_style": self.work_style,
+            "last_updated": self.last_updated,
+            "confidence": self.confidence,
+        }
+
+
+# ══════════════════════════════════════════════════════
+# GOAL TRACKING
+# ══════════════════════════════════════════════════════
+
+@dataclass
+class Goal:
+    """A tracked goal with progress."""
+    id: str
+    title: str
+    description: str
+    status: GoalStatus = GoalStatus.ACTIVE
+    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    deadline: str = None
+    progress: float = 0.0  # 0.0 to 1.0
+    milestones: list = field(default_factory=list)
+    sub_goals: list = field(default_factory=list)
+    blockers: list = field(default_factory=list)
+    related_memories: list = field(default_factory=list)  # node IDs
+    priority: int = 3  # 1 (highest) to 5 (lowest)
+    tags: list = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "status": self.status.value,
+            "created_at": self.created_at,
+            "deadline": self.deadline,
+            "progress": self.progress,
+            "milestones": self.milestones,
+            "sub_goals": self.sub_goals,
+            "blockers": self.blockers,
+            "related_memories": self.related_memories,
+            "priority": self.priority,
+            "tags": self.tags,
+        }
+
+
+# ══════════════════════════════════════════════════════
+# SKILL TRACKING
+# ══════════════════════════════════════════════════════
+
+@dataclass
+class Skill:
+    """A tracked skill with proficiency."""
+    id: str
+    name: str
+    category: str
+    level: SkillLevel = SkillLevel.NOVICE
+    experience_years: float = 0.0
+    last_practiced: str = None
+    practice_count: int = 0
+    certifications: list = field(default_factory=list)
+    projects: list = field(default_factory=list)  # node IDs
+    related_skills: list = field(default_factory=list)  # skill IDs
+    learning_resources: list = field(default_factory=list)
+    notes: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "category": self.category,
+            "level": self.level.value,
+            "experience_years": self.experience_years,
+            "last_practiced": self.last_practiced,
+            "practice_count": self.practice_count,
+            "certifications": self.certifications,
+            "projects": self.projects,
+            "related_skills": self.related_skills,
+            "learning_resources": self.learning_resources,
+            "notes": self.notes,
+        }
+
+
+# ══════════════════════════════════════════════════════
+# MEMORY VERSION TRACKING
+# ══════════════════════════════════════════════════════
+
+@dataclass
+class MemoryVersion:
+    """Tracks changes to memory over time."""
+    id: str
+    node_id: str
+    version: int
+    old_content: Any
+    new_content: Any
+    change_type: str  # "created", "updated", "revised", "forgotten"
+    reason: str = ""
+    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    metadata: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "node_id": self.node_id,
+            "version": self.version,
+            "old_content": self.old_content,
+            "new_content": self.new_content,
+            "change_type": self.change_type,
+            "reason": self.reason,
+            "timestamp": self.timestamp,
+            "metadata": self.metadata,
+        }
+
+
+# ══════════════════════════════════════════════════════
+# MEMORY SUMMARY (for compression)
+# ══════════════════════════════════════════════════════
+
+@dataclass
+class MemorySummary:
+    """Compressed summary of old memories."""
+    id: str
+    original_ids: list  # IDs of compressed nodes
+    summary_text: str
+    key_entities: list = field(default_factory=list)
+    key_points: list = field(default_factory=list)
+    sentiment: str = "neutral"
+    time_range: tuple = None  # (start, end)
+    compression_ratio: float = 0.0
+    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "original_ids": self.original_ids,
+            "summary_text": self.summary_text,
+            "key_entities": self.key_entities,
+            "key_points": self.key_points,
+            "sentiment": self.sentiment,
+            "time_range": self.time_range,
+            "compression_ratio": self.compression_ratio,
+            "created_at": self.created_at,
+        }
+
+
+# ══════════════════════════════════════════════════════
+# PROMPTS FOR LLM ANALYSIS
+# ══════════════════════════════════════════════════════
+
+PERSONA_EXTRACTION_PROMPT = """Analyze the user's conversation and extract their persona information.
 
 Return a JSON object with:
-- "entities": list of {name, type, context} for people, places, organizations, concepts, dates, events
-- "relationships": list of {subject, predicate, object} for connections between entities
-- "topics": list of main topics/themes
-- "sentiment": "positive", "negative", or "neutral"
-- "key_points": list of important facts or statements
-- "questions": list of questions asked
-- "decisions": list of decisions made
+- "name": User's name if mentioned
+- "bio": Brief biography/description
+- "interests": List of interests/hobbies
+- "communication_style": How they communicate (formal/casual/technical/etc)
+- "personality_traits": Key personality traits observed
+- "values": What they seem to value
+- "strengths": Observed strengths
+- "weaknesses": Observed weaknesses or areas for improvement
+- "work_style": How they approach work
+- "learning_style": How they learn best
+- "relationships": Important relationships mentioned
 
-Text: {text}
+Be specific and only include information that is clearly present in the conversation.
+If something is not mentioned, don't make it up.
 
-Return ONLY valid JSON, no markdown or explanation."""
+Conversation: {conversation}
 
-SUMMARY_PROMPT = """Summarize the following conversation/recording in 2-3 sentences. Include key points, topics discussed, and any important decisions or conclusions.
+Return ONLY valid JSON."""
 
-Text: {text}
+GOAL_EXTRACTION_PROMPT = """Extract goals and intentions from the conversation.
 
-Return a brief summary only."""
+Return a JSON object with:
+- "goals": List of {title, description, deadline, priority} for each goal mentioned
+- "decisions": List of decisions made
+- "commitments": Things the user committed to
+- "plans": Future plans mentioned
+
+Conversation: {conversation}
+
+Return ONLY valid JSON."""
+
+SKILL_EXTRACTION_PROMPT = """Extract skills and knowledge from the conversation.
+
+Return a JSON object with:
+- "skills": List of {name, category, level, context} for skills mentioned
+- "learning": Things the user wants to learn
+- "knowledge_areas": Topics they seem knowledgeable about
+
+Conversation: {conversation}
+
+Return ONLY valid JSON."""
+
+MEMORY_COMPRESSION_PROMPT = """Compress the following memories into a concise summary.
+
+Keep:
+- Key facts and decisions
+- Important entities mentioned
+- Main topics discussed
+- User's goals or intentions
+- Any emotional tone
+
+Memories: {memories}
+
+Return a JSON with:
+- "summary": Compressed summary text (max 500 words)
+- "key_entities": List of important entities
+- "key_points": List of 5-10 most important points
+- "sentiment": Overall emotional tone
+- "topics": Main topics covered
+
+Return ONLY valid JSON."""
+
+CONFLICT_DETECTION_PROMPT = """Detect conflicts between old and new information.
+
+Old information: {old}
+New information: {new}
+
+Return a JSON with:
+- "is_conflict": true/false
+- "conflict_type": "contradiction", "update", or "clarification"
+- "resolution_suggestion": How to resolve the conflict
+
+Return ONLY valid JSON."""
+
+CROSS_REFERENCE_PROMPT = """Find connections between memories.
+
+Memory 1: {memory1}
+Memory 2: {memory2}
+
+Return a JSON with:
+- "has_connection": true/false
+- "relation_type": "related", "causes", "contradicts", "part_of", "temporal", "unknown"
+- "connection_strength": 0.0 to 1.0
+- "explanation": Brief explanation of the connection
+
+Return ONLY valid JSON."""
+
+EMOTION_ANALYSIS_PROMPT = """Analyze the emotional content of this conversation.
+
+Return a JSON with:
+- "overall_sentiment": "positive", "negative", "neutral", "mixed"
+- "emotions": List of specific emotions detected
+- "emotional_arc": How emotions changed during the conversation
+- "key_moments": Emotional highlights
+- "user_mood": User's mood at end
+
+Conversation: {conversation}
+
+Return ONLY valid JSON."""
 
 
 # ══════════════════════════════════════════════════════
-# ENHANCED MEMORY AGENT
+# ENHANCED SECOND BRAIN AGENT
 # ══════════════════════════════════════════════════════
 
 class SecondBrainAgent(BaseAgent):
     """
     Agent 0: SecondBrainAgent — Complete Second Brain Memory System
+    Phase 4 & 5: Persona, Goals, Skills, Compression & Intelligence
 
-    Multi-tier memory architecture with:
-    - Working Memory (WM): Immediate context
-    - Short-term Memory (STM): Recent 24 hours
-    - Long-term Memory (LTM): Permanent knowledge graph
-    - Episodic Memory: Timestamped events
-    - Semantic Memory: Facts and relationships
-
-    Features:
-    - Graph-based storage with entities and relationships
-    - LLM-powered entity extraction
-    - Temporal indexing and retrieval
-    - Active forgetting based on importance decay
-    - Memory revision and conflict detection
-    - Audio conversation processing
-    - Cross-session persistence
+    Extended Features:
+    - User Persona extraction and tracking
+    - Goal management with progress tracking
+    - Skills/knowledge tracking
+    - Memory compression and summarization
+    - Cross-reference automatic linking
+    - Emotional intelligence
+    - Memory quality scoring
+    - Predictive memory suggestions
     """
 
     name = "SecondBrainAgent"
@@ -258,11 +533,16 @@ class SecondBrainAgent(BaseAgent):
         self._nodes: dict[str, MemoryNode] = {}
         self._edges: dict[str, MemoryEdge] = {}
         self._audio_memories: dict[str, AudioMemory] = {}
-        self._working_memory: list[str] = []  # Node IDs in WM
-        self._short_term: list[str] = []  # Node IDs in STM
-        self._entity_index: dict[str, list[str]] = defaultdict(list)  # entity_name -> node_ids
-        self._topic_index: dict[str, list[str]] = defaultdict(list)  # topic -> node_ids
+        self._working_memory: list[str] = []
+        self._short_term: list[str] = []
+        self._entity_index: dict[str, list[str]] = defaultdict(list)
+        self._topic_index: dict[str, list[str]] = defaultdict(list)
         self._llm_client = None
+        self._persona: Optional[UserPersona] = None
+        self._goals: dict[str, Goal] = {}
+        self._skills: dict[str, Skill] = {}
+        self._versions: dict[str, list[MemoryVersion]] = defaultdict(list)
+        self._summaries: dict[str, MemorySummary] = {}
         self._ensure_storage()
 
     def _ensure_storage(self):
@@ -271,27 +551,33 @@ class SecondBrainAgent(BaseAgent):
         (self._brain_path / "nodes").mkdir(exist_ok=True)
         (self._brain_path / "edges").mkdir(exist_ok=True)
         (self._brain_path / "audio").mkdir(exist_ok=True)
+        (self._brain_path / "persona").mkdir(exist_ok=True)
+        (self._brain_path / "goals").mkdir(exist_ok=True)
+        (self._brain_path / "skills").mkdir(exist_ok=True)
+        (self._brain_path / "summaries").mkdir(exist_ok=True)
         log.info(f"Second Brain storage: {self._brain_path}")
 
     async def initialize(self):
         """Initialize the second brain."""
-        log.info("🧠 Initializing Second Brain Memory System...")
+        log.info("🧠 Initializing Second Brain Memory System (Phase 4 & 5)...")
 
-        # Initialize LLM client for entity extraction
         try:
             from .llm_client import create_llm_client
             self._llm_client = create_llm_client(settings.default_provider)
         except Exception as e:
             log.warning(f"LLM client not available: {e}")
 
-        # Load existing memory
         await self._load_memory()
-
-        # Start background tasks
         asyncio.create_task(self._memory_maintenance_loop())
         asyncio.create_task(self._tier_migration_loop())
+        asyncio.create_task(self._persona_update_loop())
+        asyncio.create_task(self._goal_check_loop())
+        asyncio.create_task(self._auto_link_loop())
 
         log.info(f"✅ Second Brain ready: {len(self._nodes)} nodes, {len(self._edges)} edges")
+        if self._persona:
+            log.info(f"   User Persona loaded: confidence={self._persona.confidence:.2f}")
+        log.info(f"   Goals: {len(self._goals)}, Skills: {len(self._skills)}")
 
     # ══════════════════════════════════════════════════════
     # CORE MEMORY OPERATIONS
@@ -308,23 +594,16 @@ class SecondBrainAgent(BaseAgent):
         source: str = "unknown",
         extract_entities: bool = True,
     ) -> MemoryNode:
-        """Store a memory node in the knowledge graph."""
+        """Store a memory node with full processing."""
         node_id = f"node_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
 
-        # Extract entities if LLM is available
         entities = []
-        relationships = []
         topics = []
 
         if extract_entities and self._llm_client and isinstance(content, str):
             extracted = await self._extract_entities(content)
             entities = extracted.get("entities", [])
             topics = extracted.get("topics", [])
-
-            # Create relationship edges
-            for rel in extracted.get("relationships", []):
-                # Relationships stored separately, will be linked later
-                pass
 
         node = MemoryNode(
             id=node_id,
@@ -336,16 +615,16 @@ class SecondBrainAgent(BaseAgent):
             entities=[e["name"] for e in entities],
             tags=tags or [],
             source=source,
+            confidence=0.8,  # Initial confidence
         )
 
-        # Store node
         self._nodes[node_id] = node
         self._update_indexes(node)
-
-        # Add to appropriate tier
         self._add_to_tier(node_id, tier)
 
-        # Persist
+        # Track version
+        await self._track_version(node_id, None, content, "created")
+
         await self._save_node(node)
 
         log.debug(f"Stored memory: {memory_type.value}/{node_id}")
@@ -358,14 +637,12 @@ class SecondBrainAgent(BaseAgent):
         memory_type: MemoryType = None,
         tier: MemoryTier = None,
         limit: int = 20,
-        include_temporal: bool = True,
-        time_range: str = None,  # "1h", "24h", "7d", "30d", "all"
+        time_range: str = None,
     ) -> list[dict]:
         """Recall memories with hybrid search."""
         results = []
+        filtered_nodes = list(self._nodes.values())
 
-        # Filter by time range
-        filtered_nodes = self._nodes.values()
         if time_range:
             cutoff = self._get_time_cutoff(time_range)
             filtered_nodes = [
@@ -373,58 +650,18 @@ class SecondBrainAgent(BaseAgent):
                 if datetime.fromisoformat(n.created_at) > cutoff
             ]
 
-        # Filter by type
         if memory_type:
             filtered_nodes = [n for n in filtered_nodes if n.type == memory_type]
 
-        # Filter by tier
         if tier:
             filtered_nodes = [n for n in filtered_nodes if n.tier == tier]
 
-        # If query provided, score and rank
         if query:
             query_lower = query.lower()
             query_words = set(query_lower.split())
 
             for node in filtered_nodes:
-                score = 0.0
-
-                # Text similarity
-                if isinstance(node.content, str):
-                    content_lower = node.content.lower()
-                    content_words = set(content_lower.split())
-
-                    # Word overlap
-                    overlap = len(query_words & content_words)
-                    score += overlap * 0.3
-
-                    # Exact phrase match
-                    if query_lower in content_lower:
-                        score += 2.0
-
-                # Entity match
-                for entity in node.entities:
-                    if query_lower in entity.lower():
-                        score += 1.5
-
-                # Tag match
-                for tag in node.tags:
-                    if query_lower in tag.lower():
-                        score += 1.0
-
-                # Recency boost
-                age_hours = (datetime.utcnow() - datetime.fromisoformat(node.created_at)).total_seconds() / 3600
-                if age_hours < 1:
-                    score *= 1.5
-                elif age_hours < 24:
-                    score *= 1.2
-
-                # Importance boost
-                score *= (node.importance.value / 3.0)
-
-                # Access count boost
-                score *= (1 + node.access_count * 0.05)
-
+                score = self._calculate_relevance_score(node, query_words, query_lower)
                 if score > 0:
                     results.append({
                         "node": node.to_dict(),
@@ -432,16 +669,1044 @@ class SecondBrainAgent(BaseAgent):
                         "reason": self._explain_score(node, query_words),
                     })
         else:
-            # No query, return recent
             results = [
                 {"node": n.to_dict(), "score": 1.0, "reason": "recent"}
                 for n in sorted(filtered_nodes, key=lambda x: x.last_accessed, reverse=True)[:limit]
             ]
 
-        # Sort by score
         results.sort(key=lambda x: x["score"], reverse=True)
-
         return results[:limit]
+
+    def _calculate_relevance_score(self, node: MemoryNode, query_words: set, query_lower: str) -> float:
+        """Calculate relevance score for a node."""
+        score = 0.0
+
+        if isinstance(node.content, str):
+            content_lower = node.content.lower()
+            content_words = set(content_lower.split())
+            overlap = len(query_words & content_words)
+            score += overlap * 0.3
+
+            if query_lower in content_lower:
+                score += 2.0
+
+        for entity in node.entities:
+            if query_lower in entity.lower():
+                score += 1.5
+
+        for tag in node.tags:
+            if query_lower in tag.lower():
+                score += 1.0
+
+        age_hours = (datetime.utcnow() - datetime.fromisoformat(node.created_at)).total_seconds() / 3600
+        if age_hours < 1:
+            score *= 1.5
+        elif age_hours < 24:
+            score *= 1.2
+
+        score *= (node.importance.value / 3.0)
+        score *= (1 + node.access_count * 0.05)
+        score *= node.confidence
+
+        return score
+
+    # ══════════════════════════════════════════════════════
+    # PERSONA EXTRACTION & MANAGEMENT
+    # ══════════════════════════════════════════════════════
+
+    async def extract_and_update_persona(self, conversation: str = None) -> UserPersona:
+        """Extract persona from recent conversations."""
+        if not self._llm_client:
+            return self._persona
+
+        if not conversation:
+            conversation = self._get_recent_conversation_text()
+
+        if len(conversation) < 50:
+            return self._persona
+
+        try:
+            messages = [
+                {"role": "system", "content": "You are a persona extraction system. Return ONLY valid JSON."},
+                {"role": "user", "content": PERSONA_EXTRACTION_PROMPT.format(conversation=conversation[:4000])}
+            ]
+
+            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=2048)
+            content = result.get("content", "{}")
+
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                data = json.loads(json_match.group())
+
+                if self._persona:
+                    # Update existing persona
+                    self._update_persona_fields(data)
+                else:
+                    # Create new persona
+                    self._persona = UserPersona(
+                        id=f"persona_{int(time.time())}",
+                        name=data.get("name", "Unknown"),
+                        bio=data.get("bio", ""),
+                        interests=data.get("interests", []),
+                        communication_style=data.get("communication_style", "neutral"),
+                        personality_traits=data.get("personality_traits", []),
+                        values=data.get("values", []),
+                        strengths=data.get("strengths", []),
+                        weaknesses=data.get("weaknesses", []),
+                        work_style=data.get("work_style", "unknown"),
+                        learning_style=data.get("learning_style", "unknown"),
+                        confidence=0.7,
+                    )
+
+                self._persona.last_updated = datetime.utcnow().isoformat()
+                self._persona.confidence = min(1.0, self._persona.confidence + 0.1)
+
+                await self._save_persona()
+                log.info(f"Persona updated: {self._persona.name}, confidence={self._persona.confidence:.2f}")
+
+        except Exception as e:
+            log.warning(f"Persona extraction failed: {e}")
+
+        return self._persona
+
+    def _update_persona_fields(self, data: dict):
+        """Update persona fields with new data."""
+        if not self._persona:
+            return
+
+        for key, value in data.items():
+            if hasattr(self._persona, key) and value:
+                current = getattr(self._persona, key)
+                if isinstance(current, list) and isinstance(value, list):
+                    # Merge lists
+                    setattr(self._persona, key, list(set(current + value)))
+                else:
+                    setattr(self._persona, key, value)
+
+    async def get_persona(self) -> dict:
+        """Get the current user persona."""
+        if not self._persona:
+            return {"error": "No persona extracted yet"}
+
+        return self._persona.to_dict()
+
+    async def update_persona_field(self, field: str, value: Any) -> dict:
+        """Update a specific persona field."""
+        if not self._persona:
+            return {"error": "No persona exists"}
+
+        if hasattr(self._persona, field):
+            setattr(self._persona, field, value)
+            self._persona.last_updated = datetime.utcnow().isoformat()
+            await self._save_persona()
+            return {"updated": True, "field": field}
+
+        return {"error": "Invalid field"}
+
+    def _get_recent_conversation_text(self) -> str:
+        """Get text from recent conversations for analysis."""
+        conversations = [
+            n.content for n in self._nodes.values()
+            if n.type == MemoryType.CONVERSATION
+        ]
+        return "\n\n".join([
+            str(c) if isinstance(c, dict) else c
+            for c in conversations[-20:]
+        ])
+
+    async def _persona_update_loop(self) -> None:
+        """Background task to update persona periodically."""
+        while True:
+            try:
+                await asyncio.sleep(3600)  # Check every hour
+
+                recent_text = self._get_recent_conversation_text()
+                if len(recent_text) > 100:
+                    await self.extract_and_update_persona(recent_text)
+
+            except Exception as e:
+                log.error(f"Persona update error: {e}")
+
+    # ══════════════════════════════════════════════════════
+    # GOAL MANAGEMENT
+    # ══════════════════════════════════════════════════════
+
+    async def add_goal(
+        self,
+        title: str,
+        description: str = "",
+        deadline: str = None,
+        priority: int = 3,
+        tags: list = None,
+    ) -> Goal:
+        """Add a new goal."""
+        goal = Goal(
+            id=f"goal_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
+            title=title,
+            description=description,
+            deadline=deadline,
+            priority=priority,
+            tags=tags or [],
+        )
+
+        self._goals[goal.id] = goal
+        await self._save_goal(goal)
+
+        # Also store in memory
+        await self.store(
+            content={"goal_id": goal.id, "title": title, "description": description},
+            memory_type=MemoryType.GOAL,
+            importance=Importance.HIGH,
+            tags=["goal"] + (tags or []),
+        )
+
+        log.info(f"Goal added: {title}")
+
+        return goal
+
+    async def update_goal_progress(self, goal_id: str, progress: float, note: str = None) -> dict:
+        """Update goal progress."""
+        if goal_id not in self._goals:
+            return {"error": "Goal not found"}
+
+        goal = self._goals[goal_id]
+        goal.progress = max(0.0, min(1.0, progress))
+
+        if note:
+            goal.milestones.append({
+                "timestamp": datetime.utcnow().isoformat(),
+                "progress": progress,
+                "note": note,
+            })
+
+        if goal.progress >= 1.0:
+            goal.status = GoalStatus.COMPLETED
+
+        await self._save_goal(goal)
+
+        return {"goal_id": goal_id, "progress": goal.progress, "status": goal.status.value}
+
+    async def get_active_goals(self) -> list[dict]:
+        """Get all active goals sorted by priority."""
+        active = [g for g in self._goals.values() if g.status == GoalStatus.ACTIVE]
+        active.sort(key=lambda x: x.priority)
+        return [g.to_dict() for g in active]
+
+    async def get_all_goals(self) -> list[dict]:
+        """Get all goals regardless of status."""
+        return [g.to_dict() for g in self._goals.values()]
+
+    async def set_goal_status(self, goal_id: str, status: GoalStatus) -> dict:
+        """Set goal status."""
+        if goal_id not in self._goals:
+            return {"error": "Goal not found"}
+
+        self._goals[goal_id].status = status
+        await self._save_goal(self._goals[goal_id])
+
+        return {"goal_id": goal_id, "status": status.value}
+
+    async def add_goal_blocker(self, goal_id: str, blocker: str) -> dict:
+        """Add a blocker to a goal."""
+        if goal_id not in self._goals:
+            return {"error": "Goal not found"}
+
+        self._goals[goal_id].blockers.append(blocker)
+        await self._save_goal(self._goals[goal_id])
+
+        return {"added": True, "blocker": blocker}
+
+    async def extract_goals_from_conversation(self, conversation: str) -> list[Goal]:
+        """Extract goals from a conversation."""
+        if not self._llm_client:
+            return []
+
+        try:
+            messages = [
+                {"role": "system", "content": "You are a goal extraction system. Return ONLY valid JSON."},
+                {"role": "user", "content": GOAL_EXTRACTION_PROMPT.format(conversation=conversation[:3000])}
+            ]
+
+            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
+            content = result.get("content", "{}")
+
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                data = json.loads(json_match.group())
+                goals_data = data.get("goals", [])
+
+                for goal_data in goals_data:
+                    existing = [g for g in self._goals.values() if g.title == goal_data.get("title")]
+                    if not existing:
+                        await self.add_goal(
+                            title=goal_data.get("title", "Untitled"),
+                            description=goal_data.get("description", ""),
+                            deadline=goal_data.get("deadline"),
+                            priority=goal_data.get("priority", 3),
+                        )
+
+                return self.get_active_goals()
+
+        except Exception as e:
+            log.warning(f"Goal extraction failed: {e}")
+
+        return []
+
+    async def _goal_check_loop(self) -> None:
+        """Background task to check goal deadlines."""
+        while True:
+            try:
+                await asyncio.sleep(1800)  # Check every 30 minutes
+
+                now = datetime.utcnow()
+                for goal in self._goals.values():
+                    if goal.status == GoalStatus.ACTIVE and goal.deadline:
+                        deadline = datetime.fromisoformat(goal.deadline)
+                        if deadline < now:
+                            # Goal is overdue - could send notification
+                            log.info(f"Goal overdue: {goal.title}")
+
+            except Exception as e:
+                log.error(f"Goal check error: {e}")
+
+    # ══════════════════════════════════════════════════════
+    # SKILL TRACKING
+    # ══════════════════════════════════════════════════════
+
+    async def add_skill(
+        self,
+        name: str,
+        category: str,
+        level: SkillLevel = SkillLevel.NOVICE,
+        notes: str = "",
+    ) -> Skill:
+        """Add or update a skill."""
+        existing = [s for s in self._skills.values() if s.name.lower() == name.lower()]
+
+        if existing:
+            skill = existing[0]
+            skill.level = level
+            skill.practice_count += 1
+            skill.last_practiced = datetime.utcnow().isoformat()
+        else:
+            skill = Skill(
+                id=f"skill_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
+                name=name,
+                category=category,
+                level=level,
+                last_practiced=datetime.utcnow().isoformat(),
+                notes=notes,
+            )
+            self._skills[skill.id] = skill
+
+        await self._save_skill(skill)
+
+        # Store in memory
+        await self.store(
+            content={"skill_name": name, "category": category, "level": level.value},
+            memory_type=MemoryType.SKILL,
+            importance=Importance.MEDIUM,
+            tags=["skill", category],
+        )
+
+        log.info(f"Skill added/updated: {name} ({level.name})")
+
+        return skill
+
+    async def update_skill_level(self, skill_name: str, level: SkillLevel) -> dict:
+        """Update skill proficiency level."""
+        existing = [s for s in self._skills.values() if s.name.lower() == skill_name.lower()]
+
+        if not existing:
+            return {"error": "Skill not found"}
+
+        skill = existing[0]
+        skill.level = level
+        skill.practice_count += 1
+        skill.last_practiced = datetime.utcnow().isoformat()
+
+        await self._save_skill(skill)
+
+        return {"skill": skill_name, "level": level.value}
+
+    async def get_skills_by_category(self, category: str = None) -> list[dict]:
+        """Get skills, optionally filtered by category."""
+        skills = list(self._skills.values())
+        if category:
+            skills = [s for s in skills if s.category.lower() == category.lower()]
+
+        skills.sort(key=lambda x: x.level.value, reverse=True)
+        return [s.to_dict() for s in skills]
+
+    async def get_all_skills(self) -> list[dict]:
+        """Get all tracked skills."""
+        return [s.to_dict() for s in self._skills.values()]
+
+    async def extract_skills_from_conversation(self, conversation: str) -> list[Skill]:
+        """Extract skills from conversation."""
+        if not self._llm_client:
+            return []
+
+        try:
+            messages = [
+                {"role": "system", "content": "You are a skill extraction system. Return ONLY valid JSON."},
+                {"role": "user", "content": SKILL_EXTRACTION_PROMPT.format(conversation=conversation[:3000])}
+            ]
+
+            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
+            content = result.get("content", "{}")
+
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                data = json.loads(json_match.group())
+                skills_data = data.get("skills", [])
+
+                for skill_data in skills_data:
+                    await self.add_skill(
+                        name=skill_data.get("name", "Unknown"),
+                        category=skill_data.get("category", "general"),
+                        level=SkillLevel(skill_data.get("level", 1)),
+                    )
+
+                return self.get_all_skills()
+
+        except Exception as e:
+            log.warning(f"Skill extraction failed: {e}")
+
+        return []
+
+    # ══════════════════════════════════════════════════════
+    # MEMORY COMPRESSION & SUMMARIZATION
+    # ══════════════════════════════════════════════════════
+
+    async def compress_old_memories(self, days_old: int = 30) -> dict:
+        """Compress old memories into summaries."""
+        cutoff = datetime.utcnow() - timedelta(days=days_old)
+
+        old_nodes = [
+            n for n in self._nodes.values()
+            if n.tier == MemoryTier.LONG_TERM
+            and datetime.fromisoformat(n.created_at) < cutoff
+            and n.type in [MemoryType.CONVERSATION, MemoryType.EVENT]
+        ]
+
+        if len(old_nodes) < 5:
+            return {"compressed": 0, "message": "Not enough old memories to compress"}
+
+        compressed = 0
+        batch_size = 10
+
+        for i in range(0, len(old_nodes), batch_size):
+            batch = old_nodes[i:i + batch_size]
+
+            if not self._llm_client:
+                break
+
+            memories_text = "\n\n".join([
+                f"[{n.created_at}] {str(n.content)[:500]}"
+                for n in batch
+            ])
+
+            try:
+                messages = [
+                    {"role": "system", "content": "You are a memory compression system. Return ONLY valid JSON."},
+                    {"role": "user", "content": MEMORY_COMPRESSION_PROMPT.format(memories=memories_text[:3000])}
+                ]
+
+                result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
+                content = result.get("content", "{}")
+
+                json_match = re.search(r'\{[\s\S]*\}', content)
+                if json_match:
+                    data = json.loads(json_match.group())
+
+                    summary = MemorySummary(
+                        id=f"summary_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
+                        original_ids=[n.id for n in batch],
+                        summary_text=data.get("summary", ""),
+                        key_entities=data.get("key_entities", []),
+                        key_points=data.get("key_points", []),
+                        sentiment=data.get("sentiment", "neutral"),
+                        compression_ratio=1 - (len(data.get("summary", "")) / max(1, len(memories_text))),
+                    )
+
+                    self._summaries[summary.id] = summary
+                    await self._save_summary(summary)
+
+                    # Remove old nodes from active memory but keep reference
+                    for node in batch:
+                        node.metadata["compressed"] = True
+                        node.metadata["summary_id"] = summary.id
+                        await self._save_node(node)
+
+                    compressed += len(batch)
+
+            except Exception as e:
+                log.warning(f"Compression batch failed: {e}")
+
+        log.info(f"Compressed {compressed} old memories into {len(self._summaries)} summaries")
+
+        return {
+            "compressed": compressed,
+            "summaries_created": len(self._summaries),
+        }
+
+    async def get_summary(self, summary_id: str) -> dict:
+        """Get a memory summary by ID."""
+        if summary_id in self._summaries:
+            return self._summaries[summary_id].to_dict()
+        return {"error": "Summary not found"}
+
+    async def search_summaries(self, query: str) -> list[dict]:
+        """Search within compressed summaries."""
+        query_lower = query.lower()
+        results = []
+
+        for summary in self._summaries.values():
+            if query_lower in summary.summary_text.lower():
+                score = summary.summary_text.lower().count(query_lower)
+                results.append({
+                    "summary": summary.to_dict(),
+                    "score": score,
+                })
+
+        results.sort(key=lambda x: x["score"], reverse=True)
+        return results[:10]
+
+    # ══════════════════════════════════════════════════════
+    # CROSS-REFERENCE AUTOMATIC LINKING
+    # ══════════════════════════════════════════════════════
+
+    async def auto_link_memories(self) -> dict:
+        """Automatically find and create links between memories."""
+        if not self._llm_client:
+            return {"linked": 0}
+
+        linked = 0
+        unlinked = [n for n in self._nodes.values() if len(n.relationships) == 0]
+
+        for i, node1 in enumerate(unlinked[:20]):
+            for node2 in unlinked[i + 1:]:
+                if self._should_link(node1, node2):
+                    await self.add_relationship(
+                        source_id=node1.id,
+                        target_id=node2.id,
+                        relation_type="auto_linked",
+                        weight=0.5,
+                    )
+                    linked += 1
+
+        log.info(f"Auto-linked {linked} memory pairs")
+
+        return {"linked": linked}
+
+    def _should_link(self, node1: MemoryNode, node2: MemoryNode) -> bool:
+        """Check if two nodes should be linked."""
+        # Check entities
+        for entity in node1.entities:
+            if entity in node2.entities:
+                return True
+
+        # Check tags
+        for tag in node1.tags:
+            if tag in node2.tags:
+                return True
+
+        # Check content similarity
+        if isinstance(node1.content, str) and isinstance(node2.content, str):
+            words1 = set(node1.content.lower().split())
+            words2 = set(node2.content.lower().split())
+            overlap = len(words1 & words2)
+            if overlap > 5:
+                return True
+
+        return False
+
+    async def _auto_link_loop(self) -> None:
+        """Background task to auto-link memories."""
+        while True:
+            try:
+                await asyncio.sleep(7200)  # Check every 2 hours
+
+                await self.auto_link_memories()
+
+            except Exception as e:
+                log.error(f"Auto-link error: {e}")
+
+    # ══════════════════════════════════════════════════════
+    # EMOTIONAL INTELLIGENCE
+    # ══════════════════════════════════════════════════════
+
+    async def analyze_emotions(self, conversation: str) -> dict:
+        """Analyze emotional content of conversation."""
+        if not self._llm_client:
+            return {"error": "LLM not available"}
+
+        try:
+            messages = [
+                {"role": "system", "content": "You are an emotion analysis system. Return ONLY valid JSON."},
+                {"role": "user", "content": EMOTION_ANALYSIS_PROMPT.format(conversation=conversation[:3000])}
+            ]
+
+            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
+            content = result.get("content", "{}")
+
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                return json.loads(json_match.group())
+
+        except Exception as e:
+            log.warning(f"Emotion analysis failed: {e}")
+
+        return {"error": "Analysis failed"}
+
+    async def store_emotional_memory(
+        self,
+        conversation: str,
+        sentiment: str,
+        emotions: list,
+        context: str = None,
+    ) -> MemoryNode:
+        """Store emotional context from conversation."""
+        emotion_data = {
+            "sentiment": sentiment,
+            "emotions": emotions,
+            "context": context,
+            "conversation": conversation[:500],
+        }
+
+        node = await self.store(
+            content=emotion_data,
+            memory_type=MemoryType.EMOTION,
+            importance=Importance.MEDIUM,
+            tags=["emotion", sentiment] + emotions,
+            extract_entities=False,
+        )
+
+        # Update persona emotional patterns
+        if self._persona:
+            pattern_key = sentiment
+            if pattern_key in self._persona.emotional_patterns:
+                self._persona.emotional_patterns[pattern_key] += 1
+            else:
+                self._persona.emotional_patterns[pattern_key] = 1
+
+            await self._save_persona()
+
+        return node
+
+    # ══════════════════════════════════════════════════════
+    # MEMORY VERSIONING
+    # ══════════════════════════════════════════════════════
+
+    async def _track_version(
+        self,
+        node_id: str,
+        old_content: Any,
+        new_content: Any,
+        change_type: str,
+    ) -> None:
+        """Track memory version history."""
+        node = self._nodes.get(node_id)
+        if not node:
+            return
+
+        version = MemoryVersion(
+            id=f"ver_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
+            node_id=node_id,
+            version=node.version,
+            old_content=old_content,
+            new_content=new_content,
+            change_type=change_type,
+        )
+
+        self._versions[node_id].append(version)
+        node.version += 1
+
+    async def get_node_versions(self, node_id: str) -> list[dict]:
+        """Get version history for a node."""
+        versions = self._versions.get(node_id, [])
+        return [v.to_dict() for v in versions[-10:]]  # Last 10 versions
+
+    async def revert_to_version(self, node_id: str, version: int) -> dict:
+        """Revert a node to a previous version."""
+        versions = self._versions.get(node_id, [])
+        target = [v for v in versions if v.version == version]
+
+        if not target:
+            return {"error": "Version not found"}
+
+        node = self._nodes.get(node_id)
+        if not node:
+            return {"error": "Node not found"}
+
+        old_content = node.content
+        node.content = target[0].old_content
+        node.version += 1
+
+        await self._track_version(node_id, old_content, node.content, "reverted")
+        await self._save_node(node)
+
+        return {"reverted": True, "node_id": node_id, "version": node.version}
+
+    # ══════════════════════════════════════════════════════
+    # MEMORY QUALITY SCORING
+    # ══════════════════════════════════════════════════════
+
+    async def score_memory_quality(self, node_id: str) -> float:
+        """Score the quality of a memory node."""
+        node = self._nodes.get(node_id)
+        if not node:
+            return 0.0
+
+        score = 0.5  # Base score
+
+        # Entity presence
+        if len(node.entities) > 0:
+            score += 0.1
+
+        # Tag presence
+        if len(node.tags) >= 3:
+            score += 0.1
+
+        # Access frequency
+        if node.access_count > 5:
+            score += 0.1
+
+        # Recency of access
+        last_access = datetime.fromisoformat(node.last_accessed)
+        hours_ago = (datetime.utcnow() - last_access).total_seconds() / 3600
+        if hours_ago < 24:
+            score += 0.1
+
+        # Importance
+        score += (node.importance.value - 3) * 0.05
+
+        # Has relationships
+        if len(node.relationships) > 0:
+            score += 0.1
+
+        node.confidence = min(1.0, max(0.0, score))
+        await self._save_node(node)
+
+        return node.confidence
+
+    async def get_quality_report(self) -> dict:
+        """Get overall memory quality report."""
+        total = len(self._nodes)
+        if total == 0:
+            return {"total": 0, "avg_quality": 0, "high_quality": 0, "low_quality": 0}
+
+        quality_scores = [n.confidence for n in self._nodes.values()]
+        avg_quality = sum(quality_scores) / total
+
+        high_quality = sum(1 for q in quality_scores if q >= 0.8)
+        low_quality = sum(1 for q in quality_scores if q < 0.4)
+
+        return {
+            "total": total,
+            "avg_quality": round(avg_quality, 3),
+            "high_quality": high_quality,
+            "low_quality": low_quality,
+            "quality_distribution": {
+                "excellent": sum(1 for q in quality_scores if q >= 0.9),
+                "good": sum(1 for q in quality_scores if 0.7 <= q < 0.9),
+                "fair": sum(1 for q in quality_scores if 0.5 <= q < 0.7),
+                "poor": sum(1 for q in quality_scores if q < 0.5),
+            }
+        }
+
+    # ══════════════════════════════════════════════════════
+    # PREDICTIVE MEMORY SUGGESTIONS
+    # ══════════════════════════════════════════════════════
+
+    async def suggest_related_memories(self, node_id: str) -> list[dict]:
+        """Suggest related memories based on patterns."""
+        node = self._nodes.get(node_id)
+        if not node:
+            return []
+
+        suggestions = []
+
+        # Based on entities
+        for entity in node.entities[:3]:
+            related = await self.recall_entity(entity.lower(), limit=3)
+            for r in related:
+                if r.get("node", {}).get("id") != node_id:
+                    suggestions.append({
+                        "type": "entity_match",
+                        "node": r["node"],
+                        "score": r["score"],
+                        "entity": entity,
+                    })
+
+        # Based on tags
+        for tag in node.tags[:3]:
+            related = await self.recall_by_topic(tag, limit=3)
+            for r in related:
+                if r.get("node", {}).get("id") != node_id and r not in suggestions:
+                    suggestions.append({
+                        "type": "topic_match",
+                        "node": r["node"],
+                        "score": r["score"],
+                        "topic": tag,
+                    })
+
+        # Sort by score
+        suggestions.sort(key=lambda x: x["score"], reverse=True)
+        return suggestions[:10]
+
+    async def predict_next_memory(self) -> dict:
+        """Predict what memory might be needed next based on patterns."""
+        if len(self._nodes) < 10:
+            return {"suggestion": None, "reason": "Not enough data"}
+
+        # Analyze recent conversation topics
+        recent_convs = [
+            n for n in self._nodes.values()
+            if n.type == MemoryType.CONVERSATION
+        ][-5:]
+
+        if not recent_convs:
+            return {"suggestion": None}
+
+        # Extract common topics/entities
+        all_entities = []
+        all_topics = []
+        for conv in recent_convs:
+            all_entities.extend(conv.entities)
+            all_topics.extend(conv.tags)
+
+        if not all_entities and not all_topics:
+            return {"suggestion": None}
+
+        most_common_entity = Counter(all_entities).most_common(1)
+        most_common_topic = Counter(all_topics).most_common(1)
+
+        return {
+            "suggestion": {
+                "entity": most_common_entity[0][0] if most_common_entity else None,
+                "topic": most_common_topic[0][0] if most_common_topic else None,
+            },
+            "reason": "Based on recent conversation patterns"
+        }
+
+    # ══════════════════════════════════════════════════════
+    # CONVERSATION & DOCUMENT STORAGE
+    # ══════════════════════════════════════════════════════
+
+    async def add_conversation(
+        self,
+        user_input: str,
+        ai_response: str,
+        ai_provider: str,
+        context: str = None,
+        metadata: dict = None,
+    ) -> MemoryNode:
+        """Add conversation with full processing."""
+        conversation = {
+            "user": user_input,
+            "ai": ai_response,
+            "provider": ai_provider,
+            "context": context,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        importance = Importance.MEDIUM
+        if any(word in user_input.lower() for word in ["remember", "important", "note"]):
+            importance = Importance.HIGH
+        if any(word in user_input.lower() for word in ["critical", "urgent", "must"]):
+            importance = Importance.CRITICAL
+
+        node = await self.store(
+            content=conversation,
+            memory_type=MemoryType.CONVERSATION,
+            importance=importance,
+            metadata=metadata or {},
+            tags=["conversation", ai_provider],
+            source=f"chat_{ai_provider}",
+            extract_entities=True,
+        )
+
+        # Extract facts
+        if len(user_input) > 20 and len(user_input) < 200:
+            extracted = await self._extract_entities(user_input)
+            if extracted.get("entities") or extracted.get("key_points"):
+                await self.store(
+                    content={
+                        "fact": user_input,
+                        "source": "conversation",
+                        "conversation_id": node.id,
+                    },
+                    memory_type=MemoryType.FACT,
+                    importance=importance,
+                    tags=["extracted_fact"],
+                )
+
+        # Extract goals if mentioned
+        if any(word in user_input.lower() for word in ["goal", "plan", "want to", "need to", "should"]):
+            await self.extract_goals_from_conversation(user_input)
+
+        # Extract skills if mentioned
+        if any(word in user_input.lower() for word in ["know", "skill", "experienced", "expert"]):
+            await self.extract_skills_from_conversation(user_input)
+
+        # Update persona
+        await self.extract_and_update_persona()
+
+        return node
+
+    async def add_document(
+        self,
+        content: str,
+        title: str,
+        doc_type: str = "document",
+        tags: list = None,
+        metadata: dict = None,
+    ) -> MemoryNode:
+        """Add document with entity extraction."""
+        node = await self.store(
+            content={
+                "title": title,
+                "full_content": content,
+                "type": doc_type,
+            },
+            memory_type=MemoryType.DOCUMENT,
+            importance=Importance.MEDIUM,
+            metadata=metadata or {},
+            tags=tags or ["document"],
+            source=f"doc_{doc_type}",
+            extract_entities=True,
+        )
+
+        # Extract and store key points
+        extracted = await self._extract_entities(content)
+        for point in extracted.get("key_points", [])[:5]:
+            await self.store(
+                content={
+                    "point": point,
+                    "source_document": title,
+                    "document_id": node.id,
+                },
+                memory_type=MemoryType.FACT,
+                importance=Importance.LOW,
+                tags=["key_point", "document"],
+            )
+
+        return node
+
+    async def add_user_fact(
+        self,
+        fact: str,
+        category: str = "general",
+        importance: Importance = Importance.MEDIUM,
+    ) -> MemoryNode:
+        """Add a fact about the user."""
+        return await self.store(
+            content={"fact": fact, "category": category},
+            memory_type=MemoryType.FACT,
+            importance=importance,
+            tags=["user_fact", category],
+            source="user",
+        )
+
+    # ══════════════════════════════════════════════════════
+    # AUDIO MEMORY PROCESSING
+    # ══════════════════════════════════════════════════════
+
+    async def store_audio_conversation(
+        self,
+        session_id: str,
+        transcription: str,
+        speakers: list = None,
+        duration: float = 0,
+        metadata: dict = None,
+    ) -> AudioMemory:
+        """Store audio conversation with full processing."""
+        audio_id = f"audio_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
+
+        extracted = await self._extract_entities(transcription)
+        summary = await self._summarize(transcription)
+        emotions = await self.analyze_emotions(transcription)
+
+        audio_memory = AudioMemory(
+            id=audio_id,
+            session_id=session_id,
+            timestamp=datetime.utcnow().isoformat(),
+            duration_seconds=duration,
+            transcription=transcription,
+            summary=summary,
+            speakers=speakers or ["user", "raso"],
+            entities=[e["name"] for e in extracted.get("entities", [])],
+            topics=extracted.get("topics", []),
+            sentiment=emotions.get("overall_sentiment", "neutral"),
+            key_points=extracted.get("key_points", []),
+            questions_asked=extracted.get("questions", []),
+            decisions_made=extracted.get("decisions", []),
+            metadata=metadata or {},
+        )
+
+        self._audio_memories[audio_id] = audio_memory
+        await self._save_audio_memory(audio_memory)
+
+        # Store as conversation node
+        await self.store(
+            content={
+                "summary": summary,
+                "transcription": transcription,
+                "speakers": speakers,
+                "duration": duration,
+                "key_points": extracted.get("key_points", []),
+                "sentiment": emotions.get("overall_sentiment", "neutral"),
+            },
+            memory_type=MemoryType.AUDIO,
+            importance=Importance.MEDIUM,
+            tags=["audio", "conversation"] + audio_memory.topics,
+            source=f"audio_session_{session_id}",
+        )
+
+        log.info(f"Stored audio: {audio_id} ({duration:.1f}s)")
+
+        return audio_memory
+
+    # ══════════════════════════════════════════════════════
+    # RELATIONSHIP MANAGEMENT
+    # ══════════════════════════════════════════════════════
+
+    async def add_relationship(
+        self,
+        source_id: str,
+        target_id: str,
+        relation_type: str,
+        weight: float = 1.0,
+        metadata: dict = None,
+    ) -> MemoryEdge:
+        """Add relationship between nodes."""
+        edge_id = f"edge_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
+
+        edge = MemoryEdge(
+            id=edge_id,
+            source_id=source_id,
+            target_id=target_id,
+            relation_type=relation_type,
+            weight=weight,
+            metadata=metadata or {},
+        )
+
+        self._edges[edge_id] = edge
+
+        if source_id in self._nodes:
+            self._nodes[source_id].relationships.append(target_id)
+        if target_id in self._nodes:
+            self._nodes[target_id].relationships.append(source_id)
+
+        await self._save_edge(edge)
+
+        return edge
+
+    # ══════════════════════════════════════════════════════
+    # RECALL METHODS
+    # ══════════════════════════════════════════════════════
 
     async def recall_graph(
         self,
@@ -449,13 +1714,12 @@ class SecondBrainAgent(BaseAgent):
         depth: int = 2,
         relation_types: list = None,
     ) -> dict:
-        """Recall related nodes through the knowledge graph."""
-        if entity not in self._entity_index:
+        """Recall via knowledge graph."""
+        if entity.lower() not in self._entity_index:
             return {"entity": entity, "connections": [], "depth": depth}
 
-        # BFS through graph
         visited = set()
-        queue = [(eid, 0) for eid in self._entity_index[entity]]
+        queue = [(eid, 0) for eid in self._entity_index[entity.lower()]]
         graph_results = []
 
         while queue:
@@ -468,7 +1732,6 @@ class SecondBrainAgent(BaseAgent):
             if not node:
                 continue
 
-            # Get related edges
             related_edges = [
                 e for e in self._edges.values()
                 if e.source_id == node_id or e.target_id == node_id
@@ -508,7 +1771,7 @@ class SecondBrainAgent(BaseAgent):
         end_date: str = None,
         limit: int = 20,
     ) -> list[dict]:
-        """Recall memories within a time range."""
+        """Recall within time range."""
         results = []
 
         start = datetime.fromisoformat(start_date) if start_date else datetime.min
@@ -517,16 +1780,9 @@ class SecondBrainAgent(BaseAgent):
         for node in self._nodes.values():
             created = datetime.fromisoformat(node.created_at)
             if start <= created <= end:
-                # Score by relevance
-                score = 0.0
-                if isinstance(node.content, str):
-                    query_lower = query.lower()
-                    content_lower = node.content.lower()
-                    if query_lower in content_lower:
-                        score = 2.0
-                    elif any(w in content_lower for w in query_lower.split()):
-                        score = 1.0
-
+                score = self._calculate_relevance_score(
+                    node, set(query.lower().split()), query.lower()
+                )
                 if score > 0:
                     results.append({
                         "node": node.to_dict(),
@@ -537,68 +1793,46 @@ class SecondBrainAgent(BaseAgent):
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:limit]
 
-    async def recall_conversation(
-        self,
-        query: str = None,
-        limit: int = 10,
-    ) -> list[dict]:
-        """Recall past conversations specifically."""
-        conv_nodes = [
-            n for n in self._nodes.values()
-            if n.type == MemoryType.CONVERSATION
-        ]
-
+    async def recall_conversation(self, query: str = None, limit: int = 10) -> list[dict]:
+        """Recall conversations."""
+        conv_nodes = [n for n in self._nodes.values() if n.type == MemoryType.CONVERSATION]
         results = []
+
         for node in conv_nodes:
             score = 1.0
             if query:
-                query_lower = query.lower()
-                if isinstance(node.content, dict):
-                    content_str = str(node.content).lower()
-                    if query_lower in content_str:
-                        score = 2.0
-                    elif any(w in content_str for w in query_lower.split()):
-                        score = 1.0
+                score = self._calculate_relevance_score(
+                    node, set(query.lower().split()), query.lower()
+                )
 
-            results.append({
-                "node": node.to_dict(),
-                "score": score,
-            })
+            if score > 0:
+                results.append({"node": node.to_dict(), "score": score})
 
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:limit]
 
-    async def recall_entity(
-        self,
-        entity_name: str,
-        limit: int = 10,
-    ) -> list[dict]:
-        """Recall all memories related to an entity."""
+    async def recall_entity(self, entity_name: str, limit: int = 10) -> list[dict]:
+        """Recall by entity."""
         entity_lower = entity_name.lower()
-        matching_nodes = []
+        matching = []
 
         for node in self._nodes.values():
             if any(entity_lower in e.lower() for e in node.entities):
-                matching_nodes.append({
+                matching.append({
                     "node": node.to_dict(),
                     "score": node.access_count + 1,
                 })
 
-        # Sort by access count (most referenced first)
-        matching_nodes.sort(key=lambda x: x["score"], reverse=True)
-        return matching_nodes[:limit]
+        matching.sort(key=lambda x: x["score"], reverse=True)
+        return matching[:limit]
 
-    async def recall_by_topic(
-        self,
-        topic: str,
-        limit: int = 20,
-    ) -> list[dict]:
-        """Recall all memories related to a topic."""
+    async def recall_by_topic(self, topic: str, limit: int = 20) -> list[dict]:
+        """Recall by topic."""
         topic_lower = topic.lower()
-
         results = []
+
         for node in self._nodes.values():
-            if topic_lower in [t.lower() for t in node.topics] if hasattr(node, 'topics') else topic_lower in node.tags:
+            if topic_lower in [t.lower() for t in node.tags]:
                 results.append({
                     "node": node.to_dict(),
                     "score": node.access_count + 1,
@@ -606,135 +1840,6 @@ class SecondBrainAgent(BaseAgent):
 
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:limit]
-
-    # ══════════════════════════════════════════════════════
-    # ENTITY EXTRACTION (LLM-POWERED)
-    # ══════════════════════════════════════════════════════
-
-    async def _extract_entities(self, text: str) -> dict:
-        """Extract entities, relationships, topics from text using LLM."""
-        if not self._llm_client:
-            return self._simple_entity_extraction(text)
-
-        try:
-            messages = [
-                {"role": "system", "content": "You are a knowledge extraction system. Return ONLY valid JSON."},
-                {"role": "user", "content": ENTITY_EXTRACTION_PROMPT.format(text=text[:4000])}
-            ]
-
-            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=2048)
-            content = result.get("content", "{}")
-
-            # Parse JSON response
-            json_match = re.search(r'\{[\s\S]*\}', content)
-            if json_match:
-                return json.loads(json_match.group())
-        except Exception as e:
-            log.warning(f"Entity extraction failed: {e}")
-
-        return self._simple_entity_extraction(text)
-
-    def _simple_entity_extraction(self, text: str) -> dict:
-        """Simple rule-based entity extraction when LLM unavailable."""
-        entities = []
-        relationships = []
-        topics = []
-
-        # Extract capitalized words as potential entities
-        capitalized = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', text)
-        for word in capitalized[:10]:
-            if len(word) > 2:
-                entities.append({
-                    "name": word,
-                    "type": "unknown",
-                    "context": "",
-                })
-
-        # Extract dates
-        dates = re.findall(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}\b', text, re.IGNORECASE)
-        for date in dates[:5]:
-            entities.append({
-                "name": date,
-                "type": "date",
-                "context": "",
-            })
-
-        # Simple topic extraction
-        common_topics = ["meeting", "project", "code", "bug", "feature", "design", "review", "testing", "deployment", "documentation"]
-        found_topics = [t for t in common_topics if t in text.lower()]
-        topics.extend(found_topics[:5])
-
-        return {
-            "entities": entities,
-            "relationships": relationships,
-            "topics": topics,
-            "sentiment": "neutral",
-            "key_points": [],
-            "questions": [],
-            "decisions": [],
-        }
-
-    # ══════════════════════════════════════════════════════
-    # AUDIO MEMORY PROCESSING
-    # ══════════════════════════════════════════════════════
-
-    async def store_audio_conversation(
-        self,
-        session_id: str,
-        transcription: str,
-        speakers: list = None,
-        duration: float = 0,
-        metadata: dict = None,
-    ) -> AudioMemory:
-        """Store an audio conversation with full processing pipeline."""
-        audio_id = f"audio_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
-
-        # Extract entities and summarize
-        extracted = await self._extract_entities(transcription)
-        summary = await self._summarize(transcription)
-
-        audio_memory = AudioMemory(
-            id=audio_id,
-            session_id=session_id,
-            timestamp=datetime.utcnow().isoformat(),
-            duration_seconds=duration,
-            transcription=transcription,
-            summary=summary,
-            speakers=speakers or ["user", "raso"],
-            entities=[e["name"] for e in extracted.get("entities", [])],
-            topics=extracted.get("topics", []),
-            sentiment=extracted.get("sentiment", "neutral"),
-            key_points=extracted.get("key_points", []),
-            questions_asked=extracted.get("questions", []),
-            decisions_made=extracted.get("decisions", []),
-            metadata=metadata or {},
-        )
-
-        # Store audio memory
-        self._audio_memories[audio_id] = audio_memory
-        await self._save_audio_memory(audio_memory)
-
-        # Also store as conversation node
-        await self.store(
-            content={
-                "summary": summary,
-                "full_transcription": transcription,
-                "speakers": speakers,
-                "duration": duration,
-                "key_points": extracted.get("key_points", []),
-                "questions": extracted.get("questions", []),
-                "decisions": extracted.get("decisions", []),
-            },
-            memory_type=MemoryType.AUDIO,
-            importance=Importance.MEDIUM,
-            tags=["audio", "conversation"] + audio_memory.topics,
-            source=f"audio_session_{session_id}",
-            extract_entities=True,
-        )
-
-        log.info(f"Stored audio conversation: {audio_id} ({duration:.1f}s)")
-
-        return audio_memory
 
     async def recall_audio_conversations(
         self,
@@ -750,335 +1855,36 @@ class SecondBrainAgent(BaseAgent):
                 continue
 
             score = 0.0
-
             if query:
                 query_lower = query.lower()
                 if query_lower in audio.transcription.lower():
                     score = 3.0
                 elif query_lower in audio.summary.lower():
                     score = 2.0
-                elif any(query_lower in t.lower() for t in audio.topics):
-                    score = 1.5
-                elif any(query_lower in e.lower() for e in audio.entities):
-                    score = 1.0
-            else:
-                score = 1.0
 
-            if score > 0:
-                results.append({
-                    "audio": audio.to_dict(),
-                    "score": score,
-                })
+            if score > 0 or not query:
+                results.append({"audio": audio.to_dict(), "score": score})
 
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:limit]
 
-    async def _summarize(self, text: str) -> str:
-        """Generate a summary of the text."""
-        if not self._llm_client:
-            # Simple extractive summary
-            sentences = re.split(r'[.!?]+', text)
-            return ". ".join(sentences[:3])[:500]
-
-        try:
-            messages = [
-                {"role": "system", "content": "You are a summarization assistant. Return ONLY the summary."},
-                {"role": "user", "content": SUMMARY_PROMPT.format(text=text[:2000])}
-            ]
-
-            result = await self._llm_client.chat(messages, temperature=0.3, max_tokens=256)
-            return result.get("content", text[:500])[:500]
-        except Exception as e:
-            log.warning(f"Summarization failed: {e}")
-            return text[:500]
-
     # ══════════════════════════════════════════════════════
-    # CONVERSATION STORAGE
-    # ══════════════════════════════════════════════════════
-
-    async def add_conversation(
-        self,
-        user_input: str,
-        ai_response: str,
-        ai_provider: str,
-        context: str = None,
-        metadata: dict = None,
-    ) -> MemoryNode:
-        """Add a conversation to memory with full processing."""
-        conversation = {
-            "user": user_input,
-            "ai": ai_response,
-            "provider": ai_provider,
-            "context": context,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
-
-        # Determine importance based on content
-        importance = Importance.MEDIUM
-        if any(word in user_input.lower() for word in ["remember", "important", "note", "don't forget"]):
-            importance = Importance.HIGH
-        if any(word in user_input.lower() for word in ["critical", "urgent", "asap", "must"]):
-            importance = Importance.CRITICAL
-
-        node = await self.store(
-            content=conversation,
-            memory_type=MemoryType.CONVERSATION,
-            importance=importance,
-            metadata=metadata or {},
-            tags=["conversation", ai_provider],
-            source=f"chat_{ai_provider}",
-            extract_entities=True,
-        )
-
-        # Also create user fact if appropriate
-        if len(user_input) > 20 and len(user_input) < 200:
-            # Extract potential facts
-            extracted = await self._extract_entities(user_input)
-            if extracted.get("entities") or extracted.get("key_points"):
-                # Store as fact as well
-                await self.store(
-                    content={
-                        "fact": user_input,
-                        "source": "conversation",
-                        "conversation_id": node.id,
-                        "entities": extracted.get("entities", []),
-                    },
-                    memory_type=MemoryType.FACT,
-                    importance=importance,
-                    tags=["extracted_fact"],
-                    extract_entities=True,
-                )
-
-        return node
-
-    # ══════════════════════════════════════════════════════
-    # DOCUMENT STORAGE
-    # ══════════════════════════════════════════════════════
-
-    async def add_document(
-        self,
-        content: str,
-        title: str,
-        doc_type: str = "document",
-        tags: list = None,
-        metadata: dict = None,
-    ) -> MemoryNode:
-        """Add a document to memory with entity extraction."""
-        node = await self.store(
-            content={
-                "title": title,
-                "full_content": content,
-                "type": doc_type,
-            },
-            memory_type=MemoryType.DOCUMENT,
-            importance=Importance.MEDIUM,
-            metadata=metadata or {},
-            tags=tags or ["document"],
-            source=f"doc_{doc_type}",
-            extract_entities=True,
-        )
-
-        # Extract key points and store as separate nodes
-        extracted = await self._extract_entities(content)
-        for point in extracted.get("key_points", [])[:5]:
-            await self.store(
-                content={
-                    "point": point,
-                    "source_document": title,
-                    "document_id": node.id,
-                },
-                memory_type=MemoryType.FACT,
-                importance=Importance.LOW,
-                tags=["key_point", "document"],
-                source=f"doc_{node.id}",
-            )
-
-        return node
-
-    async def add_user_fact(
-        self,
-        fact: str,
-        category: str = "general",
-        importance: Importance = Importance.MEDIUM,
-    ) -> MemoryNode:
-        """Add a fact about the user."""
-        node = await self.store(
-            content={
-                "fact": fact,
-                "category": category,
-            },
-            memory_type=MemoryType.FACT,
-            importance=importance,
-            tags=["user_fact", category],
-            source="user",
-            extract_entities=True,
-        )
-
-        return node
-
-    # ══════════════════════════════════════════════════════
-    # RELATIONSHIP MANAGEMENT
-    # ══════════════════════════════════════════════════════
-
-    async def add_relationship(
-        self,
-        source_id: str,
-        target_id: str,
-        relation_type: str,
-        weight: float = 1.0,
-        metadata: dict = None,
-    ) -> MemoryEdge:
-        """Add a relationship edge between two nodes."""
-        edge_id = f"edge_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
-
-        edge = MemoryEdge(
-            id=edge_id,
-            source_id=source_id,
-            target_id=target_id,
-            relation_type=relation_type,
-            weight=weight,
-            metadata=metadata or {},
-        )
-
-        self._edges[edge_id] = edge
-        await self._save_edge(edge)
-
-        # Update node relationships
-        if source_id in self._nodes:
-            self._nodes[source_id].relationships.append(target_id)
-        if target_id in self._nodes:
-            self._nodes[target_id].relationships.append(source_id)
-
-        log.debug(f"Added relationship: {source_id} --[{relation_type}]--> {target_id}")
-
-        return edge
-
-    async def find_related(
-        self,
-        node_id: str,
-        relation_type: str = None,
-        depth: int = 1,
-    ) -> list[dict]:
-        """Find nodes related to a given node."""
-        visited = set()
-        results = []
-        queue = [node_id]
-
-        current_depth = 0
-        while queue and current_depth < depth:
-            next_queue = []
-            for current_id in queue:
-                if current_id in visited:
-                    continue
-                visited.add(current_id)
-
-                for edge in self._edges.values():
-                    if edge.source_id == current_id or edge.target_id == current_id:
-                        if relation_type and edge.relation_type != relation_type:
-                            continue
-
-                        other_id = edge.target_id if edge.source_id == current_id else edge.source_id
-                        other_node = self._nodes.get(other_id)
-
-                        if other_node:
-                            results.append({
-                                "node": other_node.to_dict(),
-                                "relation": edge.relation_type,
-                                "weight": edge.weight,
-                                "depth": current_depth + 1,
-                            })
-                            next_queue.append(other_id)
-
-            queue = next_queue
-            current_depth += 1
-
-        return results
-
-    # ══════════════════════════════════════════════════════
-    # MEMORY REVISION & CONFLICT DETECTION
-    # ══════════════════════════════════════════════════════
-
-    async def revise_memory(
-        self,
-        node_id: str,
-        new_content: Any,
-    ) -> MemoryNode:
-        """Revise an existing memory, handling conflicts."""
-        if node_id not in self._nodes:
-            raise ValueError(f"Node {node_id} not found")
-
-        node = self._nodes[node_id]
-        old_content = node.content
-
-        # Detect conflict
-        conflict = await self._detect_conflict(old_content, new_content)
-
-        # Update node
-        node.content = new_content
-        node.updated_at = datetime.utcnow().isoformat()
-        node.metadata["revised"] = True
-        node.metadata["old_content"] = old_content
-        if conflict:
-            node.metadata["conflict"] = conflict
-
-        # Re-extract entities
-        if isinstance(new_content, (str, dict)):
-            text = str(new_content) if isinstance(new_content, dict) else new_content
-            extracted = await self._extract_entities(text)
-            node.entities = [e["name"] for e in extracted.get("entities", [])]
-            node.tags.extend(extracted.get("topics", []))
-            node.tags = list(set(node.tags))
-
-        # Save updated node
-        await self._save_node(node)
-
-        log.info(f"Revised memory: {node_id} (conflict: {conflict})")
-
-        return node
-
-    async def _detect_conflict(self, old_content: Any, new_content: Any) -> dict:
-        """Detect if new content conflicts with old content."""
-        # Simple conflict detection for facts
-        if isinstance(old_content, dict) and isinstance(new_content, dict):
-            if "fact" in old_content and "fact" in new_content:
-                old_fact = old_content["fact"].lower()
-                new_fact = new_content["fact"].lower()
-
-                # Check for negation indicators
-                negation_words = ["not", "no", "never", "don't", "doesn't", "didn't", "won't", "wouldn't"]
-                has_negation = any(word in new_fact for word in negation_words)
-
-                if has_negation:
-                    # Check if contradicting old fact
-                    for word in old_fact.split():
-                        if len(word) > 3 and word in new_fact:
-                            return {
-                                "type": "contradiction",
-                                "old": old_content["fact"],
-                                "new": new_content["fact"],
-                            }
-
-        return None
-
-    # ══════════════════════════════════════════════════════
-    # WORKING MEMORY (WM) — Immediate Context
+    # WORKING MEMORY
     # ══════════════════════════════════════════════════════
 
     async def add_to_working_memory(self, node_id: str) -> None:
-        """Add a node to working memory (immediate context)."""
+        """Add to working memory."""
         if node_id not in self._working_memory:
             self._working_memory.append(node_id)
-            # Keep only last 20 items in WM
             if len(self._working_memory) > 20:
                 self._working_memory = self._working_memory[-20:]
 
     async def get_working_memory(self) -> list[dict]:
-        """Get current working memory contents."""
+        """Get working memory contents."""
         results = []
-        for node_id in self._working_memory[-10:]:  # Last 10 items
+        for node_id in self._working_memory[-10:]:
             if node_id in self._nodes:
                 node = self._nodes[node_id]
-                # Update last accessed
                 node.last_accessed = datetime.utcnow().isoformat()
                 node.access_count += 1
                 results.append(node.to_dict())
@@ -1089,18 +1895,14 @@ class SecondBrainAgent(BaseAgent):
         self._working_memory = []
 
     # ══════════════════════════════════════════════════════
-    # MEMORY CONTEXT FOR AI
+    # AI CONTEXT
     # ══════════════════════════════════════════════════════
 
-    async def get_context_for_ai(
-        self,
-        ai_name: str = None,
-        max_tokens: int = 4000,
-    ) -> str:
-        """Get formatted context string for AI prompts."""
+    async def get_context_for_ai(self, ai_name: str = None, max_tokens: int = 4000) -> str:
+        """Get formatted context for AI prompts."""
         context_parts = []
 
-        # Working memory (most recent)
+        # Working memory
         wm = await self.get_working_memory()
         if wm:
             wm_content = " | ".join([
@@ -1109,231 +1911,48 @@ class SecondBrainAgent(BaseAgent):
             ])
             context_parts.append(f"[Recent: {wm_content}]")
 
+        # Persona
+        if self._persona:
+            persona_info = f"User: {self._persona.name}"
+            if self._persona.interests:
+                persona_info += f", Interests: {', '.join(self._persona.interests[:5])}"
+            if self._persona.communication_style:
+                persona_info += f", Style: {self._persona.communication_style}"
+            context_parts.append(f"[Persona: {persona_info}]")
+
+        # Active goals
+        active_goals = [g for g in self._goals.values() if g.status == GoalStatus.ACTIVE]
+        if active_goals:
+            goals_str = ", ".join([g.title for g in active_goals[:3]])
+            context_parts.append(f"[Active Goals: {goals_str}]")
+
         # Recent conversations
         recent_convs = await self.recall_conversation(limit=5)
         if recent_convs:
             conv_summary = " | ".join([
-                f"Q: {str(n['node']['content']).split('user')[1][:80] if 'user' in str(n['node']['content']) else '...'}"
+                str(n['node']['content']).split('user')[1][:80] if 'user' in str(n['node']['content']) else '...'
                 for n in recent_convs
             ])
             context_parts.append(f"[Recent Chats: {conv_summary}]")
 
-        # User profile facts
+        # High importance facts
         fact_nodes = [
             n for n in self._nodes.values()
             if n.type == MemoryType.FACT and n.importance.value >= Importance.HIGH.value
         ]
         if fact_nodes:
-            facts = ", ".join([
-                str(f.content.get("fact", f.content))[:50]
-                for f in fact_nodes[:5]
-            ])
+            facts = ", ".join([str(f.content.get("fact", f.content))[:50] for f in fact_nodes[:5]])
             context_parts.append(f"[Key Facts: {facts}]")
 
-        # Entity context
-        entity_nodes = [
-            n for n in self._nodes.values()
-            if n.type == MemoryType.ENTITY and n.access_count > 0
-        ]
-        if entity_nodes:
-            entities = ", ".join([n.content.get("name", str(n.content))[:30] for n in entity_nodes[:10]])
-            context_parts.append(f"[Known Entities: {entities}]")
-
-        # Weak words if coaching
-        weak_nodes = [n for n in self._nodes.values() if n.type == MemoryType.WEAK_WORD]
-        if weak_nodes:
-            weak_words = ", ".join([str(w.content)[:30] for w in weak_nodes[:10]])
-            context_parts.append(f"[Areas to Improve: {weak_words}]")
+        # Skills
+        if self._skills:
+            top_skills = ", ".join([s.name for s in sorted(self._skills.values(), key=lambda x: x.level.value, reverse=True)[:5]])
+            context_parts.append(f"[Skills: {top_skills}]")
 
         return "\n".join(context_parts) if context_parts else ""
 
     # ══════════════════════════════════════════════════════
-    # FORGETTING & DECAY
-    # ══════════════════════════════════════════════════════
-
-    async def forget(
-        self,
-        node_id: str,
-        reason: str = "user_request",
-    ) -> dict:
-        """Remove a memory node (forgetting)."""
-        if node_id not in self._nodes:
-            return {"error": "Node not found"}
-
-        node = self._nodes[node_id]
-        node.metadata["forgotten"] = True
-        node.metadata["forgotten_at"] = datetime.utcnow().isoformat()
-        node.metadata["forget_reason"] = reason
-
-        # Remove from tier lists
-        if node_id in self._working_memory:
-            self._working_memory.remove(node_id)
-
-        # Save updated node
-        await self._save_node(node)
-
-        # Remove from memory
-        del self._nodes[node_id]
-
-        log.info(f"Forgotten: {node_id} ({reason})")
-
-        return {"forgotten": node_id, "reason": reason}
-
-    async def auto_forget_low_importance(self, threshold: float = 0.2) -> dict:
-        """Automatically forget memories below importance threshold."""
-        forgotten = []
-
-        for node_id, node in list(self._nodes.items()):
-            if node.decay_score < threshold and node.importance.value <= Importance.LOW.value:
-                # Check if recently accessed
-                last_access = datetime.fromisoformat(node.last_accessed)
-                days_since_access = (datetime.utcnow() - last_access).days
-
-                if days_since_access > 30:
-                    result = await self.forget(node_id, "auto_decay")
-                    forgotten.append(node_id)
-
-        return {
-            "forgotten_count": len(forgotten),
-            "forgotten_ids": forgotten,
-        }
-
-    def _calculate_decay(self, node: MemoryNode) -> float:
-        """Calculate decay score for a node based on age, importance, access."""
-        age_days = (datetime.utcnow() - datetime.fromisoformat(node.created_at)).days
-        days_since_access = (datetime.utcnow() - datetime.fromisoformat(node.last_accessed)).days
-
-        # Base decay (0.9 per month)
-        base_decay = 0.9 ** (age_days / 30)
-
-        # Access frequency boost
-        access_boost = 1 + (node.access_count * 0.02)
-
-        # Importance boost (higher importance = slower decay)
-        importance_factor = 1 + (node.importance.value / 10)
-
-        # Recency of access
-        access_decay = 0.95 ** days_since_access
-
-        decay = base_decay * access_boost * importance_factor * access_decay
-
-        return min(1.0, max(0.0, decay))
-
-    # ══════════════════════════════════════════════════════
-    # PREFERENCES & USER PROFILE
-    # ══════════════════════════════════════════════════════
-
-    async def get_user_preferences(self) -> dict:
-        """Get user preferences from memory."""
-        pref_nodes = [n for n in self._nodes.values() if n.type == MemoryType.PREFERENCE]
-
-        preferences = {}
-        for node in pref_nodes:
-            if isinstance(node.content, dict):
-                preferences.update(node.content)
-
-        return preferences
-
-    async def set_user_preference(self, key: str, value: Any) -> dict:
-        """Set a user preference."""
-        await self.store(
-            content={key: value},
-            memory_type=MemoryType.PREFERENCE,
-            importance=Importance.HIGH,
-            tags=["preference", key],
-            source="user_setting",
-            extract_entities=False,
-        )
-
-        return {"stored": True, "key": key, "value": value}
-
-    # ══════════════════════════════════════════════════════
-    # WEAK WORDS TRACKING
-    # ══════════════════════════════════════════════════════
-
-    async def add_weak_word(
-        self,
-        word: str,
-        context: str = None,
-        session_id: str = None,
-    ) -> MemoryNode:
-        """Add a word the user struggles with."""
-        node = await self.store(
-            content={
-                "word": word,
-                "context": context,
-                "session_id": session_id,
-                "count": 1,
-            },
-            memory_type=MemoryType.WEAK_WORD,
-            importance=Importance.MEDIUM,
-            tags=["weak_word", "speech"],
-            source="coaching",
-            extract_entities=False,
-        )
-
-        return node
-
-    async def get_weak_words(self, limit: int = 20) -> list[dict]:
-        """Get all weak words, sorted by frequency."""
-        weak_nodes = [n for n in self._nodes.values() if n.type == MemoryType.WEAK_WORD]
-
-        weak_list = []
-        for node in weak_nodes:
-            count = node.content.get("count", 1) + node.access_count
-            weak_list.append({
-                "word": node.content.get("word", str(node.content)),
-                "count": count,
-                "context": node.content.get("context"),
-            })
-
-        weak_list.sort(key=lambda x: x["count"], reverse=True)
-        return weak_list[:limit]
-
-    # ══════════════════════════════════════════════════════
-    # SESSION SUMMARIES
-    # ══════════════════════════════════════════════════════
-
-    async def save_session_summary(
-        self,
-        session_id: str,
-        summary: dict,
-    ) -> MemoryNode:
-        """Save a session summary."""
-        node = await self.store(
-            content={
-                "session_id": session_id,
-                "summary": summary,
-                "date": datetime.utcnow().strftime("%Y-%m-%d"),
-                "time": datetime.utcnow().strftime("%H:%M"),
-            },
-            memory_type=MemoryType.EVENT,
-            tier=MemoryTier.EPISODIC,
-            importance=Importance.MEDIUM,
-            tags=["session", session_id],
-            source=f"session_{session_id}",
-            extract_entities=True,
-        )
-
-        return node
-
-    async def get_recent_sessions(self, limit: int = 10) -> list[dict]:
-        """Get recent session summaries."""
-        event_nodes = [
-            n for n in self._nodes.values()
-            if n.type == MemoryType.EVENT
-        ]
-
-        results = []
-        for node in event_nodes:
-            if isinstance(node.content, dict) and "session_id" in node.content:
-                results.append(node.to_dict())
-
-        results.sort(key=lambda x: x["created_at"], reverse=True)
-        return results[:limit]
-
-    # ══════════════════════════════════════════════════════
-    # STATISTICS & ANALYTICS
+    # STATISTICS
     # ══════════════════════════════════════════════════════
 
     async def get_memory_stats(self) -> dict:
@@ -1347,47 +1966,158 @@ class SecondBrainAgent(BaseAgent):
             tier_counts[node.tier.value] += 1
             importance_counts[node.importance.name] += 1
 
-        # Entity index stats
-        entity_count = len(self._entity_index)
-        avg_entities_per_node = sum(len(n.entities) for n in self._nodes.values()) / max(1, len(self._nodes))
-
-        # Audio stats
-        total_audio_duration = sum(a.duration_seconds for a in self._audio_memories.values())
-
-        # Decay stats
-        avg_decay = sum(n.decay_score for n in self._nodes.values()) / max(1, len(self._nodes))
+        quality_report = await self.get_quality_report()
 
         return {
             "total_nodes": len(self._nodes),
             "total_edges": len(self._edges),
-            "total_audio_conversations": len(self._audio_memories),
-            "total_audio_duration_seconds": total_audio_duration,
+            "total_audio": len(self._audio_memories),
+            "total_goals": len(self._goals),
+            "total_skills": len(self._skills),
+            "total_summaries": len(self._summaries),
             "type_counts": dict(type_counts),
             "tier_counts": dict(tier_counts),
             "importance_counts": dict(importance_counts),
-            "entity_index_size": entity_count,
-            "avg_entities_per_node": round(avg_entities_per_node, 2),
-            "avg_decay_score": round(avg_decay, 3),
-            "working_memory_size": len(self._working_memory),
+            "entity_index_size": len(self._entity_index),
+            "quality": quality_report,
+            "persona_confidence": self._persona.confidence if self._persona else 0,
+            "active_goals": len([g for g in self._goals.values() if g.status == GoalStatus.ACTIVE]),
         }
 
     async def get_memory_size_mb(self) -> float:
         """Estimate memory size in MB."""
         import sys
+        total = 0
 
-        nodes_size = sum(sys.getsizeof(str(n.to_dict())) for n in self._nodes.values())
-        edges_size = sum(sys.getsizeof(str(e.to_dict())) for e in self._edges.values())
-        audio_size = sum(sys.getsizeof(str(a.to_dict())) for a in self._audio_memories.values())
+        total += sum(sys.getsizeof(str(n.to_dict())) for n in self._nodes.values())
+        total += sum(sys.getsizeof(str(e.to_dict())) for e in self._edges.values())
+        total += sum(sys.getsizeof(str(a.to_dict())) for a in self._audio_memories.values())
+        total += sum(sys.getsizeof(str(g.to_dict())) for g in self._goals.values())
+        total += sum(sys.getsizeof(str(s.to_dict())) for s in self._skills.values())
 
-        total_bytes = nodes_size + edges_size + audio_size
-        return total_bytes / (1024 * 1024)
+        return total / (1024 * 1024)
 
     # ══════════════════════════════════════════════════════
-    # TIER MANAGEMENT
+    # HELPER METHODS
     # ══════════════════════════════════════════════════════
+
+    async def _extract_entities(self, text: str) -> dict:
+        """Extract entities using LLM or fallback."""
+        if not self._llm_client:
+            return self._simple_entity_extraction(text)
+
+        try:
+            prompt = """Extract entities from text. Return JSON with:
+- "entities": [{name, type, context}]
+- "topics": [topics]
+- "key_points": [important statements]
+- "questions": [questions asked]
+
+Text: {text}
+
+Return ONLY JSON."""
+
+            messages = [
+                {"role": "system", "content": "You are a knowledge extraction system. Return ONLY valid JSON."},
+                {"role": "user", "content": prompt.format(text=text[:4000])}
+            ]
+
+            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=2048)
+            content = result.get("content", "{}")
+
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                return json.loads(json_match.group())
+
+        except Exception as e:
+            log.warning(f"Entity extraction failed: {e}")
+
+        return self._simple_entity_extraction(text)
+
+    def _simple_entity_extraction(self, text: str) -> dict:
+        """Fallback entity extraction."""
+        entities = []
+        capitalized = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', text)
+        for word in capitalized[:10]:
+            if len(word) > 2:
+                entities.append({"name": word, "type": "unknown", "context": ""})
+
+        common_topics = ["meeting", "project", "code", "bug", "feature", "design", "review", "testing"]
+        topics = [t for t in common_topics if t in text.lower()]
+
+        return {
+            "entities": entities,
+            "topics": topics,
+            "key_points": [],
+            "questions": [],
+        }
+
+    async def _summarize(self, text: str) -> str:
+        """Generate summary."""
+        if not self._llm_client:
+            sentences = re.split(r'[.!?]+', text)
+            return ". ".join(sentences[:3])[:500]
+
+        try:
+            messages = [
+                {"role": "system", "content": "You are a summarization assistant. Return ONLY the summary."},
+                {"role": "user", "content": f"Summarize this in 2-3 sentences:\n{text[:2000]}"}
+            ]
+
+            result = await self._llm_client.chat(messages, temperature=0.3, max_tokens=256)
+            return result.get("content", text[:500])[:500]
+
+        except Exception:
+            return text[:500]
+
+    def _get_time_cutoff(self, time_range: str) -> datetime:
+        """Get time cutoff based on range."""
+        now = datetime.utcnow()
+        if time_range == "1h":
+            return now - timedelta(hours=1)
+        elif time_range == "24h":
+            return now - timedelta(hours=24)
+        elif time_range == "7d":
+            return now - timedelta(days=7)
+        elif time_range == "30d":
+            return now - timedelta(days=30)
+        return datetime.min
+
+    def _explain_score(self, node: MemoryNode, query_words: set) -> str:
+        """Explain relevance score."""
+        reasons = []
+
+        if isinstance(node.content, str):
+            content_lower = node.content.lower()
+            for word in query_words:
+                if word in content_lower:
+                    reasons.append(f"contains '{word}'")
+                    break
+
+        if node.entities:
+            reasons.append(f"{len(node.entities)} entities")
+
+        if node.access_count > 5:
+            reasons.append(f"accessed {node.access_count} times")
+
+        return ", ".join(reasons) if reasons else "recent"
+
+    def _update_indexes(self, node: MemoryNode) -> None:
+        """Update indexes."""
+        for entity in node.entities:
+            entity_lower = entity.lower()
+            if entity_lower not in self._entity_index:
+                self._entity_index[entity_lower] = []
+            self._entity_index[entity_lower].append(node.id)
+
+        for tag in node.tags:
+            tag_lower = tag.lower()
+            if tag_lower not in self._topic_index:
+                self._topic_index[tag_lower] = []
+            self._topic_index[tag_lower].append(node.id)
 
     def _add_to_tier(self, node_id: str, tier: MemoryTier) -> None:
-        """Add node to appropriate tier."""
+        """Add node to tier."""
         if tier == MemoryTier.WORKING:
             self._add_to_working_memory(node_id)
         elif tier == MemoryTier.SHORT_TERM:
@@ -1396,15 +2126,44 @@ class SecondBrainAgent(BaseAgent):
                 if len(self._short_term) > 1000:
                     self._short_term = self._short_term[-1000:]
 
-    async def _tier_migration_loop(self) -> None:
-        """Background task: migrate nodes between tiers based on age."""
+    def _add_to_working_memory(self, node_id: str) -> None:
+        """Add to working memory."""
+        if node_id not in self._working_memory:
+            self._working_memory.append(node_id)
+            if len(self._working_memory) > 20:
+                self._working_memory = self._working_memory[-20:]
+
+    # ══════════════════════════════════════════════════════
+    # BACKGROUND LOOPS
+    # ══════════════════════════════════════════════════════
+
+    async def _memory_maintenance_loop(self) -> None:
+        """Background maintenance."""
         while True:
             try:
-                await asyncio.sleep(300)  # Check every 5 minutes
+                await asyncio.sleep(600)
+
+                for node_id, node in list(self._nodes.items()):
+                    node.decay_score = self._calculate_decay(node)
+
+                    if node.decay_score < 0.05 and node.importance.value <= Importance.LOW.value:
+                        await self.forget(node_id, "decay_below_threshold")
+
+                for edge_id, edge in list(self._edges.items()):
+                    if edge.source_id not in self._nodes or edge.target_id not in self._nodes:
+                        del self._edges[edge_id]
+
+            except Exception as e:
+                log.error(f"Memory maintenance error: {e}")
+
+    async def _tier_migration_loop(self) -> None:
+        """Background tier migration."""
+        while True:
+            try:
+                await asyncio.sleep(300)
 
                 now = datetime.utcnow()
 
-                # Migrate STM nodes to LTM after 24 hours
                 for node_id in list(self._short_term):
                     node = self._nodes.get(node_id)
                     if node:
@@ -1414,7 +2173,6 @@ class SecondBrainAgent(BaseAgent):
                             self._short_term.remove(node_id)
                             await self._save_node(node)
 
-                # Update working memory (clear after 5 minutes of inactivity)
                 if self._working_memory:
                     oldest = self._working_memory[0] if self._working_memory else None
                     if oldest and oldest in self._nodes:
@@ -1426,50 +2184,17 @@ class SecondBrainAgent(BaseAgent):
             except Exception as e:
                 log.error(f"Tier migration error: {e}")
 
-    async def _memory_maintenance_loop(self) -> None:
-        """Background task: decay, cleanup, optimization."""
-        while True:
-            try:
-                await asyncio.sleep(600)  # Check every 10 minutes
+    def _calculate_decay(self, node: MemoryNode) -> float:
+        """Calculate decay score."""
+        age_days = (datetime.utcnow() - datetime.fromisoformat(node.created_at)).days
+        days_since_access = (datetime.utcnow() - datetime.fromisoformat(node.last_accessed)).days
 
-                # Update decay scores
-                for node_id, node in list(self._nodes.items()):
-                    old_decay = node.decay_score
-                    node.decay_score = self._calculate_decay(node)
+        base_decay = 0.9 ** (age_days / 30)
+        access_boost = 1 + (node.access_count * 0.02)
+        importance_factor = 1 + (node.importance.value / 10)
+        access_decay = 0.95 ** days_since_access
 
-                    # Auto-forget very low decay
-                    if node.decay_score < 0.05 and node.importance.value <= Importance.LOW.value:
-                        await self.forget(node_id, "decay_below_threshold")
-
-                # Cleanup orphaned edges
-                for edge_id, edge in list(self._edges.items()):
-                    if edge.source_id not in self._nodes or edge.target_id not in self._nodes:
-                        del self._edges[edge_id]
-
-                log.debug(f"Memory maintenance: {len(self._nodes)} nodes, {len(self._edges)} edges")
-
-            except Exception as e:
-                log.error(f"Memory maintenance error: {e}")
-
-    # ══════════════════════════════════════════════════════
-    # INDEX MANAGEMENT
-    # ══════════════════════════════════════════════════════
-
-    def _update_indexes(self, node: MemoryNode) -> None:
-        """Update entity and topic indexes."""
-        # Entity index
-        for entity in node.entities:
-            entity_lower = entity.lower()
-            if entity_lower not in self._entity_index:
-                self._entity_index[entity_lower] = []
-            self._entity_index[entity_lower].append(node.id)
-
-        # Topic index
-        for tag in node.tags:
-            tag_lower = tag.lower()
-            if tag_lower not in self._topic_index:
-                self._topic_index[tag_lower] = []
-            self._topic_index[tag_lower].append(node.id)
+        return min(1.0, max(0.0, base_decay * access_boost * importance_factor * access_decay))
 
     # ══════════════════════════════════════════════════════
     # PERSISTENCE
@@ -1482,11 +2207,8 @@ class SecondBrainAgent(BaseAgent):
         if nodes_dir.exists():
             for node_file in nodes_dir.glob("*.json"):
                 try:
-                    node_data = json.loads(node_file.read_text())
-                    node = MemoryNode.from_dict(node_data)
+                    node = MemoryNode.from_dict(json.loads(node_file.read_text()))
                     self._nodes[node.id] = node
-
-                    # Rebuild indexes
                     self._update_indexes(node)
                 except Exception as e:
                     log.warning(f"Failed to load node {node_file}: {e}")
@@ -1502,73 +2224,133 @@ class SecondBrainAgent(BaseAgent):
                 except Exception as e:
                     log.warning(f"Failed to load edge {edge_file}: {e}")
 
-        # Load audio memories
+        # Load audio
         audio_dir = self._brain_path / "audio"
         if audio_dir.exists():
             for audio_file in audio_dir.glob("*.json"):
                 try:
-                    audio_data = json.loads(audio_file.read_text())
-                    audio = AudioMemory(**audio_data)
+                    audio = AudioMemory(**json.loads(audio_file.read_text()))
                     self._audio_memories[audio.id] = audio
                 except Exception as e:
                     log.warning(f"Failed to load audio {audio_file}: {e}")
 
+        # Load persona
+        persona_file = self._brain_path / "persona" / "persona.json"
+        if persona_file.exists():
+            try:
+                self._persona = UserPersona(**json.loads(persona_file.read_text()))
+            except Exception as e:
+                log.warning(f"Failed to load persona: {e}")
+
+        # Load goals
+        goals_dir = self._brain_path / "goals"
+        if goals_dir.exists():
+            for goal_file in goals_dir.glob("*.json"):
+                try:
+                    goal = Goal(**json.loads(goal_file.read_text()))
+                    self._goals[goal.id] = goal
+                except Exception as e:
+                    log.warning(f"Failed to load goal {goal_file}: {e}")
+
+        # Load skills
+        skills_dir = self._brain_path / "skills"
+        if skills_dir.exists():
+            for skill_file in skills_dir.glob("*.json"):
+                try:
+                    skill = Skill(**json.loads(skill_file.read_text()))
+                    self._skills[skill.id] = skill
+                except Exception as e:
+                    log.warning(f"Failed to load skill {skill_file}: {e}")
+
         log.info(f"Loaded: {len(self._nodes)} nodes, {len(self._edges)} edges, {len(self._audio_memories)} audio")
 
     async def _save_node(self, node: MemoryNode) -> None:
-        """Save a node to disk."""
+        """Save node to disk."""
         node_file = self._brain_path / "nodes" / f"{node.id}.json"
         node_file.write_text(json.dumps(node.to_dict(), indent=2))
 
     async def _save_edge(self, edge: MemoryEdge) -> None:
-        """Save an edge to disk."""
+        """Save edge to disk."""
         edge_file = self._brain_path / "edges" / f"{edge.id}.json"
         edge_file.write_text(json.dumps(edge.to_dict(), indent=2))
 
     async def _save_audio_memory(self, audio: AudioMemory) -> None:
-        """Save an audio memory to disk."""
+        """Save audio memory."""
         audio_file = self._brain_path / "audio" / f"{audio.id}.json"
         audio_file.write_text(json.dumps(audio.to_dict(), indent=2))
 
+    async def _save_persona(self) -> None:
+        """Save persona."""
+        persona_file = self._brain_path / "persona" / "persona.json"
+        persona_file.write_text(json.dumps(self._persona.to_dict(), indent=2))
+
+    async def _save_goal(self, goal: Goal) -> None:
+        """Save goal."""
+        goal_file = self._brain_path / "goals" / f"{goal.id}.json"
+        goal_file.write_text(json.dumps(goal.to_dict(), indent=2))
+
+    async def _save_skill(self, skill: Skill) -> None:
+        """Save skill."""
+        skill_file = self._brain_path / "skills" / f"{skill.id}.json"
+        skill_file.write_text(json.dumps(skill.to_dict(), indent=2))
+
+    async def _save_summary(self, summary: MemorySummary) -> None:
+        """Save memory summary."""
+        summary_file = self._brain_path / "summaries" / f"{summary.id}.json"
+        summary_file.write_text(json.dumps(summary.to_dict(), indent=2))
+
     # ══════════════════════════════════════════════════════
-    # HELPER METHODS
+    # MEMORY OPERATIONS
     # ══════════════════════════════════════════════════════
 
-    def _get_time_cutoff(self, time_range: str) -> datetime:
-        """Get time cutoff based on range string."""
-        now = datetime.utcnow()
-        if time_range == "1h":
-            return now - timedelta(hours=1)
-        elif time_range == "24h":
-            return now - timedelta(hours=24)
-        elif time_range == "7d":
-            return now - timedelta(days=7)
-        elif time_range == "30d":
-            return now - timedelta(days=30)
-        else:
-            return datetime.min
+    async def revise_memory(self, node_id: str, new_content: Any) -> MemoryNode:
+        """Revise memory with version tracking."""
+        if node_id not in self._nodes:
+            raise ValueError(f"Node {node_id} not found")
 
-    def _explain_score(self, node: MemoryNode, query_words: set) -> str:
-        """Explain why a node scored highly."""
-        reasons = []
+        node = self._nodes[node_id]
+        old_content = node.content
+        node.content = new_content
+        node.updated_at = datetime.utcnow().isoformat()
+        node.metadata["revised"] = True
+        node.metadata["old_content"] = str(old_content)[:500]
 
-        if isinstance(node.content, str):
-            content_lower = node.content.lower()
-            for word in query_words:
-                if word in content_lower:
-                    reasons.append(f"contains '{word}'")
-                    break
+        await self._track_version(node_id, old_content, new_content, "revised")
+        await self._save_node(node)
 
-        if node.entities:
-            reasons.append(f"has {len(node.entities)} entities")
+        return node
 
-        if node.access_count > 5:
-            reasons.append(f"accessed {node.access_count} times")
+    async def forget(self, node_id: str, reason: str = "user_request") -> dict:
+        """Forget a memory."""
+        if node_id not in self._nodes:
+            return {"error": "Node not found"}
 
-        if node.importance.value >= Importance.HIGH.value:
-            reasons.append("high importance")
+        node = self._nodes[node_id]
+        node.metadata["forgotten"] = True
+        node.metadata["forgotten_at"] = datetime.utcnow().isoformat()
+        node.metadata["forget_reason"] = reason
 
-        return ", ".join(reasons) if reasons else "recent"
+        await self._track_version(node_id, node.content, None, "forgotten")
+        del self._nodes[node_id]
+
+        log.info(f"Forgotten: {node_id}")
+
+        return {"forgotten": node_id}
+
+    async def auto_forget_low_importance(self, threshold: float = 0.2) -> dict:
+        """Auto-forget low importance memories."""
+        forgotten = []
+
+        for node_id, node in list(self._nodes.items()):
+            if node.decay_score < threshold and node.importance.value <= Importance.LOW.value:
+                last_access = datetime.fromisoformat(node.last_accessed)
+                days_since_access = (datetime.utcnow() - last_access).days
+
+                if days_since_access > 30:
+                    result = await self.forget(node_id, "auto_decay")
+                    forgotten.append(node_id)
+
+        return {"forgotten_count": len(forgotten), "forgotten_ids": forgotten}
 
     async def clear_all(self) -> dict:
         """Clear all memory."""
@@ -1579,31 +2361,30 @@ class SecondBrainAgent(BaseAgent):
         self._short_term.clear()
         self._entity_index.clear()
         self._topic_index.clear()
+        self._goals.clear()
+        self._skills.clear()
+        self._summaries.clear()
+        self._persona = None
 
-        # Clear disk storage
-        for node_file in (self._brain_path / "nodes").glob("*.json"):
-            node_file.unlink()
-        for edge_file in (self._brain_path / "edges").glob("*.json"):
-            edge_file.unlink()
-        for audio_file in (self._brain_path / "audio").glob("*.json"):
-            audio_file.unlink()
+        for f in (self._brain_path / "nodes").glob("*.json"):
+            f.unlink()
+        for f in (self._brain_path / "edges").glob("*.json"):
+            f.unlink()
+        for f in (self._brain_path / "audio").glob("*.json"):
+            f.unlink()
+        for f in (self._brain_path / "goals").glob("*.json"):
+            f.unlink()
+        for f in (self._brain_path / "skills").glob("*.json"):
+            f.unlink()
 
         log.info("All memory cleared")
 
-        return {
-            "status": "cleared",
-            "nodes": 0,
-            "edges": 0,
-            "audio": 0,
-        }
+        return {"status": "cleared"}
 
     async def shutdown(self):
-        """Cleanup and save all memory."""
-        # Save all pending changes
+        """Cleanup."""
         for node in self._nodes.values():
             await self._save_node(node)
-
         for edge in self._edges.values():
             await self._save_edge(edge)
-
         log.info("SecondBrainAgent shut down")
