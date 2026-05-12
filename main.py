@@ -430,9 +430,15 @@ async def ask_question(request: Request, req: QARequest, session_id: str = None)
 @app.get("/qa/providers")
 async def get_qa_providers():
     """Get available AI providers."""
+    # Get available providers from settings
+    available = []
+    for provider in ["google", "nvidia", "openai", "anthropic", "huggingface", "openrouter", "opencode", "xai", "deepseek"]:
+        config = settings.get_provider_config(provider)
+        if config.get("api_key"):
+            available.append(provider)
     return {
-        "available": list(agents["qa"]._clients.keys()),
-        "default": agents["qa"]._default_provider,
+        "available": available,
+        "default": settings.default_provider,
     }
 
 
