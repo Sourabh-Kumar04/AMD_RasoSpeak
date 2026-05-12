@@ -215,28 +215,58 @@ function startWakeDetection() {
 
   wakeRecognition = new SR();
   wakeRecognition.continuous = true;
-  wakeRecognition.interimResults = false;
+  wakeRecognition.interimResults = true;
   wakeRecognition.lang = 'en-US';
 
+  let lastInterim = '';
+
   wakeRecognition.onresult = (event) => {
+    let interimText = '';
+    let finalText = '';
+
     for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript.toLowerCase().trim();
-      console.log('Heard:', transcript);
-      if (transcript.includes('hey raso') || transcript.includes('hey')) {
-        const status = document.getElementById('wake-status');
-        status.textContent = '👋 "Hey Raso" activated!';
-        toast('Hey Raso activated!');
+      if (event.results[i].isFinal) {
+        finalText += event.results[i][0].transcript + ' ';
+      } else {
+        interimText += event.results[i][0].transcript;
+      }
+    }
 
-        const btn = document.getElementById('wake-btn');
-        btn.classList.add('bg-yellow-500');
-        btn.classList.remove('bg-emerald-500');
+    // Show what we're hearing
+    if (interimText) {
+      document.getElementById('wake-status').textContent = '🎤 ' + interimText;
+      lastInterim = interimText.toLowerCase();
+    }
 
-        setTimeout(() => {
-          window.location.href = 'chat.html';
-        }, 2000);
+    if (finalText) {
+      console.log('Final heard:', finalText);
+      const transcript = finalText.toLowerCase().trim();
+
+      // Check for wake word
+      if (transcript.includes('hey raso')) {
+        activateWakeWord();
+      } else if (transcript.includes('hey')) {
+        activateWakeWord();
       }
     }
   };
+
+  function activateWakeWord() {
+    const status = document.getElementById('wake-status');
+    status.textContent = '👋 "Hey Raso" activated!';
+    toast('Hey Raso activated!');
+
+    const btn = document.getElementById('wake-btn');
+    btn.classList.add('bg-yellow-500');
+    btn.classList.remove('bg-emerald-500');
+
+    // Stop listening
+    wakeModeActive = false;
+
+    setTimeout(() => {
+      window.location.href = 'chat.html';
+    }, 2000);
+  }
 
   wakeRecognition.onerror = (event) => {
     console.error('Wake detection error:', event.error);
