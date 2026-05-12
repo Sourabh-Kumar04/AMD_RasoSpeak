@@ -49,9 +49,15 @@ class SharedMemoryAgent(BaseAgent):
         self._storage_path = Path(settings.shared_memory_path or "./memory")
         self._user_profile: dict = {}
         self._conversation_history: list = []
-        self._session_summaries: list = []
+               self._session_summaries: list = []
         self._user_facts: dict = {}
+        self._second_brain = None  # Reference to SecondBrainAgent for unified storage
         self._ensure_storage()
+
+    def set_second_brain(self, second_brain):
+        """Connect to SecondBrainAgent for unified memory operations."""
+        self._second_brain = second_brain
+        log.info("SharedMemoryAgent connected to SecondBrainAgent")
 
     def _ensure_storage(self):
         """Create storage directories."""
@@ -78,7 +84,7 @@ class SharedMemoryAgent(BaseAgent):
         category: str = "general",
     ) -> dict:
         """
-        Store a memory item.
+        Store a memory item (dual-write: both old system and Second Brain).
 
         Args:
             key: Unique key for this memory
@@ -98,17 +104,29 @@ class SharedMemoryAgent(BaseAgent):
         if category == "profile":
             self._user_profile[key] = value
             await self._save_profile()
+            # Also update persona in Second Brain
+            if self._second_brain:
+                await self._second_brain.update_persona_field(key, value)
 
         elif category == "fact":
             self._user_facts[key] = value
             await self._save_facts()
+            # Also add as user fact in Second Brain
+            if self._second_brain and isinstance(value, str):
+                await self._second_brain.add_user_fact(value, category="general")
 
         elif category == "conversation":
             self._conversation_history.append(memory_entry)
-            # Keep last 1000 conversations
             if len(self._conversation_history) > 1000:
                 self._conversation_history = self._conversation_history[-1000:]
             await self._save_conversations()
+            # Also add conversation in Second Brain
+            if self._second_brain and isinstance(value, dict):
+                await self._second_brain.add_conversation(
+                    user_input=value.get("user", ""),
+                    ai_response=value.get("ai", ""),
+                    ai_provider=value.get("ai_provider", "unknown"),
+                )
 
         elif category == "session":
             self._session_summaries.append(memory_entry)
@@ -117,7 +135,7 @@ class SharedMemoryAgent(BaseAgent):
             await self._save_sessions()
 
         log.debug(f"Stored memory: {category}/{key}")
-        return {"stored": True, "key": key, "category": category}
+        return {"stored": True, "key": key, "category": category, "second_brain_synced": self._second_brain is not None}
 
     async def recall(
         self,
@@ -128,6 +146,7 @@ class SharedMemoryAgent(BaseAgent):
     ) -> dict:
         """
         Recall memories based on query, key, or category.
+        Uses Second Brain as primary source with fallback to legacy storage.
 
         Args:
             query: Natural language query (will match keywords)
@@ -138,6 +157,25 @@ class SharedMemoryAgent(BaseAgent):
         Returns:
             List of matching memories
         """
+        # Try Second Brain first for semantic search
+        if self._second_brain and query:
+            try:
+                results = await self._second_brain.recall(
+                    query=query,
+                    limit=limit,
+                    memory_type=category if category else None,
+                )
+                if results.get("results"):
+                    return {
+                        "query": query,
+                        "results": results["results"],
+                        "total_found": len(results["results"]),
+                        "source": "second_brain",
+                    }
+            except Exception as e:
+                log.warning(f"Second Brain recall failed, falling back: {e}")
+
+        # Fallback to keyword-based search
         results = []
 
         # Filter by category
@@ -177,6 +215,7 @@ class SharedMemoryAgent(BaseAgent):
             "query": query,
             "results": results[:limit],
             "total_found": len(results),
+            "source": "legacy",
         }
 
     # ══════════════════════════════════════════════════════
@@ -234,7 +273,7 @@ class SharedMemoryAgent(BaseAgent):
     ) -> str:
         """
         Get formatted context string to prepend to AI prompts.
-        This helps all AIs know about the user.
+        Uses Second Brain as primary source with legacy fallback.
 
         Args:
             ai_name: Which AI (for personalization)
@@ -245,6 +284,16 @@ class SharedMemoryAgent(BaseAgent):
         """
         context_parts = []
 
+        # Try Second Brain first for rich context
+        if self._second_brain:
+            try:
+                brain_context = await self._second_brain.get_context_for_ai(ai_name, max_tokens=3000)
+                if brain_context:
+                    return brain_context
+            except Exception as e:
+                log.warning(f"Second Brain context failed: {e}")
+
+        # Fallback to legacy context generation
         # User profile
         if self._user_profile.get("name"):
             context_parts.append(f"User name: {self._user_profile['name']}")
@@ -266,15 +315,6 @@ class SharedMemoryAgent(BaseAgent):
                 for s in recent_sessions
             ])
             context_parts.append(f"Recent sessions: {session_summary}")
-
-        # Recent conversations
-        recent_convs = self._conversation_history[-include_recent:]
-        if recent_convs and False:  # Disabled by default to keep prompts short
-            conv_summary = "; ".join([
-                f"Q: {c.get('value', {}).get('user', '')[:50]} -> {c.get('value', {}).get('ai_provider', 'AI')}"
-                for c in recent_convs
-            ])
-            context_parts.append(f"Recent chat: {conv_summary}")
 
         # User facts
         if self._user_facts:

@@ -115,6 +115,14 @@ async def lifespan(app: FastAPI):
                 except Exception as e:
                     log.warning(f"⚠️ {agent_name} second_brain setup failed: {e}")
 
+        # Connect SharedMemoryAgent to SecondBrainAgent for unified storage
+        if agents.get("shared_memory"):
+            try:
+                agents["shared_memory"].set_second_brain(agents["brain"])
+                log.info("✅ SharedMemoryAgent connected to SecondBrainAgent")
+            except Exception as e:
+                log.warning(f"⚠️ SharedMemoryAgent second_brain setup failed: {e}")
+
     # Set shared memory references for agents that need it
     if agents.get("shared_memory"):
         for agent_name in ["qa", "search", "recording", "analytics", "raso", "document"]:
