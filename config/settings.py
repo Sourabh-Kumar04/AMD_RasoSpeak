@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         "NVIDIA_API_URL", "https://integrate.api.nvidia.com/v1"
     )
     nvidia_model: str = os.getenv(
-        "NVIDIA_MODEL", "nvidia/llama-3.1-nemotron-70b-instruct"
+        "NVIDIA_MODEL", "meta/llama-3.1-70b-instruct"
     )
     nvidia_max_tokens: int = 4096
     nvidia_temperature: float = 0.15
