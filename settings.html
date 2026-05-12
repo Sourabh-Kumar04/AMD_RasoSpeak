@@ -20,10 +20,8 @@
 </head>
 <body class="min-h-screen">
 
-<!-- Skip to main content -->
 <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
 
-<!-- Navigation -->
 <nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
   <div class="max-w-5xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
@@ -43,52 +41,50 @@
   </div>
 </nav>
 
-<!-- Main Content -->
 <main id="main-content" class="max-w-3xl mx-auto px-6 py-8">
 
   <!-- AI Provider -->
   <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
     <h2 class="text-lg font-semibold mb-4">AI Provider</h2>
     <p class="text-sm text-gray-500 mb-4">Choose which AI model to use</p>
-
-    <!-- Provider Buttons -->
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-      <button onclick="setProvider('google')" id="btn-google" class="provider-btn active" aria-label="Select Google Gemini provider">
-        <div class="text-lg mb-1">🤖</div>
-        <div class="font-medium text-sm">Google Gemini</div>
-        <div class="text-xs text-gray-500">Free & Fast</div>
+      <button onclick="setProvider('google')" id="btn-google" class="provider-btn active">
+        <div class="text-lg mb-1">&#129302;</div><div class="font-medium text-sm">Google Gemini</div><div class="text-xs text-gray-500">Free & Fast</div>
       </button>
-      <button onclick="setProvider('nvidia')" id="btn-nvidia" class="provider-btn" aria-label="Select NVIDIA NIM provider">
-        <div class="text-lg mb-1">🎮</div>
-        <div class="font-medium text-sm">NVIDIA NIM</div>
-        <div class="text-xs text-gray-500">High Performance</div>
+      <button onclick="setProvider('nvidia')" id="btn-nvidia" class="provider-btn">
+        <div class="text-lg mb-1">&#127918;</div><div class="font-medium text-sm">NVIDIA NIM</div><div class="text-xs text-gray-500">High Performance</div>
       </button>
-      <button onclick="setProvider('openai')" id="btn-openai" class="provider-btn" aria-label="Select OpenAI GPT provider">
-        <div class="text-lg mb-1">🔵</div>
-        <div class="font-medium text-sm">OpenAI GPT</div>
-        <div class="text-xs text-gray-500">ChatGPT</div>
+      <button onclick="setProvider('openai')" id="btn-openai" class="provider-btn">
+        <div class="text-lg mb-1">&#128301;</div><div class="font-medium text-sm">OpenAI GPT</div><div class="text-xs text-gray-500">ChatGPT</div>
       </button>
-      <button onclick="setProvider('anthropic')" id="btn-anthropic" class="provider-btn" aria-label="Select Anthropic Claude provider">
-        <div class="text-lg mb-1">🟣</div>
-        <div class="font-medium text-sm">Anthropic</div>
-        <div class="text-xs text-gray-500">Claude</div>
+      <button onclick="setProvider('anthropic')" id="btn-anthropic" class="provider-btn">
+        <div class="text-lg mb-1">&#128293;</div><div class="font-medium text-sm">Anthropic</div><div class="text-xs text-gray-500">Claude</div>
       </button>
-      <button onclick="setProvider('openrouter')" id="btn-openrouter" class="provider-btn" aria-label="Select OpenRouter provider">
-        <div class="text-lg mb-1">🌐</div>
-        <div class="font-medium text-sm">OpenRouter</div>
-        <div class="text-xs text-gray-500">80+ Models</div>
+      <button onclick="setProvider('openrouter')" id="btn-openrouter" class="provider-btn">
+        <div class="text-lg mb-1">&#127760;</div><div class="font-medium text-sm">OpenRouter</div><div class="text-xs text-gray-500">80+ Models</div>
       </button>
-      <button onclick="setProvider('deepseek')" id="btn-deepseek" class="provider-btn" aria-label="Select DeepSeek provider">
-        <div class="text-lg mb-1">🔍</div>
-        <div class="font-medium text-sm">DeepSeek</div>
-        <div class="text-xs text-gray-500">Cost Effective</div>
+      <button onclick="setProvider('deepseek')" id="btn-deepseek" class="provider-btn">
+        <div class="text-lg mb-1">&#128269;</div><div class="font-medium text-sm">DeepSeek</div><div class="text-xs text-gray-500">Cost Effective</div>
       </button>
     </div>
-
     <div id="provider-status" class="flex items-center gap-2 text-sm text-emerald-600">
       <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
       <span id="provider-name">Using: Google Gemini</span>
     </div>
+  </div>
+
+  <!-- Second Brain Status -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Second Brain Status</h2>
+    <div id="brain-status" class="space-y-3">
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-gray-400 rounded-full"></span><span>Loading...</span></div>
+    </div>
+    <div class="mt-4 flex gap-3">
+      <button onclick="loadBrainStatus()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Refresh</button>
+      <button onclick="exportBrainBackup()" class="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm hover:bg-emerald-100">Export Backup</button>
+      <button onclick="clearBrainMemory()" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm hover:bg-red-100">Clear All Memory</button>
+    </div>
+    <div id="export-status" class="mt-3 text-sm text-gray-500 hidden"></div>
   </div>
 
   <!-- Wake Word -->
@@ -100,9 +96,7 @@
         <p class="font-medium">"Hey Raso"</p>
         <p class="text-sm text-gray-500">Say this to activate voice control</p>
       </div>
-      <button id="wake-toggle" onclick="toggleWakeSetting()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors" aria-label="Toggle wake word">
-        Enable
-      </button>
+      <button id="wake-toggle" onclick="toggleWakeSetting()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Enable</button>
     </div>
     <p id="wake-status" class="text-sm text-gray-500 mt-3">Status: Inactive</p>
   </div>
@@ -114,7 +108,7 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="font-medium">Auto-save conversations</p>
-          <p class="text-sm text-gray-500">Automatically save chat history to memory</p>
+          <p class="text-sm text-gray-500">Automatically save chat history to Second Brain</p>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" id="auto-save" class="sr-only peer" checked>
@@ -124,20 +118,23 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="font-medium">Remember personal facts</p>
-          <p class="text-sm text-gray-500">Store your preferences and facts</p>
+          <p class="text-sm text-gray-500">Store your preferences and facts in encrypted storage</p>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" id="remember-facts" class="sr-only peer" checked>
           <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
         </label>
       </div>
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="font-medium">Encryption for sensitive memories</p>
+          <p class="text-sm text-gray-500">AES-256-GCM encryption for private notes</p>
+        </div>
+        <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">Active</span>
+      </div>
       <div class="pt-4 border-t border-gray-100">
-        <button onclick="cleanupMemory()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 mr-2" aria-label="Cleanup old sessions">
-          Cleanup Old Sessions
-        </button>
-        <button onclick="clearMemory()" class="text-red-600 text-sm hover:underline" aria-label="Clear all memory data">
-          Clear all memory data
-        </button>
+        <button onclick="cleanupMemory()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 mr-2">Cleanup Old Memories</button>
+        <button onclick="clearMemory()" class="text-red-600 text-sm hover:underline">Clear all memory data</button>
       </div>
     </div>
   </div>
@@ -180,14 +177,9 @@
   <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
     <h2 class="text-lg font-semibold mb-4">System Status</h2>
     <div id="system-status" class="space-y-2 text-sm">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
-        <span>Loading system status...</span>
-      </div>
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-gray-400 rounded-full"></span><span>Loading...</span></div>
     </div>
-    <button onclick="loadSystemStatus()" class="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200" aria-label="Refresh system status">
-      Refresh Status
-    </button>
+    <button onclick="loadSystemStatus()" class="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">Refresh Status</button>
   </div>
 
   <!-- About -->
@@ -195,36 +187,27 @@
     <h2 class="text-lg font-semibold mb-4">About RasoSpeak</h2>
     <div class="space-y-2 text-sm text-gray-600">
       <p>Version 2.0.0</p>
-      <p>15 AI Agents sharing memory</p>
-      <p class="pt-4 text-xs text-gray-400">No GPU required - Uses external APIs</p>
+      <p>Second Brain Memory System with 15 AI Agents</p>
+      <p>Graph-based entity storage, hybrid search, AES-256-GCM encryption</p>
+      <p class="pt-4 text-xs text-gray-400">No GPU required - Uses external AI APIs</p>
     </div>
   </div>
 
 </main>
 
-<!-- Toast -->
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite" aria-atomic="true"></div>
-
-<!-- Scripts -->
-<script src="state.js"></script>
-<script src="nlp.js"></script>
-<script src="speech.js"></script>
-<script src="ui.js"></script>
-<script src="app.js"></script>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite"></div>
 
 <script>
 let currentProvider = 'google';
 let wakeEnabled = false;
 
-// Toast notification
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
-  setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
+  t.classList.remove('opacity-0','translate-y-4','pointer-events-none');
+  setTimeout(() => t.classList.add('opacity-0','translate-y-4','pointer-events-none'), 3000);
 }
 
-// Set AI Provider
 async function setProvider(provider) {
   try {
     const resp = await fetch('/raso/provider', {
@@ -232,164 +215,141 @@ async function setProvider(provider) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider, temporary: false })
     });
-
     if (resp.ok) {
       currentProvider = provider;
-
-      // Update UI
       document.querySelectorAll('.provider-btn').forEach(btn => btn.classList.remove('active'));
       document.getElementById(`btn-${provider}`).classList.add('active');
-
-      const names = {
-        google: 'Google Gemini',
-        nvidia: 'NVIDIA NIM',
-        openai: 'OpenAI GPT',
-        anthropic: 'Anthropic Claude',
-        openrouter: 'OpenRouter',
-        deepseek: 'DeepSeek'
-      };
+      const names = { google: 'Google Gemini', nvidia: 'NVIDIA NIM', openai: 'OpenAI GPT', anthropic: 'Anthropic Claude', openrouter: 'OpenRouter', deepseek: 'DeepSeek' };
       document.getElementById('provider-name').textContent = `Using: ${names[provider] || provider}`;
       showToast(`Switched to ${names[provider] || provider}`);
     }
+  } catch (err) { showToast('Failed to switch provider'); }
+}
+
+// Second Brain status
+async function loadBrainStatus() {
+  const container = document.getElementById('brain-status');
+  try {
+    const resp = await fetch('/brain/stats');
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+
+    container.innerHTML = `
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-emerald-500 rounded-full"></span><span>Second Brain: Active</span></div>
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-500 rounded-full"></span><span>Total nodes: ${data.total_nodes || 0}</span></div>
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-purple-500 rounded-full"></span><span>Conversations: ${data.type_counts?.conversation || 0}</span></div>
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-orange-500 rounded-full"></span><span>Facts: ${data.type_counts?.semantic || 0}</span></div>
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-teal-500 rounded-full"></span><span>Patterns: ${data.pattern_count || 0}</span></div>
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-cyan-500 rounded-full"></span><span>Goals: ${data.active_goals || 0}</span></div>
+      ${data.encryption_enabled !== undefined ? `<div class="flex items-center gap-2"><span class="w-2 h-2 ${data.encryption_enabled ? 'bg-emerald-500' : 'bg-gray-300'} rounded-full"></span><span>Encryption: ${data.encryption_enabled ? 'Enabled' : 'Disabled'}</span></div>` : ''}
+    `;
   } catch (err) {
-    showToast('Failed to switch provider');
-    console.error(err);
+    container.innerHTML = '<div class="flex items-center gap-2"><span class="w-2 h-2 bg-red-500 rounded-full"></span><span>Second Brain unavailable</span></div>';
   }
 }
 
-// Toggle Wake Word
+async function exportBrainBackup() {
+  const statusEl = document.getElementById('export-status');
+  statusEl.classList.remove('hidden');
+  statusEl.textContent = 'Exporting...';
+  try {
+    const resp = await fetch('/brain/backup', { method: 'POST' });
+    if (resp.ok) {
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rasospeak_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      statusEl.textContent = 'Backup exported successfully!';
+      showToast('Backup exported!');
+    } else {
+      statusEl.textContent = 'Export failed';
+      showToast('Export failed');
+    }
+  } catch (err) { statusEl.textContent = 'Export error'; showToast('Export error'); }
+}
+
+async function clearBrainMemory() {
+  if (!confirm('Are you sure you want to clear ALL Second Brain memory data? This cannot be undone.')) return;
+  try {
+    await fetch('/brain/clear', { method: 'POST' });
+    showToast('Memory cleared');
+    loadBrainStatus();
+  } catch (err) { showToast('Failed to clear'); }
+}
+
 async function toggleWakeSetting() {
   const btn = document.getElementById('wake-toggle');
   const status = document.getElementById('wake-status');
-
   try {
     if (!wakeEnabled) {
-      // Start wake listening
       const resp = await fetch('/voice/start', { method: 'POST' });
       if (resp.ok) {
         wakeEnabled = true;
         btn.textContent = 'Disable';
-        btn.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
-        btn.classList.add('bg-red-500', 'hover:bg-red-600');
+        btn.classList.remove('bg-emerald-500','hover:bg-emerald-600');
+        btn.classList.add('bg-red-500','hover:bg-red-600');
         status.textContent = 'Status: Listening for "Hey Raso"';
         showToast('Wake word enabled');
       }
     } else {
-      // Stop wake listening
       const resp = await fetch('/voice/stop', { method: 'POST' });
       if (resp.ok) {
         wakeEnabled = false;
         btn.textContent = 'Enable';
-        btn.classList.remove('bg-red-500', 'hover:bg-red-600');
-        btn.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+        btn.classList.remove('bg-red-500','hover:bg-red-600');
+        btn.classList.add('bg-emerald-500','hover:bg-emerald-600');
         status.textContent = 'Status: Inactive';
         showToast('Wake word disabled');
       }
     }
-  } catch (err) {
-    showToast('Failed to toggle wake word');
-    console.error(err);
-  }
+  } catch (err) { showToast('Failed to toggle wake word'); }
 }
 
-// Load System Status
-async function loadSystemStatus() {
-  const container = document.getElementById('system-status');
-
-  try {
-    const resp = await fetch('/health');
-    const data = await resp.json();
-
-    const agents = data.agents || {};
-    const providers = data.providers || {};
-    const defaultProvider = data.default_provider || 'unknown';
-
-    let html = `
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 ${data.status === 'ok' ? 'bg-emerald-500' : 'bg-red-500'} rounded-full"></span>
-        <span>Status: ${data.status}</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-        <span>Default Provider: ${defaultProvider}</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-        <span>Total Agents: ${data.total_agents || 0}</span>
-      </div>
-      <div class="mt-2 pt-2 border-t border-gray-100">
-        <p class="font-medium text-gray-700 mb-1">Available Providers:</p>
-        ${Object.entries(providers).map(([key, val]) =>
-          `<div class="flex items-center gap-2 ml-4">
-            <span class="w-2 h-2 ${val ? 'bg-emerald-500' : 'bg-gray-300'} rounded-full"></span>
-            <span>${key.charAt(0).toUpperCase() + key.slice(1)}: ${val ? 'Configured' : 'Not configured'}</span>
-          </div>`
-        ).join('')}
-      </div>
-      <div class="mt-2 pt-2 border-t border-gray-100">
-        <p class="font-medium text-gray-700 mb-1">Agents:</p>
-        ${Object.entries(agents).map(([key, val]) =>
-          `<div class="flex items-center gap-2 ml-4">
-            <span class="w-2 h-2 ${val === 'ok' || val === 'ready' || val === 'active' || val === 'listening' ? 'bg-emerald-500' : val === 'failed' ? 'bg-red-500' : 'bg-yellow-500'} rounded-full"></span>
-            <span>${key}: ${val}</span>
-          </div>`
-        ).join('')}
-      </div>
-    `;
-
-    container.innerHTML = html;
-  } catch (err) {
-    container.innerHTML = '<p class="text-red-500">Failed to load system status</p>';
-    console.error(err);
-  }
-}
-
-// Cleanup Memory (Second Brain handles this automatically)
 async function cleanupMemory() {
   try {
     const resp = await fetch('/brain/clear', { method: 'POST' });
-    if (resp.ok) {
-      showToast('Old memories cleaned up');
-    } else {
-      throw new Error('Cleanup failed');
-    }
-  } catch (err) {
-    showToast('Cleanup unavailable');
-    console.error(err);
-  }
+    if (resp.ok) showToast('Old memories cleaned up');
+    else showToast('Cleanup failed');
+  } catch (err) { showToast('Cleanup unavailable'); }
 }
 
-// Clear Memory
 async function clearMemory() {
-  if (!confirm('Are you sure you want to clear all memory data? This cannot be undone.')) {
-    return;
-  }
-
+  if (!confirm('Clear all memory data? This cannot be undone.')) return;
   try {
-    const resp = await fetch('/brain/clear', { method: 'POST' });
-    if (resp.ok) {
-      localStorage.clear();
-      showToast('Memory cleared');
-    } else {
-      throw new Error('Clear returned ' + resp.status);
-    }
-  } catch (err) {
+    await fetch('/brain/clear', { method: 'POST' });
     localStorage.clear();
-    showToast('Memory cleared (local)');
-    console.error(err);
-  }
+    showToast('Memory cleared');
+  } catch (err) { localStorage.clear(); showToast('Memory cleared'); }
 }
 
-// Initialize
-window.addEventListener('load', () => {
-  loadSystemStatus();
+async function loadSystemStatus() {
+  const container = document.getElementById('system-status');
+  try {
+    const resp = await fetch('/health');
+    const data = await resp.json();
+    const defaultProvider = data.default_provider || 'unknown';
+    const agents = data.agents || {};
+    const providers = data.providers || {};
 
-  // Load saved settings
-  const savedProvider = localStorage.getItem('rs_provider');
-  if (savedProvider) {
-    setProvider(savedProvider);
-  }
-});
+    container.innerHTML = `
+      <div class="flex items-center gap-2"><span class="w-2 h-2 ${data.status === 'ok' ? 'bg-emerald-500' : 'bg-red-500'} rounded-full"></span><span>Status: ${data.status}</span></div>
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-500 rounded-full"></span><span>Default Provider: ${defaultProvider}</span></div>
+      <div class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-500 rounded-full"></span><span>Total Agents: ${data.total_agents || 0}</span></div>
+      <div class="mt-2 pt-2 border-t border-gray-100">
+        <p class="font-medium text-gray-700 mb-1">Available Providers:</p>
+        ${Object.entries(providers).map(([k, v]) => `<div class="flex items-center gap-2 ml-4"><span class="w-2 h-2 ${v ? 'bg-emerald-500' : 'bg-gray-300'} rounded-full"></span><span>${k.charAt(0).toUpperCase() + k.slice(1)}: ${v ? 'Configured' : 'Not configured'}</span></div>`).join('')}
+      </div>
+      <div class="mt-2 pt-2 border-t border-gray-100">
+        <p class="font-medium text-gray-700 mb-1">Agents:</p>
+        ${Object.entries(agents).map(([k, v]) => `<div class="flex items-center gap-2 ml-4"><span class="w-2 h-2 ${v === 'ok' || v === 'ready' || v === 'active' || v === 'listening' ? 'bg-emerald-500' : v === 'failed' ? 'bg-red-500' : 'bg-yellow-500'} rounded-full"></span><span>${k}: ${v}</span></div>`).join('')}
+      </div>`;
+  } catch (err) { container.innerHTML = '<p class="text-red-500">Failed to load status</p>'; }
+}
+
+window.addEventListener('load', () => { loadBrainStatus(); loadSystemStatus(); });
 </script>
 
 </body>

@@ -17,10 +17,8 @@
 </head>
 <body class="min-h-screen">
 
-<!-- Skip to main content -->
 <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
 
-<!-- Navigation -->
 <nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
   <div class="max-w-5xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
@@ -40,31 +38,44 @@
   </div>
 </nav>
 
-<!-- Main Content -->
 <main id="main-content" class="max-w-4xl mx-auto px-6 py-8">
 
   <!-- Header -->
   <div class="mb-8">
     <h1 class="text-2xl font-bold mb-2">Knowledge Base</h1>
-    <p class="text-gray-600">Import documents, URLs, and notes to expand your AI's knowledge</p>
+    <p class="text-gray-600">Import documents, URLs, and notes to expand your Second Brain</p>
+  </div>
+
+  <!-- Document count from Second Brain -->
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="doc-total" class="text-2xl font-bold text-emerald-600">—</div>
+      <div class="text-xs text-gray-500 mt-1">Total Documents</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="doc-urls" class="text-2xl font-bold text-blue-600">—</div>
+      <div class="text-xs text-gray-500 mt-1">URLs Imported</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="doc-texts" class="text-2xl font-bold text-purple-600">—</div>
+      <div class="text-xs text-gray-500 mt-1">Text Notes</div>
+    </div>
   </div>
 
   <!-- Import URL -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-4">Import from URL</h2>
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-4">
+    <h2 class="font-semibold mb-4">Import from URL</h2>
     <div class="flex gap-3">
       <input type="text" id="doc-url" placeholder="Paste URL to import (article, blog, etc.)"
         class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
-      <button onclick="importUrl()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors">
-        Import
-      </button>
+      <button onclick="importUrl()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Import</button>
     </div>
     <p id="url-status" class="text-xs text-gray-400 mt-2"></p>
   </div>
 
   <!-- Import Text -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-4">Import Text</h2>
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-4">
+    <h2 class="font-semibold mb-4">Import Text / Note</h2>
     <textarea id="doc-text" placeholder="Paste text, notes, or any content to add to your memory..."
       class="w-full h-32 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
     <div class="flex gap-3">
@@ -76,267 +87,143 @@
         <option value="research">Research</option>
         <option value="other">Other</option>
       </select>
-      <button onclick="importText()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors">
-        Add to Memory
-      </button>
+      <button onclick="importText()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Add to Memory</button>
     </div>
   </div>
 
   <!-- Upload File -->
   <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-4">Upload Document</h2>
-    <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors cursor-pointer" onclick="document.getElementById('doc-upload').click()" role="button" tabindex="0" aria-label="Click to upload a document" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('doc-upload').click()}">
+    <h2 class="font-semibold mb-4">Upload Document</h2>
+    <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors cursor-pointer" onclick="document.getElementById('doc-upload').click()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('doc-upload').click()}">
       <input type="file" id="doc-upload" accept=".pdf,.txt,.md,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
       <div class="text-gray-400 mb-2">
-        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-        </svg>
+        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
       </div>
       <p class="text-gray-600 font-medium">Click to upload or drag and drop</p>
       <p class="text-sm text-gray-400 mt-1">PDF, TXT, MD, DOC, DOCX</p>
     </div>
     <div id="upload-progress" class="hidden mt-4">
       <div class="flex items-center gap-3">
-        <div class="flex-1 bg-gray-200 rounded-full h-2">
-          <div id="progress-bar" class="bg-emerald-500 h-2 rounded-full transition-all" style="width: 0%"></div>
-        </div>
+        <div class="flex-1 bg-gray-200 rounded-full h-2"><div id="progress-bar" class="bg-emerald-500 h-2 rounded-full transition-all" style="width:0%"></div></div>
         <span id="progress-text" class="text-sm text-gray-500">0%</span>
       </div>
     </div>
   </div>
 
+  <!-- Search -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold">Search Knowledge</h2>
+      <div class="flex gap-2">
+        <button onclick="searchDocs('rag')" class="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200">&#129504; RAG Search</button>
+        <button onclick="searchDocs('docs')" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200">&#128196; Docs</button>
+        <button onclick="loadDocuments()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200">Refresh</button>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <input type="text" id="doc-search" placeholder="Search your knowledge base..."
+        class="flex-1 pl-4 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        onkeydown="if(event.key==='Enter')searchDocs('rag')">
+      <button onclick="searchDocs('rag')" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600">Search</button>
+    </div>
+    <div id="search-results" class="mt-4 space-y-3"></div>
+  </div>
+
   <!-- Document List -->
   <div class="bg-white rounded-lg border border-gray-200 p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold">Knowledge Base</h2>
-      <div class="flex items-center gap-2">
-        <div class="relative flex items-center">
-          <input type="text" id="doc-search" placeholder="Search knowledge..."
-            class="pl-10 pr-32 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-72"
-            aria-label="Search documents">
-          <button id="voice-search-btn" onclick="toggleVoiceSearch()" class="absolute left-2 p-1 text-gray-400 hover:text-emerald-500" aria-label="Toggle voice search">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
-            </svg>
-          </button>
-          <div class="absolute right-1 flex gap-1">
-            <button onclick="searchDocs('wiki')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200" aria-label="Search Wikipedia">📚</button>
-            <button onclick="searchDocs('web')" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200" aria-label="Search web">🌐</button>
-            <button onclick="searchDocs('rag')" class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs hover:bg-purple-200" aria-label="RAG search">🤖</button>
-          </div>
-        </div>
-        <button onclick="searchDocs('docs')" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200" aria-label="Search documents">📄 Docs</button>
-        <button onclick="loadDocuments()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200" aria-label="Refresh document list">Refresh</button>
-      </div>
-    </div>
-    <div id="search-type-label" class="text-xs text-gray-400 mb-2">
-      📚 Wikipedia | 🌐 Web | 🤖 RAG | 📄 Docs search
-    </div>
-    <div id="wiki-results" class="hidden mb-4 p-4 bg-blue-50 rounded-lg">
-      <h3 class="font-medium text-blue-800 mb-2">📚 Wikipedia Results</h3>
-      <div id="wiki-results-list"></div>
-      <button onclick="addWikiToMemory()" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Add to Memory</button>
-    </div>
-    <div id="web-results" class="hidden mb-4 p-4 bg-green-50 rounded-lg">
-      <h3 class="font-medium text-green-800 mb-2">🌐 Web Results</h3>
-      <div id="web-results-list"></div>
+      <h2 class="font-semibold">Your Documents</h2>
+      <p id="docs-count" class="text-sm text-gray-500"></p>
     </div>
     <div id="docs-list" class="space-y-3">
-      <div class="text-center text-gray-400 py-8">
-        <p>No documents yet</p>
-        <p class="text-sm mt-1">Import URLs, text, or upload files above</p>
-      </div>
-    </div>
-    <div id="docs-pagination" class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-      <p id="docs-count" class="text-sm text-gray-500"></p>
-      <div class="flex gap-2">
-        <button id="prev-page" onclick="prevPage()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200 disabled:opacity-50" disabled aria-label="Previous page">Previous</button>
-        <button id="next-page" onclick="nextPage()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200 disabled:opacity-50" disabled aria-label="Next page">Next</button>
-      </div>
+      <div class="text-center text-gray-400 py-8"><p>Loading...</p></div>
     </div>
   </div>
 
 </main>
 
-<!-- Toast -->
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite" aria-atomic="true"></div>
-
-<!-- Scripts -->
-<script src="state.js"></script>
-<script src="nlp.js"></script>
-<script src="speech.js"></script>
-<script src="ui.js"></script>
-<script src="app.js"></script>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite"></div>
 
 <script>
 let currentPage = 1;
-let totalDocs = 0;
 const pageSize = 10;
-let voiceSearchActive = false;
-let voiceSearchRecognition = null;
 
-// Toast notification
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
-  setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
+  t.classList.remove('opacity-0','translate-y-4','pointer-events-none');
+  setTimeout(() => t.classList.add('opacity-0','translate-y-4','pointer-events-none'), 3000);
 }
 
-// Voice search toggle
-function toggleVoiceSearch() {
-  if (voiceSearchActive) {
-    // Turn off
-    voiceSearchActive = false;
-    if (voiceSearchRecognition) {
-      try { voiceSearchRecognition.stop(); } catch(e) {}
-      voiceSearchRecognition = null;
-    }
-    document.getElementById('voice-search-btn').classList.remove('text-emerald-500');
-    return;
-  }
-
-  // Request permission
-  navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => {
-      stream.getTracks().forEach(track => track.stop());
-      startVoiceSearch();
-    })
-    .catch(err => {
-      showToast('Microphone permission denied');
-    });
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
-function startVoiceSearch() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    showToast('Voice not supported - use Chrome');
-    return;
-  }
-
-  voiceSearchActive = true;
-  document.getElementById('voice-search-btn').classList.add('text-emerald-500');
-  showToast('Speak to search...');
-
-  voiceSearchRecognition = new SR();
-  voiceSearchRecognition.continuous = false;
-  voiceSearchRecognition.interimResults = false;
-  voiceSearchRecognition.lang = 'en-US';
-
-  voiceSearchRecognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    document.getElementById('doc-search').value = transcript;
-    searchDocuments('web'); // Default to web search
-  };
-
-  voiceSearchRecognition.onerror = (event) => {
-    console.error('Voice search error:', event.error);
-    if (event.error !== 'no-speech' && event.error !== 'aborted') {
-      showToast('Voice error: ' + event.error);
-    }
-    voiceSearchActive = false;
-    document.getElementById('voice-search-btn').classList.remove('text-emerald-500');
-  };
-
-  voiceSearchRecognition.onend = () => {
-    voiceSearchActive = false;
-    document.getElementById('voice-search-btn').classList.remove('text-emerald-500');
-  };
-
-  voiceSearchRecognition.start();
+// Load document stats
+async function loadDocStats() {
+  try {
+    const resp = await fetch('/brain/stats');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('doc-total').textContent = data.type_counts?.document || 0;
+    document.getElementById('doc-urls').textContent = data.type_counts?.url || 0;
+    document.getElementById('doc-texts').textContent = data.type_counts?.semantic || 0;
+  } catch (err) { /* silent */ }
 }
 
-// Import URL
 async function importUrl() {
   const url = document.getElementById('doc-url').value.trim();
   const status = document.getElementById('url-status');
-
-  if (!url) {
-    showToast('Please enter a URL');
-    return;
-  }
-
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    showToast('Please enter a valid URL starting with http:// or https://');
-    return;
-  }
+  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) { showToast('Please enter a valid URL'); return; }
 
   status.textContent = 'Importing...';
-
   try {
     const resp = await fetch('/documents/url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
-
     const data = await resp.json();
-
     if (resp.ok) {
       status.textContent = `Imported: ${data.title || 'Document'}`;
       showToast(`Imported: ${data.title || 'Document'}`);
       document.getElementById('doc-url').value = '';
       loadDocuments();
-    } else {
-      status.textContent = 'Failed to import URL';
-      showToast(data.error || 'Failed to import URL');
-    }
-  } catch (err) {
-    status.textContent = 'Error importing URL';
-    showToast('Error importing URL');
-    console.error(err);
-  }
+      loadDocStats();
+    } else { status.textContent = 'Failed'; showToast(data.error || 'Import failed'); }
+  } catch (err) { status.textContent = 'Error'; showToast('Error importing URL'); }
 }
 
-// Import Text
 async function importText() {
   const text = document.getElementById('doc-text').value.trim();
   const title = document.getElementById('doc-title').value.trim() || 'Untitled Note';
   const category = document.getElementById('doc-category').value;
-
-  if (!text) {
-    showToast('Please enter some text');
-    return;
-  }
+  if (!text) { showToast('Please enter some text'); return; }
 
   try {
     const resp = await fetch('/documents/text', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: text,
-        title,
-        category,
-        tags: []
-      })
+      body: JSON.stringify({ content: text, title, category, tags: [] })
     });
-
     if (resp.ok) {
       showToast(`Added: ${title}`);
       document.getElementById('doc-text').value = '';
       document.getElementById('doc-title').value = '';
       loadDocuments();
-    } else {
-      showToast('Failed to add note');
-    }
-  } catch (err) {
-    showToast('Error adding note');
-    console.error(err);
-  }
+      loadDocStats();
+    } else { showToast('Failed to add note'); }
+  } catch (err) { showToast('Error adding note'); }
 }
 
-// Handle File Upload
 async function handleFileUpload(input) {
   const file = input.files?.[0];
   if (!file) return;
 
   const progress = document.getElementById('upload-progress');
-  const progressBar = document.getElementById('progress-bar');
-  const progressText = document.getElementById('progress-text');
-
   progress.classList.remove('hidden');
-  progressBar.style.width = '0%';
-  progressText.textContent = '0%';
 
   try {
     const formData = new FormData();
@@ -344,335 +231,137 @@ async function handleFileUpload(input) {
     formData.append('title', file.name.replace(/\.[^/.]+$/, ''));
     formData.append('category', 'document');
 
-    // Simulate progress
     let prog = 0;
     const interval = setInterval(() => {
       prog = Math.min(prog + 10, 90);
-      progressBar.style.width = `${prog}%`;
-      progressText.textContent = `${prog}%`;
+      document.getElementById('progress-bar').style.width = `${prog}%`;
+      document.getElementById('progress-text').textContent = `${prog}%`;
     }, 100);
 
-    const resp = await fetch('/documents/upload', {
-      method: 'POST',
-      body: formData
-    });
-
+    const resp = await fetch('/documents/upload', { method: 'POST', body: formData });
     clearInterval(interval);
-    progressBar.style.width = '100%';
-    progressText.textContent = '100%';
+    document.getElementById('progress-bar').style.width = '100%';
+    document.getElementById('progress-text').textContent = '100%';
 
     if (resp.ok) {
       const data = await resp.json();
       showToast(`Uploaded: ${data.title || file.name}`);
       loadDocuments();
-    } else {
-      showToast('Failed to upload file');
-    }
-  } catch (err) {
-    showToast('Error uploading file');
-    console.error(err);
-  }
+      loadDocStats();
+    } else { showToast('Failed to upload file'); }
+  } catch (err) { showToast('Error uploading file'); }
 
-  setTimeout(() => {
-    progress.classList.add('hidden');
-  }, 2000);
+  setTimeout(() => progress.classList.add('hidden'), 2000);
 }
 
-// Load Documents
 async function loadDocuments(page = 1) {
   const container = document.getElementById('docs-list');
-  container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Loading documents...</p></div>';
+  const countEl = document.getElementById('docs-count');
+  container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Loading...</p></div>';
 
   try {
     const resp = await fetch('/documents');
     const data = await resp.json();
-
     const docs = data.documents || [];
-    totalDocs = docs.length;
+    const totalDocs = docs.length;
     currentPage = page;
 
+    countEl.textContent = `${totalDocs} documents`;
+
     if (docs.length === 0) {
-      container.innerHTML = `
-        <div class="text-center text-gray-400 py-8">
-          <p>No documents yet</p>
-          <p class="text-sm mt-1">Import URLs, text, or upload files above</p>
-        </div>
-      `;
-      document.getElementById('docs-count').textContent = '0 documents';
+      container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>No documents yet</p><p class="text-sm mt-1">Import URLs, text, or upload files above</p></div>';
       return;
     }
 
-    // Paginate
     const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const pageDocs = docs.slice(start, end);
+    const pageDocs = docs.slice(start, start + pageSize);
 
     container.innerHTML = pageDocs.map(doc => `
       <div class="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
         <div class="flex-1">
-          <h3 class="font-medium text-gray-900">${doc.title || 'Untitled'}</h3>
-          <p class="text-sm text-gray-500 mt-1 line-clamp-2">${doc.content || doc.snippet || ''}</p>
+          <h3 class="font-medium text-gray-900">${escapeHtml(doc.title || 'Untitled')}</h3>
+          <p class="text-sm text-gray-500 mt-1 line-clamp-2">${escapeHtml(doc.content || doc.snippet || '').substring(0, 200)}</p>
           <div class="flex items-center gap-2 mt-2">
             <span class="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">${doc.category || 'other'}</span>
             ${doc.created_at ? `<span class="text-xs text-gray-400">${new Date(doc.created_at).toLocaleDateString()}</span>` : ''}
           </div>
         </div>
-        <div class="flex items-center gap-2 ml-4">
-          <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500 transition-colors" aria-label="Delete document">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    `).join('');
-
-    // Update pagination
-    document.getElementById('docs-count').textContent = `${totalDocs} documents`;
-    document.getElementById('prev-page').disabled = page <= 1;
-    document.getElementById('next-page').disabled = end >= totalDocs;
-
+        <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500" aria-label="Delete document">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      </div>`).join('');
   } catch (err) {
     container.innerHTML = '<div class="text-center text-red-400 py-8"><p>Failed to load documents</p></div>';
-    console.error(err);
   }
 }
 
-// Search with multiple methods
 async function searchDocs(type = 'docs') {
   const query = document.getElementById('doc-search').value.trim();
-  const searchLabel = document.getElementById('search-type-label');
-  const wikiResults = document.getElementById('wiki-results');
-  const webResults = document.getElementById('web-results');
-  const docsList = document.getElementById('docs-list');
+  const container = document.getElementById('search-results');
 
-  if (!query) {
-    showToast('Enter a search term');
-    return;
-  }
+  if (!query && type === 'rag') { showToast('Enter a search term'); return; }
 
-  // Hide all result areas
-  wikiResults.classList.add('hidden');
-  webResults.classList.add('hidden');
+  container.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching...</p></div>';
 
-  if (type === 'wiki') {
-    // Wikipedia search with RAG
-    searchLabel.textContent = '📚 Searching Wikipedia...';
-    wikiResults.classList.remove('hidden');
-    docsList.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching Wikipedia...</p></div>';
-
+  if (type === 'rag') {
     try {
-      const resp = await fetch('/rag/wikipedia', {
+      const resp = await fetch('/brain/rag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, max_results: 5 })
-      });
-      const data = await resp.json();
-
-      if (data.answer) {
-        document.getElementById('wiki-results-list').innerHTML = `
-          <div class="mb-3 p-3 bg-white rounded">
-            <p class="text-gray-800">${data.answer}</p>
-          </div>
-          <div class="text-sm text-gray-600">Sources:</div>
-          ${(data.sources || []).map(s => `
-            <a href="${s.url}" target="_blank" class="block text-blue-600 hover:underline text-sm mt-1">• ${s.title}</a>
-          `).join('')}
-        `;
-        searchLabel.textContent = `📚 Wiki complete (${data.context_chunks} chunks) | 🌐 Web | 🤖 RAG | 📄 Docs`;
-      } else {
-        document.getElementById('wiki-results-list').innerHTML = '<p class="text-gray-500">No Wikipedia results found</p>';
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('Wikipedia search failed');
-    }
-
-  } else if (type === 'web') {
-    // Web search
-    searchLabel.textContent = '🌐 Searching web...';
-    webResults.classList.remove('hidden');
-    docsList.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching web...</p></div>';
-
-    try {
-      const resp = await fetch('/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, num_results: 8, include_summary: true })
+        body: JSON.stringify({ query, limit: 10 })
       });
       const data = await resp.json();
       const results = data.results || [];
 
-      document.getElementById('web-results-list').innerHTML = results.map(r => `
-        <div class="p-3 bg-white rounded mb-2">
-          <a href="${r.url}" target="_blank" class="font-medium text-blue-600 hover:underline">${r.title}</a>
-          <p class="text-sm text-gray-600 mt-1">${r.snippet || ''}</p>
-        </div>
-      `).join('') || '<p class="text-gray-500">No results found</p>';
+      if (results.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-4">No results found</p>';
+        return;
+      }
 
-      docsList.innerHTML = '';
-      searchLabel.textContent = `🌐 ${results.length} web results | 📚 Wiki | 🤖 RAG | 📄 Docs`;
-    } catch (err) {
-      console.error(err);
-      showToast('Web search failed');
-    }
-
-  } else if (type === 'rag') {
-    // RAG search with LangChain
-    searchLabel.textContent = '🤖 Searching RAG knowledge base...';
-    docsList.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching knowledge base...</p></div>';
-
-    try {
-      const resp = await fetch('/rag/comprehensive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
-      });
-      const data = await resp.json();
-
-      let html = '';
-
-      // Wikipedia results
-      if (data.wikipedia && data.wikipedia.answer) {
-        html += `
-          <div class="mb-4 p-4 bg-blue-50 rounded-lg">
-            <h4 class="font-medium text-blue-800 mb-2">📚 From Wikipedia</h4>
-            <p class="text-gray-700">${data.wikipedia.answer}</p>
+      container.innerHTML = results.map(r => {
+        const node = r.node || r;
+        const content = typeof node.content === 'object' ? JSON.stringify(node.content) : node.content;
+        return `
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <p class="text-gray-800">${escapeHtml(String(content || '').substring(0, 300))}</p>
+          <div class="flex gap-2 mt-2">
+            ${node.memory_type ? `<span class="px-2 py-0.5 bg-purple-100 rounded text-xs text-purple-700">${node.memory_type}</span>` : ''}
+            ${r.score ? `<span class="px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">${(r.score * 100).toFixed(0)}% match</span>` : ''}
           </div>
-        `;
-      }
-
-      // Local documents
-      if (data.local_documents && data.local_documents.length > 0) {
-        html += `
-          <div class="mb-4">
-            <h4 class="font-medium text-gray-700 mb-2">📄 From Your Documents</h4>
-            ${data.local_documents.map(d => `
-              <div class="p-3 border border-gray-200 rounded mb-2">
-                <p class="text-sm font-medium">${d.title}</p>
-                <p class="text-sm text-gray-600 mt-1">${d.content?.substring(0, 200)}...</p>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      }
-
-      // Web results
-      if (data.web && data.web.length > 0) {
-        html += `
-          <div class="mb-4">
-            <h4 class="font-medium text-gray-700 mb-2">🌐 From Web</h4>
-            ${data.web.slice(0, 3).map(r => `
-              <a href="${r.url}" target="_blank" class="block text-blue-600 hover:underline text-sm">${r.title}</a>
-            `).join('')}
-          </div>
-        `;
-      }
-
-      if (!html) {
-        html = '<div class="text-center text-gray-400 py-4"><p>No results from any source</p></div>';
-      }
-
-      docsList.innerHTML = html;
-      searchLabel.textContent = `🤖 RAG complete | 📚 Wiki | 🌐 Web | 📄 Docs`;
-    } catch (err) {
-      console.error(err);
-      showToast('RAG search failed - try other methods');
-    }
-
+        </div>`;
+      }).join('');
+    } catch (err) { container.innerHTML = '<p class="text-red-400 text-center py-4">RAG search failed</p>'; }
   } else {
-    // Search local documents
-    searchLabel.textContent = '📄 Searching documents...';
-    docsList.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
-
     try {
       const resp = await fetch(`/documents/search?query=${encodeURIComponent(query)}`);
       const data = await resp.json();
       const results = data.results || [];
 
       if (results.length === 0) {
-        docsList.innerHTML = '<div class="text-center text-gray-400 py-8"><p>No matches in your documents</p></div>';
-        searchLabel.textContent = '📄 No doc results | 📚 Wiki | 🌐 Web | 🤖 RAG';
+        container.innerHTML = '<p class="text-gray-400 text-center py-4">No matches in your documents</p>';
         return;
       }
 
-      docsList.innerHTML = results.map(doc => `
-        <div class="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-          <div class="flex-1">
-            <h3 class="font-medium text-gray-900">${doc.title || 'Untitled'}</h3>
-            <p class="text-sm text-gray-500 mt-1 line-clamp-2">${doc.snippet || doc.content || ''}</p>
-          </div>
-        </div>
-      `).join('');
-
-      searchLabel.textContent = `📄 ${results.length} doc results | 📚 Wiki | 🌐 Web | 🤖 RAG`;
-    } catch (err) {
-      console.error(err);
-      showToast('Doc search failed');
-    }
+      container.innerHTML = results.map(doc => `
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <p class="font-medium">${escapeHtml(doc.title || 'Untitled')}</p>
+          <p class="text-sm text-gray-600 mt-1">${escapeHtml(doc.snippet || doc.content || '').substring(0, 200)}</p>
+        </div>`).join('');
+    } catch (err) { container.innerHTML = '<p class="text-red-400 text-center py-4">Search failed</p>'; }
   }
 }
 
-// Add Wikipedia results to memory
-async function addWikiToMemory() {
-  const query = document.getElementById('doc-search').value;
-  try {
-    const resp = await fetch('/rag/comprehensive', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
-    });
-    const data = await resp.json();
-
-    if (data.wikipedia && data.wikipedia.sources) {
-      for (const source of data.wikipedia.sources) {
-        await fetch('/rag/add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: source.title,
-            title: source.title,
-            source: 'wikipedia',
-            url: source.url
-          })
-        });
-      }
-      showToast('Added to knowledge base!');
-    }
-  } catch (err) {
-    showToast('Failed to add to memory');
-  }
-}
-
-// Delete Document
 async function deleteDocument(docId) {
   if (!confirm('Delete this document?')) return;
-
   try {
-    const resp = await fetch(`/documents/${docId}`, { method: 'DELETE' });
-    if (resp.ok) {
-      showToast('Document deleted');
-      loadDocuments(currentPage);
-    }
-  } catch (err) {
-    showToast('Failed to delete');
-    console.error(err);
-  }
+    await fetch(`/documents/${docId}`, { method: 'DELETE' });
+    showToast('Document deleted');
+    loadDocuments(currentPage);
+    loadDocStats();
+  } catch (err) { showToast('Failed to delete'); }
 }
 
-// Pagination
-function prevPage() {
-  if (currentPage > 1) loadDocuments(currentPage - 1);
-}
-
-function nextPage() {
-  if ((currentPage * pageSize) < totalDocs) loadDocuments(currentPage + 1);
-}
-
-// Initialize
-window.addEventListener('load', () => {
-  loadDocuments();
-});
+window.addEventListener('load', () => { loadDocuments(); loadDocStats(); });
 </script>
 
 </body>

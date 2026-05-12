@@ -13,14 +13,14 @@
     .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
     .nav-link:hover { @apply bg-gray-100; }
     .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
+    .tab-btn { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors border-b-2 border-transparent; }
+    .tab-btn.active { @apply border-emerald-500 text-emerald-700 bg-emerald-50; }
   </style>
 </head>
 <body class="min-h-screen">
 
-<!-- Skip to main content -->
 <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
 
-<!-- Navigation -->
 <nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
   <div class="max-w-5xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
@@ -40,405 +40,508 @@
   </div>
 </nav>
 
-<!-- Main Content -->
-<main id="main-content" class="max-w-3xl mx-auto px-6 py-8">
+<main id="main-content" class="max-w-5xl mx-auto px-6 py-8">
 
-  <!-- Memory Search -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-2">Query Your Memory</h2>
-    <p class="text-sm text-gray-500 mb-4">Search through all your conversations, documents, and knowledge</p>
-    <div class="flex gap-3">
-      <input type="text" id="memory-search" placeholder="Try: What did I say about AI?"
-        class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        aria-label="Memory search input"
-        onkeydown="if(event.key==='Enter')searchMemory()">
-      <button onclick="searchMemory()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors" aria-label="Search memory">
-        Search
-      </button>
+  <!-- Header with tabs -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold">Memory Hub</h1>
+      <p class="text-gray-500 text-sm">Your Second Brain at a glance</p>
     </div>
-    <div class="mt-3 flex flex-wrap gap-2">
-      <span class="text-xs text-gray-400">Try:</span>
-      <button onclick="quickSearch('What did I say about AI?')" class="text-xs text-emerald-600 hover:underline">AI questions</button>
-      <button onclick="quickSearch('My personal facts')" class="text-xs text-emerald-600 hover:underline">personal facts</button>
-      <button onclick="quickSearch('Recent conversations')" class="text-xs text-emerald-600 hover:underline">recent</button>
+    <div class="flex gap-2">
+      <button onclick="showTab('search')" id="tab-search" class="tab-btn active">Search</button>
+      <button onclick="showTab('goals')" id="tab-goals" class="tab-btn">Goals</button>
+      <button onclick="showTab('proactive')" id="tab-proactive" class="tab-btn">Proactive</button>
+      <button onclick="showTab('graph')" id="tab-graph" class="tab-btn">Graph</button>
     </div>
   </div>
 
-  <!-- Memory Results -->
-  <div id="memory-results" class="bg-white rounded-lg border border-gray-200 p-6 mb-6 min-h-48">
-    <div id="results-content" class="text-center text-gray-400 py-8">
-      <p>Your memories will appear here</p>
-      <p class="text-sm mt-1">Ask Raso questions or import documents to build your memory</p>
-    </div>
-  </div>
-
-  <!-- Memory Stats -->
-  <div class="grid grid-cols-4 gap-4 mb-6">
+  <!-- Stats Row -->
+  <div class="grid grid-cols-5 gap-4 mb-6">
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="mem-conversations" class="text-2xl font-bold text-emerald-600">0</div>
+      <div id="stat-total" class="text-2xl font-bold text-emerald-600">—</div>
+      <div class="text-xs text-gray-500 mt-1">Total Nodes</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="stat-conversations" class="text-2xl font-bold text-blue-600">—</div>
       <div class="text-xs text-gray-500 mt-1">Conversations</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="mem-facts" class="text-2xl font-bold text-purple-600">0</div>
-      <div class="text-xs text-gray-500 mt-1">Facts Stored</div>
+      <div id="stat-facts" class="text-2xl font-bold text-purple-600">—</div>
+      <div class="text-xs text-gray-500 mt-1">Facts</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="mem-documents" class="text-2xl font-bold text-blue-600">0</div>
-      <div class="text-xs text-gray-500 mt-1">Documents</div>
+      <div id="stat-patterns" class="text-2xl font-bold text-orange-600">—</div>
+      <div class="text-xs text-gray-500 mt-1">Patterns</div>
     </div>
     <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="mem-sessions" class="text-2xl font-bold text-orange-600">0</div>
-      <div class="text-xs text-gray-500 mt-1">Sessions</div>
+      <div id="stat-goals" class="text-2xl font-bold text-teal-600">—</div>
+      <div class="text-xs text-gray-500 mt-1">Active Goals</div>
     </div>
   </div>
 
-  <!-- Add to Memory -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-    <h3 class="font-semibold mb-4">Quick Add to Memory</h3>
-    <textarea id="quick-fact-input" placeholder="Type a fact or note to remember... (e.g., 'My name is John and I work at Company X')"
-      class="w-full h-24 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
+  <!-- Search Tab -->
+  <div id="panel-search" class="space-y-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+      <h2 class="font-semibold mb-2">Query Your Memory</h2>
+      <div class="flex gap-3">
+        <input type="text" id="memory-search" placeholder="What are you looking for?"
+          class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          onkeydown="if(event.key==='Enter')searchMemory()">
+        <button onclick="searchMemory()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Search</button>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <span class="text-xs text-gray-400">Quick:</span>
+        <button onclick="quickSearch('What did I say about AI?')" class="text-xs text-emerald-600 hover:underline">AI questions</button>
+        <button onclick="quickSearch('personal facts about me')" class="text-xs text-emerald-600 hover:underline">personal facts</button>
+        <button onclick="quickSearch('goals')" class="text-xs text-emerald-600 hover:underline">my goals</button>
+        <button onclick="quickSearch('patterns')" class="text-xs text-emerald-600 hover:underline">patterns</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="memory-results" class="bg-white rounded-lg border border-gray-200 p-6">
+      <div id="results-content" class="text-center text-gray-400 py-8">
+        <p>Your memories will appear here</p>
+        <p class="text-sm mt-1">Search for conversations, facts, or patterns</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Goals Tab -->
+  <div id="panel-goals" class="space-y-4 hidden">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold">Active Goals</h2>
+      <button onclick="showAddGoal()" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600">+ Add Goal</button>
+    </div>
+
+    <!-- Goals List -->
+    <div id="goals-list" class="space-y-3">
+      <div class="text-center text-gray-400 py-8">Loading goals...</div>
+    </div>
+
+    <!-- Completed Goals -->
+    <details class="bg-white rounded-lg border border-gray-200">
+      <summary class="p-4 cursor-pointer font-medium text-gray-600 hover:bg-gray-50">Completed Goals</summary>
+      <div id="completed-goals" class="px-4 pb-4 space-y-2">
+        <p class="text-gray-400 text-sm text-center py-2">No completed goals yet</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- Proactive Tab -->
+  <div id="panel-proactive" class="space-y-4 hidden">
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+      <h2 class="font-semibold mb-1">Proactive Memories</h2>
+      <p class="text-sm text-gray-500 mb-4">AI-generated insights and reminders based on your patterns</p>
+      <div id="proactive-list" class="space-y-3">
+        <div class="text-center text-gray-400 py-6">Loading insights...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graph Tab -->
+  <div id="panel-graph" class="hidden">
+    <div class="bg-white rounded-lg border border-gray-200 p-6 mb-4">
+      <h2 class="font-semibold mb-1">Memory Graph</h2>
+      <p class="text-sm text-gray-500">Entity relationships in your memory</p>
+    </div>
+    <div id="graph-container" class="bg-white rounded-lg border border-gray-200" style="height: 500px; position: relative;">
+      <svg id="memory-graph" width="100%" height="500"></svg>
+      <div id="graph-loading" class="absolute inset-0 flex items-center justify-center text-gray-400">
+        Loading graph...
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Add -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mt-4">
+    <h3 class="font-semibold mb-3">Quick Add to Memory</h3>
+    <textarea id="quick-fact-input" placeholder="Type a fact, note, or idea to remember..."
+      class="w-full h-20 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
     <div class="flex gap-3">
-      <select id="fact-category" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-        <option value="general">General</option>
-        <option value="work">Work</option>
-        <option value="personal">Personal</option>
-        <option value="learning">Learning</option>
-        <option value="health">Health</option>
-        <option value="finance">Finance</option>
+      <select id="fact-tier" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+        <option value="working">Working Memory</option>
+        <option value="long_term" selected>Long-term Memory</option>
+        <option value="archived">Archive</option>
       </select>
-      <button onclick="addFactToMemory()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors" aria-label="Save fact to memory">
-        Save to Memory
-      </button>
-    </div>
-  </div>
-
-  <!-- Recent Facts -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-semibold">Recent Facts</h3>
-      <button onclick="loadRecentFacts()" class="text-sm text-emerald-600 hover:underline" aria-label="Refresh recent facts">Refresh</button>
-    </div>
-    <div id="recent-facts" class="space-y-2">
-      <p class="text-gray-400 text-center py-4">No facts saved yet</p>
+      <select id="fact-importance" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+        <option value="1">Low Importance</option>
+        <option value="3" selected>Medium Importance</option>
+        <option value="5">High Importance</option>
+      </select>
+      <button onclick="addFactToMemory()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Save to Memory</button>
     </div>
   </div>
 
 </main>
 
-<!-- Toast -->
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite" aria-atomic="true"></div>
+<!-- Add Goal Modal -->
+<div id="goal-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center" role="dialog" aria-modal="true">
+  <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+    <h3 class="text-lg font-semibold mb-4">Add New Goal</h3>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Goal Title</label>
+        <input type="text" id="goal-title" placeholder="e.g., Learn Spanish basics"
+          class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Description</label>
+        <textarea id="goal-desc" placeholder="What do you want to achieve?"
+          class="w-full px-3 py-2 border border-gray-200 rounded-lg resize-none h-20 focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Deadline</label>
+          <input type="date" id="goal-deadline"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Priority</label>
+          <select id="goal-priority" class="w-full px-3 py-2 border border-gray-200 rounded-lg">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeGoalModal()" class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">Cancel</button>
+      <button onclick="saveGoal()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Save Goal</button>
+    </div>
+  </div>
+</div>
 
-<!-- Scripts -->
-<script src="state.js"></script>
-<script src="nlp.js"></script>
-<script src="speech.js"></script>
-<script src="ui.js"></script>
-<script src="app.js"></script>
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite"></div>
 
 <script>
-// Toast notification
+let activeTab = 'search';
+
+function showTab(tab) {
+  activeTab = tab;
+  ['search','goals','proactive','graph'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+  });
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
-  setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
+  t.classList.remove('opacity-0','translate-y-4','pointer-events-none');
+  setTimeout(() => t.classList.add('opacity-0','translate-y-4','pointer-events-none'), 3000);
 }
 
-// Load memory stats (both systems)
-async function loadMemoryStats() {
-  try {
-    // Get Second Brain stats (primary)
-    const brainResp = await fetch('/brain/stats');
-    if (brainResp.ok) {
-      const brainData = await brainResp.json();
-      document.getElementById('mem-conversations').textContent = brainData.type_counts?.conversation || brainData.conversations || 0;
-      document.getElementById('mem-facts').textContent = brainData.type_counts?.semantic || brainData.semantic || 0;
-      document.getElementById('mem-documents').textContent = brainData.type_counts?.document || brainData.documents || 0;
-      document.getElementById('mem-sessions').textContent = brainData.type_counts?.episodic || brainData.episodes || 0;
-      return;
-    }
-
-    // localStorage fallback for stats only
-    try {
-      document.getElementById('mem-conversations').textContent = localStorage.getItem('rs_chat_count') || 0;
-      document.getElementById('mem-facts').textContent = localStorage.getItem('rs_facts_count') || 0;
-      document.getElementById('mem-documents').textContent = 0;
-      document.getElementById('mem-sessions').textContent = localStorage.getItem('rs_total_sessions') || 0;
-    } catch (e) {
-      console.warn('Stats fallback failed:', e);
-    }
-
-  } catch (err) {
-    console.error('Failed to load memory stats:', err);
-    // Show demo values
-    document.getElementById('mem-conversations').textContent = localStorage.getItem('rs_conversations') || 0;
-    document.getElementById('mem-facts').textContent = localStorage.getItem('rs_facts_count') || 0;
-  }
-}
-
-// Search memory (Second Brain primary)
-async function searchMemory() {
-  const query = document.getElementById('memory-search').value.trim();
-  const resultsContent = document.getElementById('results-content');
-
-  if (!query) {
-    showToast('Please enter a search query');
-    return;
-  }
-
-  resultsContent.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
-
-  try {
-    // Try Second Brain first (primary)
-    const brainResp = await fetch('/brain/recall', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: query,
-        limit: 10,
-        time_range: 'all'
-      })
-    });
-
-    if (brainResp.ok) {
-      const brainData = await brainResp.json();
-      const memories = brainData.results || [];
-
-      if (memories.length > 0) {
-        return displayBrainResults(memories, query);
-      }
-    }
-
-    // No results in Second Brain — use Raso as last resort
-    return queryRasoForMemory(query);
-  } catch (err) {
-    console.error('Memory search failed:', err);
-    return queryRasoForMemory(query);
-  }
-}
-
-// Display Second Brain results
-function displayBrainResults(memories, query) {
-  const resultsContent = document.getElementById('results-content');
-
-  resultsContent.innerHTML = `
-    <div class="space-y-3">
-      <p class="text-sm text-gray-500 mb-4">Found ${memories.length} results in your Second Brain for "${escapeHtml(query)}"</p>
-      ${memories.map(mem => {
-        const node = mem.node || mem;
-        const content = node.content;
-        const contentStr = typeof content === 'object' ? JSON.stringify(content) : content;
-        return `
-        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-          <p class="text-gray-800">${escapeHtml(String(contentStr).substring(0, 500))}</p>
-          <div class="flex flex-wrap gap-2 mt-2">
-            ${node.type ? `<span class="px-2 py-0.5 bg-emerald-100 rounded text-xs text-emerald-700">${node.type}</span>` : ''}
-            ${node.tier ? `<span class="px-2 py-0.5 bg-purple-100 rounded text-xs text-purple-700">${node.tier}</span>` : ''}
-            ${mem.score ? `<span class="px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">Score: ${(mem.score * 100).toFixed(0)}%</span>` : ''}
-          </div>
-          ${node.created_at ? `<p class="text-xs text-gray-400 mt-2">Created: ${new Date(node.created_at).toLocaleString()}</p>` : ''}
-        </div>
-      `}).join('')}
-      <div class="mt-4 p-4 bg-emerald-50 rounded-lg">
-        <p class="text-sm text-emerald-700">
-          <strong>Powered by Second Brain Memory</strong> — Graph-based, with entity extraction, temporal indexing, and active forgetting.
-        </p>
-      </div>
-    </div>
-  `;
-}
-
-// Query Raso for memory
-async function queryRasoForMemory(query) {
-  const resultsContent = document.getElementById('results-content');
-  resultsContent.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching memory...</p></div>';
-
-  try {
-    const resp = await fetch('/raso/query', {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    // If that fails, just show the query in a message
-    resultsContent.innerHTML = `
-      <div class="space-y-3">
-        <div class="bg-emerald-50 rounded-lg p-4">
-          <p class="font-medium text-emerald-700">Your Query:</p>
-          <p class="text-gray-700 mt-1">${escapeHtml(query)}</p>
-        </div>
-        <p class="text-gray-500 text-center py-4">No matching memories found. Try importing more documents or adding facts.</p>
-      </div>
-    `;
-  } catch (err) {
-    resultsContent.innerHTML = `
-      <div class="bg-gray-50 rounded-lg p-4">
-        <p class="font-medium">Query:</p>
-        <p class="text-gray-700 mt-1">${escapeHtml(query)}</p>
-      </div>
-      <p class="text-gray-400 text-center py-4">Memory search unavailable</p>
-    `;
-  }
-}
-
-// Display search results
-function displayResults(memories, query) {
-  const resultsContent = document.getElementById('results-content');
-
-  if (!memories || memories.length === 0) {
-    resultsContent.innerHTML = `<p class="text-gray-400 text-center py-4">No results for "${escapeHtml(query)}"</p>`;
-    return;
-  }
-
-  resultsContent.innerHTML = `
-    <div class="space-y-3">
-      <p class="text-sm text-gray-500 mb-4">Found ${memories.length} results for "${escapeHtml(query)}"</p>
-      ${memories.map((mem, i) => {
-        const content = mem.content || mem.value || mem.text;
-        const display = content
-          ? escapeHtml(String(content).substring(0, 300))
-          : `<span class="text-gray-400 italic">Node ID: ${escapeHtml(mem.node_id || mem.id || 'unknown')}</span>`;
-        return `
-        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-          <p class="text-gray-800">${display}</p>
-          ${mem.memory_type || mem.category ? `<span class="inline-block mt-2 px-2 py-0.5 bg-gray-200 rounded text-xs text-gray-600">${mem.memory_type || mem.category}</span>` : ''}
-          ${mem.relevance ? `<span class="inline-block mt-2 ml-2 px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">${(mem.relevance * 100).toFixed(0)}%</span>` : ''}
-        </div>`;
-      }).join('')}
-    </div>
-  `;
-}
-
-// Quick search
-function quickSearch(query) {
-  document.getElementById('memory-search').value = query;
-  searchMemory();
-}
-
-// Add fact to memory (Second Brain only — no legacy dual-write)
-async function addFactToMemory() {
-  const input = document.getElementById('quick-fact-input');
-  const catSelect = document.getElementById('fact-category');
-  const fact = input.value.trim();
-  const category = catSelect.value;
-
-  if (!fact) {
-    showToast('Please enter a fact to remember');
-    return;
-  }
-
-  try {
-    // Save to Second Brain via /brain/memory
-    const resp = await fetch('/brain/memory', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: fact,
-        memory_type: 'semantic',
-        tier: 'long_term',
-        importance: 3,
-        tags: [category],
-      })
-    });
-
-    if (resp.ok) {
-      showToast('Fact saved to Second Brain!');
-    } else {
-      throw new Error(`Server returned ${resp.status}`);
-    }
-
-    input.value = '';
-    loadMemoryStats();
-    loadRecentFacts();
-  } catch (err) {
-    // Save to localStorage as offline fallback
-    console.warn('Second Brain unavailable, saving locally:', err.message);
-    const facts = JSON.parse(localStorage.getItem('rs_facts') || '[]');
-    facts.unshift({ fact, category, timestamp: new Date().toISOString() });
-    localStorage.setItem('rs_facts', JSON.stringify(facts.slice(0, 100)));
-    localStorage.setItem('rs_facts_count', (parseInt(localStorage.getItem('rs_facts_count') || '0') + 1).toString());
-    showToast('Fact saved (local mode)');
-    input.value = '';
-    loadMemoryStats();
-    loadRecentFacts();
-  }
-}
-
-// Load recent facts (Second Brain → localStorage fallback)
-async function loadRecentFacts() {
-  const container = document.getElementById('recent-facts');
-
-  try {
-    // Second Brain primary
-    const brainResp = await fetch('/brain/recall', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memory_type: 'semantic', limit: 20, time_range: 'all' })
-    });
-
-    if (brainResp.ok) {
-      const brainData = await brainResp.json();
-      const facts = (brainData.results || []).map(r => r.content || r.value || r);
-      if (facts.length > 0) {
-        container.innerHTML = facts.slice(0, 20).map((content, i) => {
-          const text = typeof content === 'object' ? (content.fact || content.content || JSON.stringify(content)) : String(content);
-          return `<div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
-            <p class="text-gray-800">${escapeHtml(text.substring(0, 200))}</p>
-          </div>`;
-        }).join('');
-        return;
-      }
-    }
-  } catch (err) {
-    console.warn('Second Brain recall failed:', err.message);
-  }
-
-  // localStorage fallback only (no deprecated /memory/* endpoint)
-  try {
-    const facts = JSON.parse(localStorage.getItem('rs_facts') || '[]');
-    if (facts.length === 0) {
-      container.innerHTML = '<p class="text-gray-400 text-center py-4">No facts saved yet</p>';
-      return;
-    }
-    container.innerHTML = facts.slice(0, 20).map(f => `
-      <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
-        <p class="text-gray-800">${escapeHtml(String(f.fact || '').substring(0, 200))}</p>
-      </div>`).join('');
-  } catch (err) {
-    console.error('localStorage parse failed:', err);
-    showToast('Failed to load facts');
-    container.innerHTML = '<p class="text-red-400 text-center py-4">Error loading facts</p>';
-  }
-}
-
-// Delete fact from Second Brain
-async function deleteFact(nodeId) {
-  if (!nodeId) return;
-  try {
-    const resp = await fetch(`/brain/memory/${encodeURIComponent(nodeId)}`, { method: 'DELETE' });
-    if (resp.ok) {
-      showToast('Fact deleted');
-    } else {
-      throw new Error(`Server returned ${resp.status}`);
-    }
-    loadRecentFacts();
-    loadMemoryStats();
-  } catch (err) {
-    console.error('Delete failed:', err);
-    showToast('Could not delete fact');
-  }
-}
-
-// Escape HTML
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
-// Initialize
+// Load stats
+async function loadMemoryStats() {
+  try {
+    const resp = await fetch('/brain/stats');
+    if (!resp.ok) throw new Error('Stats endpoint unavailable');
+    const data = await resp.json();
+    document.getElementById('stat-total').textContent = data.total_nodes || 0;
+    document.getElementById('stat-conversations').textContent = data.type_counts?.conversation || 0;
+    document.getElementById('stat-facts').textContent = data.type_counts?.semantic || 0;
+    document.getElementById('stat-patterns').textContent = data.pattern_count || 0;
+    document.getElementById('stat-goals').textContent = data.active_goals || 0;
+  } catch (err) {
+    console.warn('Stats unavailable:', err.message);
+  }
+}
+
+// Search memory
+async function searchMemory() {
+  const query = document.getElementById('memory-search').value.trim();
+  const resultsContent = document.getElementById('results-content');
+  if (!query) { showToast('Enter a search query'); return; }
+
+  resultsContent.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
+
+  try {
+    const resp = await fetch('/brain/recall', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, limit: 10, time_range: 'all' })
+    });
+    if (!resp.ok) throw new Error('Recall failed');
+    const data = await resp.json();
+    const memories = data.results || [];
+
+    if (memories.length === 0) {
+      resultsContent.innerHTML = `<p class="text-gray-400 text-center py-6">No results for "${escapeHtml(query)}"</p>`;
+      return;
+    }
+
+    resultsContent.innerHTML = `
+      <div class="space-y-3">
+        <p class="text-sm text-gray-500 mb-3">${memories.length} results for "${escapeHtml(query)}"</p>
+        ${memories.map(m => {
+          const node = m.node || m;
+          const content = typeof node.content === 'object' ? JSON.stringify(node.content) : node.content;
+          return `
+          <div class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100">
+            <p class="text-gray-800">${escapeHtml(String(content || '').substring(0, 400))}</p>
+            <div class="flex flex-wrap gap-2 mt-2">
+              ${node.memory_type ? `<span class="px-2 py-0.5 bg-emerald-100 rounded text-xs text-emerald-700">${node.memory_type}</span>` : ''}
+              ${node.tier ? `<span class="px-2 py-0.5 bg-purple-100 rounded text-xs text-purple-700">${node.tier}</span>` : ''}
+              ${m.score ? `<span class="px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">${(m.score * 100).toFixed(0)}% match</span>` : ''}
+              ${node.created_at ? `<span class="text-xs text-gray-400">${new Date(node.created_at).toLocaleDateString()}</span>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch (err) {
+    resultsContent.innerHTML = `<p class="text-red-400 text-center py-6">Search unavailable: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function quickSearch(q) {
+  document.getElementById('memory-search').value = q;
+  searchMemory();
+}
+
+// Load goals
+async function loadGoals() {
+  const container = document.getElementById('goals-list');
+  try {
+    const resp = await fetch('/brain/goals');
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    const goals = data.goals || [];
+
+    if (goals.length === 0) {
+      container.innerHTML = '<p class="text-center text-gray-400 py-8">No active goals. Add one!</p>';
+      return;
+    }
+
+    container.innerHTML = goals.map(g => `
+      <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <h4 class="font-medium">${escapeHtml(g.title)}</h4>
+              <span class="px-2 py-0.5 text-xs rounded ${g.priority === 'high' ? 'bg-red-100 text-red-700' : g.priority === 'medium' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'}">${g.priority}</span>
+            </div>
+            ${g.description ? `<p class="text-sm text-gray-600 mb-2">${escapeHtml(g.description)}</p>` : ''}
+            <div class="flex items-center gap-4 text-xs text-gray-400">
+              ${g.deadline ? `<span>Due: ${g.deadline}</span>` : ''}
+              ${g.progress !== undefined ? `<span>${g.progress}% complete</span>` : ''}
+            </div>
+            ${g.progress !== undefined ? `
+            <div class="mt-2 h-2 bg-gray-100 rounded-full">
+              <div class="h-2 bg-emerald-500 rounded-full" style="width:${g.progress}%"></div>
+            </div>` : ''}
+          </div>
+          <div class="flex gap-2 ml-4">
+            <button onclick="markGoalDone('${g.id}')" class="px-3 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200">Done</button>
+            <button onclick="deleteGoal('${g.id}')" class="px-3 py-1 text-xs text-red-500 hover:underline">Delete</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    container.innerHTML = '<p class="text-center text-gray-400 py-8">Could not load goals</p>';
+  }
+}
+
+// Add fact
+async function addFactToMemory() {
+  const input = document.getElementById('quick-fact-input');
+  const fact = input.value.trim();
+  if (!fact) { showToast('Enter something to remember'); return; }
+
+  try {
+    const resp = await fetch('/brain/memory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: fact,
+        memory_type: 'semantic',
+        tier: document.getElementById('fact-tier').value,
+        importance: parseInt(document.getElementById('fact-importance').value)
+      })
+    });
+    if (resp.ok) {
+      showToast('Saved to memory!');
+      input.value = '';
+      loadMemoryStats();
+    } else {
+      throw new Error(resp.status);
+    }
+  } catch (err) {
+    showToast('Could not save');
+  }
+}
+
+// Goal modal
+function showAddGoal() { document.getElementById('goal-modal').classList.remove('hidden'); }
+function closeGoalModal() { document.getElementById('goal-modal').classList.add('hidden'); }
+
+async function saveGoal() {
+  const title = document.getElementById('goal-title').value.trim();
+  const description = document.getElementById('goal-desc').value.trim();
+  const deadline = document.getElementById('goal-deadline').value;
+  const priority = document.getElementById('goal-priority').value;
+
+  if (!title) { showToast('Enter a goal title'); return; }
+
+  try {
+    const resp = await fetch('/brain/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description, deadline, priority })
+    });
+    if (resp.ok) {
+      showToast('Goal added!');
+      closeGoalModal();
+      document.getElementById('goal-title').value = '';
+      document.getElementById('goal-desc').value = '';
+      loadGoals();
+      loadMemoryStats();
+    } else { throw new Error(resp.status); }
+  } catch (err) { showToast('Could not save goal'); }
+}
+
+async function markGoalDone(goalId) {
+  try {
+    await fetch(`/brain/goals/${encodeURIComponent(goalId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: true })
+    });
+    loadGoals();
+    loadMemoryStats();
+  } catch (err) { showToast('Could not update goal'); }
+}
+
+async function deleteGoal(goalId) {
+  if (!confirm('Delete this goal?')) return;
+  try {
+    await fetch(`/brain/goals/${encodeURIComponent(goalId)}`, { method: 'DELETE' });
+    loadGoals();
+    loadMemoryStats();
+  } catch (err) { showToast('Could not delete goal'); }
+}
+
+// Proactive memories
+async function loadProactive() {
+  const container = document.getElementById('proactive-list');
+  try {
+    const resp = await fetch('/brain/proactive');
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    const mems = data.memories || [];
+
+    if (mems.length === 0) {
+      container.innerHTML = '<p class="text-center text-gray-400 py-6">No proactive memories yet</p>';
+      return;
+    }
+
+    container.innerHTML = mems.map(m => `
+      <div class="p-4 bg-gray-50 rounded-lg">
+        <div class="flex items-start gap-3">
+          <span class="mt-1 text-lg">${m.type === 'suggestion' ? '💡' : m.type === 'reminder' ? '⏰' : m.type === 'insight' ? '🧠' : '📝'}</span>
+          <div class="flex-1">
+            <p class="text-gray-800">${escapeHtml(m.content || m.message || '')}</p>
+            <p class="text-xs text-gray-400 mt-1">${m.reason || ''}</p>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    container.innerHTML = '<p class="text-center text-gray-400 py-6">Could not load insights</p>';
+  }
+}
+
+// Memory graph
+async function loadGraph() {
+  try {
+    const resp = await fetch('/brain/graph');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    drawGraph(data);
+    document.getElementById('graph-loading').classList.add('hidden');
+  } catch (err) {
+    document.getElementById('graph-loading').textContent = 'Graph unavailable';
+  }
+}
+
+function drawGraph(data) {
+  const svg = document.getElementById('memory-graph');
+  const width = svg.clientWidth || 800;
+  const height = 500;
+  svg.innerHTML = '';
+
+  const nodes = data.nodes || [];
+  const edges = data.edges || [];
+
+  if (nodes.length === 0) {
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#9CA3AF" font-size="14">No graph data yet</text>';
+    return;
+  }
+
+  const nodePositions = {};
+  nodes.forEach((n, i) => {
+    const angle = (2 * Math.PI * i) / nodes.length;
+    const r = Math.min(width, height) / 3;
+    nodePositions[n.id] = {
+      x: width / 2 + r * Math.cos(angle) + (Math.random() - 0.5) * 50,
+      y: height / 2 + r * Math.sin(angle) + (Math.random() - 0.5) * 50,
+      ...n
+    };
+  });
+
+  const nodeColors = {
+    semantic: '#10B981', conversation: '#3B82F6',
+    episodic: '#F59E0B', procedural: '#8B5CF6',
+    document: '#EF4444', goal: '#06B6D4', default: '#6B7280'
+  };
+
+  edges.forEach(e => {
+    const s = nodePositions[e.source];
+    const t = nodePositions[e.target];
+    if (!s || !t) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', s.x); line.setAttribute('y1', s.y);
+    line.setAttribute('x2', t.x); line.setAttribute('y2', t.y);
+    line.setAttribute('stroke', '#D1D5DB'); line.setAttribute('stroke-width', '1.5');
+    svg.appendChild(line);
+  });
+
+  nodes.forEach(n => {
+    const pos = nodePositions[n.id];
+    const color = nodeColors[n.type] || nodeColors.default;
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', pos.x); circle.setAttribute('cy', pos.y);
+    circle.setAttribute('r', n.type === 'goal' ? 12 : 8);
+    circle.setAttribute('fill', color);
+    circle.setAttribute('opacity', '0.85');
+    g.appendChild(circle);
+
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', pos.x); label.setAttribute('y', pos.y + 20);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('fill', '#374151');
+    label.textContent = (n.label || n.id || '').substring(0, 20);
+    g.appendChild(label);
+
+    svg.appendChild(g);
+  });
+}
+
 window.addEventListener('load', () => {
   loadMemoryStats();
-  loadRecentFacts();
+  loadGoals();
+  loadProactive();
 });
 </script>
 
