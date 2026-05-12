@@ -86,6 +86,7 @@ async def lifespan(app: FastAPI):
         ("wake_word", WakeWordAgent, "'Hey Raso' detection"),
         ("document", DocumentAgent, "PDF/URL import"),
         ("notification", NotificationAgent, "Phone notifications"),
+        ("segmentation", SegmentationAgent, "Script chunking"),
     ]
 
     agent_health: dict[str, str] = {}

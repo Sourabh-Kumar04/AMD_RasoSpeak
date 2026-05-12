@@ -355,7 +355,9 @@ class RasoAgent(BaseAgent):
             return {"results_count": 0}
 
         results = await self._shared_memory.recall(query=query, limit=10)
-        return {"results_count": len(results.get("results", [])), "summary": results}
+        results_list = results.get("results", [])
+        summary_str = "; ".join(r.get("text", "")[:100] for r in results_list)
+        return {"results_count": len(results_list), "summary": summary_str}
 
     async def _generate_response(self, question: str, context: str, provider: str = None) -> str:
         """Generate response using available AI."""
