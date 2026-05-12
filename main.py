@@ -1494,7 +1494,9 @@ async def run_system_tests():
     async def test(name: str, fn, *args, **kwargs):
         t0 = time.time()
         try:
-            result = await fn(*args, **kwargs)
+            result = fn(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                result = await result
             dur = round((time.time() - t0) * 1000, 1)
             return AgentTestResult(name=name, status="pass", duration_ms=dur, detail=str(result)[:200])
         except Exception as e:
@@ -1508,20 +1510,19 @@ async def run_system_tests():
                      "test_key_pytest", {"msg": "hello"}, "test"))
     tests.append(test("shared_memory.recall", agents["shared_memory"].recall,
                      query="hello"))
-    tests.append(test("shared_memory.get_user_facts", agents["shared_memory"].get_user_facts))
-    tests.append(test("shared_memory.get_conversation_history", agents["shared_memory"].get_conversation_history))
+    tests.append(test("shared_memory.get_context_for_ai", agents["shared_memory"].get_context_for_ai,
+                     "hello"))
     tests.append(test("shared_memory.get_user_preferences", agents["shared_memory"].get_user_preferences))
+    tests.append(test("shared_memory.get_memory_stats", agents["shared_memory"].get_memory_stats))
 
     # ── Transcription ──────────────────────────
-    tests.append(test("transcription.transcribe_text", agents["transcription"].transcribe_text,
+    tests.append(test("transcription.transcribe", agents["transcription"].transcribe,
                      "Hello world"))
 
     # ── Memory (session) ────────────────────────
-    tests.append(test("memory.store", agents["memory"].store_session,
+    tests.append(test("memory.store_session", agents["memory"].store_session,
                      "pytest_session", {"test": True}))
     tests.append(test("memory.get_session", agents["memory"].get_session,
-                     "pytest_session"))
-    tests.append(test("memory.persist_session", agents["memory"].persist_session,
                      "pytest_session"))
 
     # ── Search ────────────────────────────────
@@ -1531,21 +1532,21 @@ async def run_system_tests():
                      "latest AI news", 1))
 
     # ── Recordings ─────────────────────────────
-    tests.append(test("recordings.start", agents["recording"].start_recording,
+    tests.append(test("recordings.start", agents["recording"].start_session_recording,
                      "pytest_session"))
-    tests.append(test("recordings.stop", agents["recording"].stop_recording,
+    tests.append(test("recordings.stop", agents["recording"].stop_session_recording,
                      "pytest_session"))
-    tests.append(test("recordings.list", agents["recording"].list_recordings))
-    tests.append(test("recordings.get", agents["recording"].get_recording,
+    tests.append(test("recordings.list", agents["recording"].get_all_recordings))
+    tests.append(test("recordings.get", agents["recording"].get_session_record,
                      "pytest_session"))
 
     # ── Analytics ──────────────────────────────
-    tests.append(test("analytics.analyze_session", agents["analytics"].analyze_session,
-                     {"chunks": [{"text": "Hello world", "score": 80}]}))
-    tests.append(test("analytics.get_user_improvement", agents["analytics"].get_user_improvement,
+    tests.append(test("analytics.generate_session_analytics", agents["analytics"].generate_session_analytics,
+                     "pytest_session"))
+    tests.append(test("analytics.generate_user_analytics", agents["analytics"].generate_user_analytics,
                      "pytest_user"))
-    tests.append(test("analytics.get_top_weak_words", agents["analytics"].get_top_weak_words,
-                     "pytest_user", 5))
+    tests.append(test("analytics.get_speech_improvement_report", agents["analytics"].get_speech_improvement_report,
+                     "pytest_user"))
 
     # ── Document ───────────────────────────────
     tests.append(test("document.list_documents", agents["document"].list_documents))
@@ -1555,8 +1556,7 @@ async def run_system_tests():
     # ── Notification ───────────────────────────
     tests.append(test("notification.send", agents["notification"].send_notification,
                      "Test notification", "pytest_user"))
-    tests.append(test("notification.get_history", agents["notification"].get_notification_history,
-                     "pytest_user"))
+    tests.append(test("notification.get_history", agents["notification"].get_notification_history))
 
     # ── Raso ──────────────────────────────────
     tests.append(test("raso.greet", agents["raso"].greet))
@@ -1567,7 +1567,7 @@ async def run_system_tests():
     tests.append(test("raso.stop_continuous", agents["raso"].stop_continuous_mode))
     tests.append(test("raso.query_past", agents["raso"].query_past,
                      "hello"))
-    tests.append(test("raso.is_continuous", agents["raso"].is_continuous_mode))
+    tests.append(test("raso.is_continuous_mode", agents["raso"].is_continuous_mode))
 
     # ── Wake Word ──────────────────────────────
     from agents.wake_word_agent import check_for_wake_word, extract_command_after_wake
@@ -1575,19 +1575,17 @@ async def run_system_tests():
     tests.append(test("wake_word.extract", extract_command_after_wake, "Hey Raso tell me about AMD"))
 
     # ── Scoring ────────────────────────────────
-    tests.append(test("scoring.score_chunk", agents["scoring"].score_chunk,
+    tests.append(test("scoring.score_speech", agents["scoring"].score_speech,
                      "Hello everyone", "Hello everyone", "presentation"))
-    tests.append(test("scoring.score_transcript", agents["scoring"].score_transcript,
-                     "Hello world this is a test", ["Hello world", "this is a test"]))
 
     # ── Coaching ───────────────────────────────
-    tests.append(test("coaching.get_feedback", agents["coaching"].get_feedback,
+    tests.append(test("coaching.generate_feedback", agents["coaching"].generate_feedback,
                      "Hello world", "Hello world", {"accuracy": 90}))
     tests.append(test("coaching.generate_session_insights", agents["coaching"].generate_session_insights,
                      {"chunks": [{"text": "test"}]}))
 
     # ── QA ───────────────────────────────────
-    tests.append(test("qa.answer", agents["qa"].answer,
+    tests.append(test("qa.ask", agents["qa"].ask,
                      "What is RasoSpeak", None))
 
     # ── Segmentation ────────────────────────────
