@@ -783,6 +783,15 @@ class SecondBrainAgent(BaseAgent):
         self._short_term: list[str] = []
         self._entity_index: dict[str, list[str]] = defaultdict(list)
         self._topic_index: dict[str, list[str]] = defaultdict(list)
+        # O(1) content-hash → node-id lookup for deduplication
+        self._content_index: dict[str, str] = {}
+        # Write protection for shared dicts
+        self._node_lock = asyncio.Lock()
+        self._goal_lock = asyncio.Lock()
+        # Graceful shutdown flag
+        self._running = True
+        # Memory cap
+        self._MAX_NODES = 100_000
         self._llm_client = None
         self._persona: Optional[UserPersona] = None
         self._goals: dict[str, Goal] = {}
@@ -898,11 +907,20 @@ class SecondBrainAgent(BaseAgent):
         content_hash = hashlib.sha256(str(content).encode()).hexdigest()[:16]
         node_id = f"node_{int(time.time() * 1000)}_{content_hash[:8]}"
 
-        # Check for duplicate content (idempotency)
-        existing_ids = [nid for nid, n in self._nodes.items() if n.content == content]
-        if existing_ids:
-            log.debug(f"Duplicate content detected, returning existing node: {existing_ids[0]}")
-            return self._nodes[existing_ids[0]]
+        # O(1) deduplication via content index (whitespace-normalized)
+        normalized = " ".join(str(content).split())
+        if normalized in self._content_index:
+            log.debug(f"Duplicate content detected, returning existing node: {self._content_index[normalized]}")
+            return self._nodes[self._content_index[normalized]]
+
+        # Memory cap — evict lowest-importance, least-accessed nodes
+        if len(self._nodes) >= self._MAX_NODES:
+            evict_candidates = sorted(
+                [n for n in self._nodes.values() if n.tier == MemoryTier.LONG_TERM],
+                key=lambda n: (n.importance.value, n.access_count, n.decay_score)
+            )
+            if evict_candidates:
+                await self.forget(evict_candidates[0].id, "memory_cap_eviction")
 
         entities = []
         topics = []
@@ -925,9 +943,12 @@ class SecondBrainAgent(BaseAgent):
             confidence=0.8,
         )
 
-        self._nodes[node_id] = node
+        async with self._node_lock:
+            self._nodes[node_id] = node
         self._update_indexes(node)
         self._add_to_tier(node_id, tier)
+        # Update O(1) content index
+        self._content_index[normalized] = node_id
 
         # Phase 6: Generate and store embedding
         await self._embed_node(node)
@@ -1064,42 +1085,51 @@ class SecondBrainAgent(BaseAgent):
                 {"role": "user", "content": PERSONA_EXTRACTION_PROMPT.format(conversation=conversation[:4000])}
             ]
 
-            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=2048)
+            result = await asyncio.wait_for(
+                self._llm_client.chat(messages, temperature=0.1, max_tokens=2048),
+                timeout=30.0,
+            )
             raw_content = result.get("content", "{}")
 
             json_match = re.search(r'\{.*\}', raw_content, re.DOTALL)
             if json_match:
-                data = json.loads(json_match.group())
+                try:
+                    data = json.loads(json_match.group())
 
-                if self._persona:
-                    # Update existing persona
-                    self._update_persona_fields(data)
-                else:
-                    # Create new persona
-                    self._persona = UserPersona(
-                        id=f"persona_{int(time.time())}",
-                        name=data.get("name", "Unknown"),
-                        bio=data.get("bio", ""),
-                        interests=data.get("interests", []),
-                        communication_style=data.get("communication_style", "neutral"),
-                        personality_traits=data.get("personality_traits", []),
-                        values=data.get("values", []),
-                        strengths=data.get("strengths", []),
-                        weaknesses=data.get("weaknesses", []),
-                        work_style=data.get("work_style", "unknown"),
-                        learning_style=data.get("learning_style", "unknown"),
-                        confidence=0.7,
-                    )
+                    if self._persona:
+                        # Update existing persona
+                        self._update_persona_fields(data)
+                    else:
+                        # Create new persona
+                        self._persona = UserPersona(
+                            id=f"persona_{int(time.time())}",
+                            name=data.get("name", "Unknown"),
+                            bio=data.get("bio", ""),
+                            interests=data.get("interests", []),
+                            communication_style=data.get("communication_style", "neutral"),
+                            personality_traits=data.get("personality_traits", []),
+                            values=data.get("values", []),
+                            strengths=data.get("strengths", []),
+                            weaknesses=data.get("weaknesses", []),
+                            work_style=data.get("work_style", "unknown"),
+                            learning_style=data.get("learning_style", "unknown"),
+                            confidence=0.7,
+                        )
 
-                self._persona.last_updated = datetime.utcnow().isoformat()
-                self._persona.confidence = min(1.0, self._persona.confidence + 0.1)
+                    self._persona.last_updated = datetime.utcnow().isoformat()
+                    self._persona.confidence = min(1.0, self._persona.confidence + 0.1)
 
-                await self._save_persona()
-                log.info(f"Persona updated: {self._persona.name}, confidence={self._persona.confidence:.2f}")
-                return {"status": "success", "persona": self._persona.to_dict()}
+                    await self._save_persona()
+                    log.info(f"Persona updated: {self._persona.name}, confidence={self._persona.confidence:.2f}")
+                    return {"status": "success", "persona": self._persona.to_dict()}
+                except (json.JSONDecodeError, ValueError):
+                    return {"status": "failed", "reason": "JSON parse failed", "persona": self._persona.to_dict() if self._persona else None}
             else:
                 return {"status": "failed", "reason": "no JSON found in LLM response", "persona": self._persona.to_dict() if self._persona else None}
 
+        except asyncio.TimeoutError:
+            log.warning("Persona extraction timed out after 30s")
+            return {"status": "failed", "reason": "timeout", "persona": self._persona.to_dict() if self._persona else None}
         except Exception as e:
             log.warning(f"Persona extraction failed: {e}")
             return {"status": "failed", "reason": str(e), "persona": self._persona.to_dict() if self._persona else None}
@@ -1113,7 +1143,7 @@ class SecondBrainAgent(BaseAgent):
             if hasattr(self._persona, key) and value:
                 current = getattr(self._persona, key)
                 if isinstance(current, list) and isinstance(value, list):
-                    # Merge lists
+                    # Guard against non-list merge on list fields
                     setattr(self._persona, key, list(set(current + value)))
                 else:
                     setattr(self._persona, key, value)
@@ -1151,13 +1181,14 @@ class SecondBrainAgent(BaseAgent):
 
     async def _persona_update_loop(self) -> None:
         """Background task to update persona periodically."""
-        while True:
+        while self._running:
             try:
                 await asyncio.sleep(3600)  # Check every hour
 
                 recent_text = self._get_recent_conversation_text()
                 if len(recent_text) > 100:
-                    await self.extract_and_update_persona(recent_text)
+                    result = await self.extract_and_update_persona(recent_text)
+                    log.debug(f"Persona update: {result.get('status')}")
 
             except Exception as e:
                 log.error(f"Persona update error: {e}")
@@ -1176,7 +1207,7 @@ class SecondBrainAgent(BaseAgent):
     ) -> Goal:
         """Add a new goal."""
         goal = Goal(
-            id=f"goal_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
+            id=f"goal_{hashlib.sha256(title.encode()).hexdigest()[:16]}",
             title=title,
             description=description,
             deadline=deadline,
@@ -1184,16 +1215,9 @@ class SecondBrainAgent(BaseAgent):
             tags=tags or [],
         )
 
-        self._goals[goal.id] = goal
+        async with self._goal_lock:
+            self._goals[goal.id] = goal
         await self._save_goal(goal)
-
-        # Also store in memory
-        await self.store(
-            content={"goal_id": goal.id, "title": title, "description": description},
-            memory_type=MemoryType.GOAL,
-            importance=Importance.HIGH,
-            tags=["goal"] + (tags or []),
-        )
 
         log.info(f"Goal added: {title}")
 
@@ -1262,26 +1286,34 @@ class SecondBrainAgent(BaseAgent):
                 {"role": "user", "content": GOAL_EXTRACTION_PROMPT.format(conversation=conversation[:3000])}
             ]
 
-            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
+            result = await asyncio.wait_for(
+                self._llm_client.chat(messages, temperature=0.1, max_tokens=1024),
+                timeout=30.0,
+            )
             content = result.get("content", "{}")
 
             json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
-                data = json.loads(json_match.group())
-                goals_data = data.get("goals", [])
+                try:
+                    data = json.loads(json_match.group())
+                    goals_data = data.get("goals", [])
 
-                for goal_data in goals_data:
-                    existing = [g for g in self._goals.values() if g.title == goal_data.get("title")]
-                    if not existing:
-                        await self.add_goal(
-                            title=goal_data.get("title", "Untitled"),
-                            description=goal_data.get("description", ""),
-                            deadline=goal_data.get("deadline"),
-                            priority=goal_data.get("priority", 3),
-                        )
+                    for goal_data in goals_data:
+                        existing = [g for g in self._goals.values() if g.title == goal_data.get("title")]
+                        if not existing:
+                            await self.add_goal(
+                                title=goal_data.get("title", "Untitled"),
+                                description=goal_data.get("description", ""),
+                                deadline=goal_data.get("deadline"),
+                                priority=goal_data.get("priority", 3),
+                            )
 
-                return self.get_active_goals()
+                    return self.get_active_goals()
+                except (json.JSONDecodeError, ValueError):
+                    pass
 
+        except asyncio.TimeoutError:
+            log.warning("Goal extraction timed out after 30s")
         except Exception as e:
             log.warning(f"Goal extraction failed: {e}")
 
@@ -1289,7 +1321,7 @@ class SecondBrainAgent(BaseAgent):
 
     async def _goal_check_loop(self) -> None:
         """Background task to check goal deadlines."""
-        while True:
+        while self._running:
             try:
                 await asyncio.sleep(1800)  # Check every 30 minutes
 
@@ -1559,12 +1591,14 @@ class SecondBrainAgent(BaseAgent):
 
     async def _auto_link_loop(self) -> None:
         """Background task to auto-link memories."""
-        while True:
+        while self._running:
             try:
                 await asyncio.sleep(7200)  # Check every 2 hours
 
-                await self.auto_link_memories()
+                await asyncio.wait_for(self.auto_link_memories(), timeout=300.0)
 
+            except asyncio.TimeoutError:
+                log.warning("Auto-link timed out after 300s")
             except Exception as e:
                 log.error(f"Auto-link error: {e}")
 
@@ -1583,13 +1617,21 @@ class SecondBrainAgent(BaseAgent):
                 {"role": "user", "content": EMOTION_ANALYSIS_PROMPT.format(conversation=conversation[:3000])}
             ]
 
-            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
+            result = await asyncio.wait_for(
+                self._llm_client.chat(messages, temperature=0.1, max_tokens=1024),
+                timeout=30.0,
+            )
             content = result.get("content", "{}")
 
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
-                return json.loads(json_match.group())
+                try:
+                    return json.loads(json_match.group())
+                except (json.JSONDecodeError, ValueError):
+                    pass
 
+        except asyncio.TimeoutError:
+            log.warning("Emotion analysis timed out after 30s")
         except Exception as e:
             log.warning(f"Emotion analysis failed: {e}")
 
@@ -2357,13 +2399,21 @@ Return ONLY JSON."""
                 {"role": "user", "content": prompt.format(text=text[:4000])}
             ]
 
-            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=2048)
+            result = await asyncio.wait_for(
+                self._llm_client.chat(messages, temperature=0.1, max_tokens=2048),
+                timeout=30.0,
+            )
             content = result.get("content", "{}")
 
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
-                return json.loads(json_match.group())
+                try:
+                    return json.loads(json_match.group())
+                except (json.JSONDecodeError, ValueError):
+                    pass
 
+        except asyncio.TimeoutError:
+            log.warning("Entity extraction timed out after 30s")
         except Exception as e:
             log.warning(f"Entity extraction failed: {e}")
 
@@ -2504,7 +2554,7 @@ Return ONLY JSON."""
 
     async def _embedding_update_loop(self) -> None:
         """Periodically save embedding index."""
-        while True:
+        while self._running:
             try:
                 await asyncio.sleep(300)
                 self._embedding_index.save(self._embeddings_path)
@@ -2546,9 +2596,11 @@ Return ONLY JSON."""
                 log.warning(f"Failed to load sync log: {e}")
 
     def _save_sync_log(self) -> None:
-        """Save sync log to disk."""
+        """Save sync log to disk (non-blocking)."""
         data = {k: v.to_dict() for k, v in self._sync_log.items()}
-        self._sync_path.write_text(json.dumps(data, indent=2))
+        asyncio.create_task(asyncio.to_thread(
+            self._sync_path.write_text, json.dumps(data, indent=2)
+        ))
 
     def _compute_checksum(self) -> str:
         """Compute checksum of all memory."""
@@ -2576,9 +2628,11 @@ Return ONLY JSON."""
                 log.warning(f"Failed to load patterns: {e}")
 
     def _save_patterns(self) -> None:
-        """Save patterns to disk."""
+        """Save patterns to disk (non-blocking)."""
         data = [p.to_dict() for p in self._patterns.values()]
-        self._patterns_path.write_text(json.dumps(data, indent=2))
+        asyncio.create_task(asyncio.to_thread(
+            self._patterns_path.write_text, json.dumps(data, indent=2)
+        ))
 
     def _load_snapshots(self) -> None:
         """Load snapshots from disk."""
@@ -2590,13 +2644,15 @@ Return ONLY JSON."""
                 log.warning(f"Failed to load snapshots: {e}")
 
     def _save_snapshots(self) -> None:
-        """Save snapshots to disk."""
+        """Save snapshots to disk (non-blocking)."""
         data = [s.to_dict() for s in self._snapshots]
-        self._snapshots_path.write_text(json.dumps(data, indent=2))
+        asyncio.create_task(asyncio.to_thread(
+            self._snapshots_path.write_text, json.dumps(data, indent=2)
+        ))
 
     async def _pattern_detection_loop(self) -> None:
         """Detect patterns in memory access and content."""
-        while True:
+        while self._running:
             try:
                 await asyncio.sleep(3600)
                 await self._detect_patterns()
@@ -2658,7 +2714,7 @@ Return ONLY JSON."""
 
     async def _proactive_surfacing_loop(self) -> None:
         """Periodically surface relevant memories proactively."""
-        while True:
+        while self._running:
             try:
                 await asyncio.sleep(7200)
                 await self._surface_proactive_memories()
@@ -2695,7 +2751,7 @@ Return ONLY JSON."""
 
     async def _memory_maintenance_loop(self) -> None:
         """Background maintenance."""
-        while True:
+        while self._running:
             try:
                 await asyncio.sleep(600)
 
@@ -2714,7 +2770,7 @@ Return ONLY JSON."""
 
     async def _tier_migration_loop(self) -> None:
         """Background tier migration."""
-        while True:
+        while self._running:
             try:
                 await asyncio.sleep(300)
 
@@ -2821,39 +2877,39 @@ Return ONLY JSON."""
         log.info(f"Loaded: {len(self._nodes)} nodes, {len(self._edges)} edges, {len(self._audio_memories)} audio")
 
     async def _save_node(self, node: MemoryNode) -> None:
-        """Save node to disk."""
+        """Save node to disk (non-blocking)."""
         node_file = self._brain_path / "nodes" / f"{node.id}.json"
-        node_file.write_text(json.dumps(node.to_dict(), indent=2))
+        await asyncio.to_thread(node_file.write_text, json.dumps(node.to_dict(), indent=2))
 
     async def _save_edge(self, edge: MemoryEdge) -> None:
-        """Save edge to disk."""
+        """Save edge to disk (non-blocking)."""
         edge_file = self._brain_path / "edges" / f"{edge.id}.json"
-        edge_file.write_text(json.dumps(edge.to_dict(), indent=2))
+        await asyncio.to_thread(edge_file.write_text, json.dumps(edge.to_dict(), indent=2))
 
     async def _save_audio_memory(self, audio: AudioMemory) -> None:
-        """Save audio memory."""
+        """Save audio memory (non-blocking)."""
         audio_file = self._brain_path / "audio" / f"{audio.id}.json"
-        audio_file.write_text(json.dumps(audio.to_dict(), indent=2))
+        await asyncio.to_thread(audio_file.write_text, json.dumps(audio.to_dict(), indent=2))
 
     async def _save_persona(self) -> None:
-        """Save persona."""
+        """Save persona (non-blocking)."""
         persona_file = self._brain_path / "persona" / "persona.json"
-        persona_file.write_text(json.dumps(self._persona.to_dict(), indent=2))
+        await asyncio.to_thread(persona_file.write_text, json.dumps(self._persona.to_dict(), indent=2))
 
     async def _save_goal(self, goal: Goal) -> None:
-        """Save goal."""
+        """Save goal (non-blocking)."""
         goal_file = self._brain_path / "goals" / f"{goal.id}.json"
-        goal_file.write_text(json.dumps(goal.to_dict(), indent=2))
+        await asyncio.to_thread(goal_file.write_text, json.dumps(goal.to_dict(), indent=2))
 
     async def _save_skill(self, skill: Skill) -> None:
-        """Save skill."""
+        """Save skill (non-blocking)."""
         skill_file = self._brain_path / "skills" / f"{skill.id}.json"
-        skill_file.write_text(json.dumps(skill.to_dict(), indent=2))
+        await asyncio.to_thread(skill_file.write_text, json.dumps(skill.to_dict(), indent=2))
 
     async def _save_summary(self, summary: MemorySummary) -> None:
-        """Save memory summary."""
+        """Save memory summary (non-blocking)."""
         summary_file = self._brain_path / "summaries" / f"{summary.id}.json"
-        summary_file.write_text(json.dumps(summary.to_dict(), indent=2))
+        await asyncio.to_thread(summary_file.write_text, json.dumps(summary.to_dict(), indent=2))
 
     # ══════════════════════════════════════════════════════
     # MEMORY OPERATIONS
@@ -2888,6 +2944,10 @@ Return ONLY JSON."""
 
         await self._track_version(node_id, node.content, None, "forgotten")
         del self._nodes[node_id]
+        # Remove from O(1) content index (whitespace-normalized)
+        normalized = " ".join(str(node.content).split())
+        if normalized in self._content_index:
+            del self._content_index[normalized]
 
         log.info(f"Forgotten: {node_id}")
 
@@ -3418,6 +3478,8 @@ Return ONLY JSON."""
 
     async def shutdown(self):
         """Cleanup — cancel all background tasks, save all state."""
+        self._running = False
+
         # Cancel all tracked background tasks
         for task in self._tasks:
             task.cancel()
@@ -3425,7 +3487,7 @@ Return ONLY JSON."""
         await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks.clear()
 
-        # Save all in-memory state
+        # Save all in-memory state (non-blocking via to_thread)
         for node in self._nodes.values():
             await self._save_node(node)
         for edge in self._edges.values():
@@ -3442,10 +3504,16 @@ Return ONLY JSON."""
             await self._save_persona()
         for goal_id, goal in self._goals.items():
             try:
-                (self._brain_path / "goals" / f"{goal_id}.json").write_text(
+                await asyncio.to_thread(
+                    (self._brain_path / "goals" / f"{goal_id}.json").write_text,
                     json.dumps(goal.to_dict(), indent=2)
                 )
             except Exception:
                 pass
+
+        # Zeroize encryption key
+        if hasattr(self, '_encryption_key') and self._encryption_key:
+            self._encryption_key = b'\x00' * len(self._encryption_key)
+            self._encryption_key = None
 
         log.info("SecondBrainAgent shut down cleanly")

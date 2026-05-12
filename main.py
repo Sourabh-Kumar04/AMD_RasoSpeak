@@ -665,7 +665,7 @@ async def add_weak_word(req: WeakWordRequest, session_id: str = None):
 # ══════════════════════════════════════════════════════
 
 class BrainStoreRequest(BaseModel):
-    content: Any
+    content: str
     memory_type: str = "conversation"
     tier: str = "long_term"
     importance: int = 3
