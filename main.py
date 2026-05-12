@@ -715,11 +715,20 @@ class BrainRecallRequest(BaseModel):
     time_range: str = None  # "1h", "24h", "7d", "30d", "all"
 
 
+def _get_brain():
+    """Return SecondBrainAgent or None."""
+    return agents.get("brain")
+
+
 @app.post("/brain/store")
 async def brain_store(req: BrainStoreRequest):
     """Store a memory node in the second brain."""
+    from fastapi import HTTPException
     from agents.second_brain_agent import MemoryType, MemoryTier, Importance
-    return await agents["brain"].store(
+    brain = _get_brain()
+    if not brain:
+        raise HTTPException(status_code=503, detail="Second Brain not available")
+    return await brain.store(
         content=req.content,
         memory_type=MemoryType(req.memory_type),
         tier=MemoryTier(req.tier),
@@ -1411,36 +1420,15 @@ async def unified_rag_query(req: UnifiedRAGRequest):
     answer = None
     if req.use_llm and "qa" in agents:
         try:
-            system_prompt = """You are Raso, an AI with perfect memory and document knowledge.
-
-You have access to two types of information:
-1. PERSONAL MEMORY: The user's conversation history, preferences, goals, and facts
-2. DOCUMENTS: Imported knowledge base documents
-
-Synthesize both sources to give a complete, personalized answer.
-- Use memory for personal context (what the user has discussed, their preferences)
-- Use documents for factual knowledge
-
-If information comes from both sources, mention it explicitly."""
-
-            user_prompt = f"""Personal Memory:
-{memory_context or '(no relevant memory found)'}
-
-Document Knowledge:
-{doc_context or '(no relevant documents found)'}
-
-Question: {req.query}"""
-
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-            # Use QAAgent public API instead of accessing _llm_client directly
+            # Use QAAgent public API (handles its own system prompt, timeout, retry)
             result = await agents["qa"].ask(
-                question=user_prompt,
-                context=f"System: {system_prompt}\n\n{memory_context or '(no relevant memory found)'}\n\n{doc_context or '(no relevant documents found)'}"
+                question=req.query,
+                context=f"Personal Memory:\n{memory_context or '(no relevant memory found)'}\n\nDocument Knowledge:\n{doc_context or '(no relevant documents found)'}"
             )
             answer = result.get("answer") if isinstance(result, dict) else str(result)
+            if result.get("error"):
+                log.warning(f"LLM synthesis error: {result['error']}")
+                answer = None
         except Exception as e:
             log.warning(f"LLM synthesis failed: {e}")
             answer = None

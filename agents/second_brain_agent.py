@@ -804,6 +804,9 @@ class SecondBrainAgent(BaseAgent):
         self._encryption_key: Optional[bytes] = None
         self._privacy_overrides: dict[str, PrivacyLevel] = {}  # Per-node privacy
 
+        # ── Lifecycle management ────────────────────────────
+        self._tasks: list[asyncio.Task] = []  # Track background tasks for cleanup
+
         # ══════════════════════════════════════════════════════
         # PHASE 6: PATTERNS & PROACTIVE
         # ══════════════════════════════════════════════════════
@@ -853,17 +856,17 @@ class SecondBrainAgent(BaseAgent):
         self._load_patterns()
         self._load_snapshots()
 
-        # Phase 4-5 background loops
-        asyncio.create_task(self._memory_maintenance_loop())
-        asyncio.create_task(self._tier_migration_loop())
-        asyncio.create_task(self._persona_update_loop())
-        asyncio.create_task(self._goal_check_loop())
-        asyncio.create_task(self._auto_link_loop())
+        # Phase 4-5 background loops (tracked for cleanup)
+        self._tasks.append(asyncio.create_task(self._memory_maintenance_loop()))
+        self._tasks.append(asyncio.create_task(self._tier_migration_loop()))
+        self._tasks.append(asyncio.create_task(self._persona_update_loop()))
+        self._tasks.append(asyncio.create_task(self._goal_check_loop()))
+        self._tasks.append(asyncio.create_task(self._auto_link_loop()))
 
-        # Phase 6 background loops
-        asyncio.create_task(self._pattern_detection_loop())
-        asyncio.create_task(self._proactive_surfacing_loop())
-        asyncio.create_task(self._embedding_update_loop())
+        # Phase 6 background loops (tracked for cleanup)
+        self._tasks.append(asyncio.create_task(self._pattern_detection_loop()))
+        self._tasks.append(asyncio.create_task(self._proactive_surfacing_loop()))
+        self._tasks.append(asyncio.create_task(self._embedding_update_loop()))
 
         # Rebuild embeddings for nodes without them
         await self._rebuild_embeddings()
@@ -891,7 +894,15 @@ class SecondBrainAgent(BaseAgent):
         privacy: PrivacyLevel = PrivacyLevel.PRIVATE,
     ) -> MemoryNode:
         """Store a memory node with full processing."""
-        node_id = f"node_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
+        # Generate stable ID from content hash for deduplication
+        content_hash = hashlib.sha256(str(content).encode()).hexdigest()[:16]
+        node_id = f"node_{int(time.time() * 1000)}_{content_hash[:8]}"
+
+        # Check for duplicate content (idempotency)
+        existing_ids = [nid for nid, n in self._nodes.items() if n.content == content]
+        if existing_ids:
+            log.debug(f"Duplicate content detected, returning existing node: {existing_ids[0]}")
+            return self._nodes[existing_ids[0]]
 
         entities = []
         topics = []
@@ -1033,16 +1044,19 @@ class SecondBrainAgent(BaseAgent):
     # PERSONA EXTRACTION & MANAGEMENT
     # ══════════════════════════════════════════════════════
 
-    async def extract_and_update_persona(self, conversation: str = None) -> UserPersona:
-        """Extract persona from recent conversations."""
+    async def extract_and_update_persona(self, conversation: str = None) -> dict:
+        """
+        Extract persona from recent conversations.
+        Returns status dict instead of raw persona object.
+        """
         if not self._llm_client:
-            return self._persona
+            return {"status": "skipped", "reason": "LLM not available", "persona": self._persona.to_dict() if self._persona else None}
 
         if not conversation:
             conversation = self._get_recent_conversation_text()
 
         if len(conversation) < 50:
-            return self._persona
+            return {"status": "skipped", "reason": "conversation too short", "persona": self._persona.to_dict() if self._persona else None}
 
         try:
             messages = [
@@ -1051,9 +1065,9 @@ class SecondBrainAgent(BaseAgent):
             ]
 
             result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=2048)
-            content = result.get("content", "{}")
+            raw_content = result.get("content", "{}")
 
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            json_match = re.search(r'\{.*\}', raw_content, re.DOTALL)
             if json_match:
                 data = json.loads(json_match.group())
 
@@ -1082,11 +1096,13 @@ class SecondBrainAgent(BaseAgent):
 
                 await self._save_persona()
                 log.info(f"Persona updated: {self._persona.name}, confidence={self._persona.confidence:.2f}")
+                return {"status": "success", "persona": self._persona.to_dict()}
+            else:
+                return {"status": "failed", "reason": "no JSON found in LLM response", "persona": self._persona.to_dict() if self._persona else None}
 
         except Exception as e:
             log.warning(f"Persona extraction failed: {e}")
-
-        return self._persona
+            return {"status": "failed", "reason": str(e), "persona": self._persona.to_dict() if self._persona else None}
 
     def _update_persona_fields(self, data: dict):
         """Update persona fields with new data."""
@@ -1249,7 +1265,7 @@ class SecondBrainAgent(BaseAgent):
             result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
             content = result.get("content", "{}")
 
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
                 data = json.loads(json_match.group())
                 goals_data = data.get("goals", [])
@@ -1375,7 +1391,7 @@ class SecondBrainAgent(BaseAgent):
             result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
             content = result.get("content", "{}")
 
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
                 data = json.loads(json_match.group())
                 skills_data = data.get("skills", [])
@@ -3401,14 +3417,35 @@ Return ONLY JSON."""
         return {"marked": count}
 
     async def shutdown(self):
-        """Cleanup."""
+        """Cleanup — cancel all background tasks, save all state."""
+        # Cancel all tracked background tasks
+        for task in self._tasks:
+            task.cancel()
+        # Wait for all to confirm cancellation
+        await asyncio.gather(*self._tasks, return_exceptions=True)
+        self._tasks.clear()
+
+        # Save all in-memory state
         for node in self._nodes.values():
             await self._save_node(node)
         for edge in self._edges.values():
             await self._save_edge(edge)
-        # Phase 6: Save additional data
+
+        # Phase 6: Save all state
         self._embedding_index.save(self._embeddings_path)
         self._save_sync_log()
         self._save_patterns()
         self._save_snapshots()
-        log.info("SecondBrainAgent shut down")
+
+        # Save persona and goals if present
+        if self._persona:
+            await self._save_persona()
+        for goal_id, goal in self._goals.items():
+            try:
+                (self._brain_path / "goals" / f"{goal_id}.json").write_text(
+                    json.dumps(goal.to_dict(), indent=2)
+                )
+            except Exception:
+                pass
+
+        log.info("SecondBrainAgent shut down cleanly")

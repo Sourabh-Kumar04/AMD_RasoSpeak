@@ -99,26 +99,30 @@ class QAAgent(BaseAgent):
         # Use specified provider or default
         client = create_llm_client(provider) if provider else self._llm_client
 
-        # Build messages with context
+        # Build messages — context is passed via context param, not duplicated
         messages = [{"role": "system", "content": "You are RasoSpeak, a helpful AI assistant with perfect memory. Be concise and friendly."}]
 
-        # Add memory context from Second Brain
+        # Add memory context from Second Brain (only if session_id provided)
         if self._second_brain and session_id:
             try:
-                brain_context = await self._second_brain.get_context_for_ai("qa", max_tokens=3000)
+                brain_context = await self._second_brain.get_context_for_ai("qa", max_tokens=2000)
                 if brain_context:
                     messages.append({"role": "system", "content": f"User context: {brain_context}"})
             except Exception as e:
                 log.warning(f"Failed to get Second Brain context: {e}")
 
-        # Add provided context
+        # Additional context from caller (unique, not already in question)
         if context:
             messages.append({"role": "system", "content": f"Additional context: {context}"})
 
+        # The question already contains the full user prompt
         messages.append({"role": "user", "content": question})
 
         try:
-            result = await client.chat(messages, temperature=0.15, max_tokens=4096)
+            result = await asyncio.wait_for(
+                client.chat(messages, temperature=0.15, max_tokens=4096),
+                timeout=60.0,
+            )
             elapsed_ms = int((time.perf_counter() - t_start) * 1000)
 
             return {
@@ -127,6 +131,9 @@ class QAAgent(BaseAgent):
                 "finish_reason": result.get("finish_reason", "stop"),
                 "processing_ms": elapsed_ms,
             }
+        except asyncio.TimeoutError:
+            log.error(f"QA request timed out after 60s")
+            return {"error": "Request timed out after 60 seconds"}
         except Exception as e:
             log.error(f"QA request failed: {e}")
             return {"error": str(e)}
