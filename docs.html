@@ -107,17 +107,32 @@
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold">Your Documents</h2>
       <div class="flex items-center gap-2">
-        <input type="text" id="doc-search" placeholder="Search documents..."
-          class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-        <button onclick="searchDocuments()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Search</button>
+        <div class="relative flex items-center">
+          <input type="text" id="doc-search" placeholder="Search documents..."
+            class="pl-10 pr-20 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64">
+          <button id="voice-search-btn" onclick="toggleVoiceSearch()" class="absolute left-2 p-1 text-gray-400 hover:text-emerald-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+            </svg>
+          </button>
+          <div class="absolute right-2 flex gap-1">
+            <button onclick="searchDocuments('web')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200" title="Search web">🌐</button>
+            <button onclick="searchDocuments('docs')" class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200">📄</button>
+          </div>
+        </div>
         <button onclick="loadDocuments()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Refresh</button>
       </div>
     </div>
+    <div id="search-type-label" class="text-xs text-gray-400 mb-2">🌐 Searching web | 📄 Search documents</div>
     <div id="docs-list" class="space-y-3">
       <div class="text-center text-gray-400 py-8">
         <p>No documents yet</p>
         <p class="text-sm mt-1">Import URLs, text, or upload files above</p>
       </div>
+    </div>
+    <div id="web-results" class="hidden space-y-3 mb-4">
+      <h3 class="font-medium text-gray-700">Web Search Results</h3>
+      <div id="web-results-list"></div>
     </div>
     <div id="docs-pagination" class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
       <p id="docs-count" class="text-sm text-gray-500"></p>
@@ -144,6 +159,8 @@
 let currentPage = 1;
 let totalDocs = 0;
 const pageSize = 10;
+let voiceSearchActive = false;
+let voiceSearchRecognition = null;
 
 // Toast notification
 function showToast(msg) {
@@ -151,6 +168,69 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
   setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
+}
+
+// Voice search toggle
+function toggleVoiceSearch() {
+  if (voiceSearchActive) {
+    // Turn off
+    voiceSearchActive = false;
+    if (voiceSearchRecognition) {
+      try { voiceSearchRecognition.stop(); } catch(e) {}
+      voiceSearchRecognition = null;
+    }
+    document.getElementById('voice-search-btn').classList.remove('text-emerald-500');
+    return;
+  }
+
+  // Request permission
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      stream.getTracks().forEach(track => track.stop());
+      startVoiceSearch();
+    })
+    .catch(err => {
+      showToast('Microphone permission denied');
+    });
+}
+
+function startVoiceSearch() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast('Voice not supported - use Chrome');
+    return;
+  }
+
+  voiceSearchActive = true;
+  document.getElementById('voice-search-btn').classList.add('text-emerald-500');
+  showToast('Speak to search...');
+
+  voiceSearchRecognition = new SR();
+  voiceSearchRecognition.continuous = false;
+  voiceSearchRecognition.interimResults = false;
+  voiceSearchRecognition.lang = 'en-US';
+
+  voiceSearchRecognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    document.getElementById('doc-search').value = transcript;
+    searchDocuments('web'); // Default to web search
+  };
+
+  voiceSearchRecognition.onerror = (event) => {
+    console.error('Voice search error:', event.error);
+    if (event.error !== 'no-speech' && event.error !== 'aborted') {
+      showToast('Voice error: ' + event.error);
+    }
+    voiceSearchActive = false;
+    document.getElementById('voice-search-btn').classList.remove('text-emerald-500');
+  };
+
+  voiceSearchRecognition.onend = () => {
+    voiceSearchActive = false;
+    document.getElementById('voice-search-btn').classList.remove('text-emerald-500');
+  };
+
+  voiceSearchRecognition.start();
 }
 
 // Import URL
@@ -345,48 +425,127 @@ async function loadDocuments(page = 1) {
   }
 }
 
-// Search Documents
-async function searchDocuments() {
+// Search Documents (and Web)
+async function searchDocuments(type = 'web') {
   const query = document.getElementById('doc-search').value.trim();
   const container = document.getElementById('docs-list');
+  const webResultsDiv = document.getElementById('web-results');
+  const searchLabel = document.getElementById('search-type-label');
 
   if (!query) {
-    loadDocuments();
+    showToast('Enter a search term');
     return;
   }
 
-  container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
+  if (type === 'web') {
+    searchLabel.innerHTML = '🌐 Searching web...';
+    webResultsDiv.classList.remove('hidden');
+    container.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching web...</p></div>';
 
-  try {
-    const resp = await fetch(`/documents/search?query=${encodeURIComponent(query)}`);
-    const data = await resp.json();
+    try {
+      const resp = await fetch('/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, num_results: 8, include_summary: true })
+      });
+      const data = await resp.json();
 
-    const results = data.results || [];
+      const results = data.results || [];
+      if (results.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-4"><p>No web results found</p></div>';
+        searchLabel.innerHTML = '🌐 Web search - no results';
+        return;
+      }
 
-    if (results.length === 0) {
-      container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>No matches found</p></div>';
-      return;
-    }
-
-    container.innerHTML = results.map(doc => `
-      <div class="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-        <div class="flex-1">
-          <h3 class="font-medium text-gray-900">${doc.title || 'Untitled'}</h3>
-          <p class="text-sm text-gray-500 mt-1 line-clamp-2">${doc.snippet || doc.content || ''}</p>
+      document.getElementById('web-results-list').innerHTML = results.map(r => `
+        <div class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+          <a href="${r.url}" target="_blank" class="font-medium text-blue-600 hover:underline">${r.title}</a>
+          <p class="text-sm text-gray-600 mt-1">${r.snippet || ''}</p>
         </div>
-        <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-          </svg>
-        </button>
-      </div>
-    `).join('');
+      `).join('');
 
-    document.getElementById('docs-count').textContent = `${results.length} results`;
+      container.innerHTML = '';
+      searchLabel.innerHTML = '🌐 Web search complete | 📄 Docs search';
 
+      // Option to add result to memory
+      if (results.length > 0) {
+        container.innerHTML += `
+          <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+            <p class="text-sm text-blue-800 mb-2">💡 Add search results to memory?</p>
+            <button onclick="saveSearchToMemory('${query.replace(/'/g, "\\'")}')" class="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
+              Save to Memory
+            </button>
+          </div>
+        `;
+      }
+    } catch (err) {
+      container.innerHTML = '<div class="text-center text-red-400 py-4"><p>Web search failed</p></div>';
+      searchLabel.innerHTML = '🌐 Web search failed | 📄 Docs search';
+      console.error(err);
+    }
+  } else {
+    // Search local documents
+    searchLabel.innerHTML = '📄 Searching documents...';
+    webResultsDiv.classList.add('hidden');
+    container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
+
+    try {
+      const resp = await fetch(`/documents/search?query=${encodeURIComponent(query)}`);
+      const data = await resp.json();
+      const results = data.results || [];
+
+      if (results.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>No matches found in your documents</p></div>';
+        searchLabel.innerHTML = '📄 No doc results | 🌐 Web search';
+        return;
+      }
+
+      container.innerHTML = results.map(doc => `
+        <div class="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <div class="flex-1">
+            <h3 class="font-medium text-gray-900">${doc.title || 'Untitled'}</h3>
+            <p class="text-sm text-gray-500 mt-1 line-clamp-2">${doc.snippet || doc.content || ''}</p>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">${doc.category || 'other'}</span>
+            </div>
+          </div>
+          <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        </div>
+      `).join('');
+
+      document.getElementById('docs-count').textContent = `${results.length} results`;
+      searchLabel.innerHTML = '📄 Doc search complete | 🌐 Web search';
+    } catch (err) {
+      container.innerHTML = '<div class="text-center text-red-400 py-8"><p>Search failed</p></div>';
+      console.error(err);
+    }
+  }
+}
+
+// Save search results to memory
+async function saveSearchToMemory(query) {
+  try {
+    const resp = await fetch('/memory/store', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key: `web_search_${Date.now()}`,
+        value: { query, timestamp: new Date().toISOString(), source: 'web' },
+        category: 'web_search'
+      })
+    });
+
+    if (resp.ok) {
+      showToast('Saved to memory!');
+    } else {
+      showToast('Failed to save');
+    }
   } catch (err) {
-    container.innerHTML = '<div class="text-center text-red-400 py-8"><p>Search failed</p></div>';
-    console.error(err);
+    showToast('Error saving to memory');
   }
 }
 
