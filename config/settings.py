@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     google_temperature: float = 0.15
 
     # ── NVIDIA NIM ───────────────────────────────────────
-    nvidia_api_key: str = os.getenv("NVIDIA_API_KEY", "")
+    nvidia_api_key: str = os.getenv("NVIDIA_API_KEY", "").strip()
     nvidia_api_url: str = os.getenv(
         "NVIDIA_API_URL", "https://integrate.api.nvidia.com/v1"
     )
@@ -170,14 +170,14 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
 
     def get_provider_config(self, provider: str) -> dict:
-        """Get configuration dict for a specific provider.
+        """Get configuration dict for a specific provider, with sanitized API keys."""
+        config = self._get_provider_config_raw(provider)
+        if config and "api_key" in config and config["api_key"]:
+            config["api_key"] = config["api_key"].strip()
+        return config
 
-        Args:
-            provider: Provider name (google, nvidia, openai, etc.).
-
-        Returns:
-            Dict with api_key, model, max_tokens, temperature.
-        """
+    def _get_provider_config_raw(self, provider: str) -> dict:
+        """Internal method - raw config without sanitization."""
         configs = {
             "google": {
                 "api_key": self.google_api_key,
