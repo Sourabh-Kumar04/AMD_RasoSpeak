@@ -1520,8 +1520,8 @@ async def run_system_tests():
                      "Hello world"))
 
     # ── Memory (session) ────────────────────────
-    tests.append(test("memory.store_session", agents["memory"].store_session,
-                     "pytest_session", {"test": True}))
+    tests.append(test("memory.create_session", agents["memory"].create_session,
+                     "pytest_session"))
     tests.append(test("memory.get_session", agents["memory"].get_session,
                      "pytest_session"))
 
@@ -1576,11 +1576,11 @@ async def run_system_tests():
 
     # ── Scoring ────────────────────────────────
     tests.append(test("scoring.score_speech", agents["scoring"].score_speech,
-                     "Hello everyone", "Hello everyone", "presentation"))
+                     "Hello everyone", "Hello everyone"))
 
     # ── Coaching ───────────────────────────────
     tests.append(test("coaching.generate_feedback", agents["coaching"].generate_feedback,
-                     "Hello world", "Hello world", {"accuracy": 90}))
+                     "Hello world", "Hello world"))
     tests.append(test("coaching.generate_session_insights", agents["coaching"].generate_session_insights,
                      {"chunks": [{"text": "test"}]}))
 
