@@ -105,34 +105,43 @@
   <!-- Document List -->
   <div class="bg-white rounded-lg border border-gray-200 p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold">Your Documents</h2>
+      <h2 class="text-lg font-semibold">Knowledge Base</h2>
       <div class="flex items-center gap-2">
         <div class="relative flex items-center">
-          <input type="text" id="doc-search" placeholder="Search documents..."
-            class="pl-10 pr-20 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64">
+          <input type="text" id="doc-search" placeholder="Search knowledge..."
+            class="pl-10 pr-32 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-72">
           <button id="voice-search-btn" onclick="toggleVoiceSearch()" class="absolute left-2 p-1 text-gray-400 hover:text-emerald-500">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
             </svg>
           </button>
-          <div class="absolute right-2 flex gap-1">
-            <button onclick="searchDocuments('web')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200" title="Search web">🌐</button>
-            <button onclick="searchDocuments('docs')" class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200">📄</button>
+          <div class="absolute right-1 flex gap-1">
+            <button onclick="searchDocs('wiki')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200" title="Search Wikipedia">📚</button>
+            <button onclick="searchDocs('web')" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200" title="Search web">🌐</button>
+            <button onclick="searchDocs('rag')" class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs hover:bg-purple-200" title="RAG search">🤖</button>
           </div>
         </div>
+        <button onclick="searchDocs('docs')" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">📄 Docs</button>
         <button onclick="loadDocuments()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Refresh</button>
       </div>
     </div>
-    <div id="search-type-label" class="text-xs text-gray-400 mb-2">🌐 Searching web | 📄 Search documents</div>
+    <div id="search-type-label" class="text-xs text-gray-400 mb-2">
+      📚 Wikipedia | 🌐 Web | 🤖 RAG | 📄 Docs search
+    </div>
+    <div id="wiki-results" class="hidden mb-4 p-4 bg-blue-50 rounded-lg">
+      <h3 class="font-medium text-blue-800 mb-2">📚 Wikipedia Results</h3>
+      <div id="wiki-results-list"></div>
+      <button onclick="addWikiToMemory()" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Add to Memory</button>
+    </div>
+    <div id="web-results" class="hidden mb-4 p-4 bg-green-50 rounded-lg">
+      <h3 class="font-medium text-green-800 mb-2">🌐 Web Results</h3>
+      <div id="web-results-list"></div>
+    </div>
     <div id="docs-list" class="space-y-3">
       <div class="text-center text-gray-400 py-8">
         <p>No documents yet</p>
         <p class="text-sm mt-1">Import URLs, text, or upload files above</p>
       </div>
-    </div>
-    <div id="web-results" class="hidden space-y-3 mb-4">
-      <h3 class="font-medium text-gray-700">Web Search Results</h3>
-      <div id="web-results-list"></div>
     </div>
     <div id="docs-pagination" class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
       <p id="docs-count" class="text-sm text-gray-500"></p>
@@ -425,22 +434,61 @@ async function loadDocuments(page = 1) {
   }
 }
 
-// Search Documents (and Web)
-async function searchDocuments(type = 'web') {
+// Search with multiple methods
+async function searchDocs(type = 'docs') {
   const query = document.getElementById('doc-search').value.trim();
-  const container = document.getElementById('docs-list');
-  const webResultsDiv = document.getElementById('web-results');
   const searchLabel = document.getElementById('search-type-label');
+  const wikiResults = document.getElementById('wiki-results');
+  const webResults = document.getElementById('web-results');
+  const docsList = document.getElementById('docs-list');
 
   if (!query) {
     showToast('Enter a search term');
     return;
   }
 
-  if (type === 'web') {
-    searchLabel.innerHTML = '🌐 Searching web...';
-    webResultsDiv.classList.remove('hidden');
-    container.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching web...</p></div>';
+  // Hide all result areas
+  wikiResults.classList.add('hidden');
+  webResults.classList.add('hidden');
+
+  if (type === 'wiki') {
+    // Wikipedia search with RAG
+    searchLabel.textContent = '📚 Searching Wikipedia...';
+    wikiResults.classList.remove('hidden');
+    docsList.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching Wikipedia...</p></div>';
+
+    try {
+      const resp = await fetch('/rag/wikipedia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, max_results: 5 })
+      });
+      const data = await resp.json();
+
+      if (data.answer) {
+        document.getElementById('wiki-results-list').innerHTML = `
+          <div class="mb-3 p-3 bg-white rounded">
+            <p class="text-gray-800">${data.answer}</p>
+          </div>
+          <div class="text-sm text-gray-600">Sources:</div>
+          ${(data.sources || []).map(s => `
+            <a href="${s.url}" target="_blank" class="block text-blue-600 hover:underline text-sm mt-1">• ${s.title}</a>
+          `).join('')}
+        `;
+        searchLabel.textContent = `📚 Wiki complete (${data.context_chunks} chunks) | 🌐 Web | 🤖 RAG | 📄 Docs`;
+      } else {
+        document.getElementById('wiki-results-list').innerHTML = '<p class="text-gray-500">No Wikipedia results found</p>';
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Wikipedia search failed');
+    }
+
+  } else if (type === 'web') {
+    // Web search
+    searchLabel.textContent = '🌐 Searching web...';
+    webResults.classList.remove('hidden');
+    docsList.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching web...</p></div>';
 
     try {
       const resp = await fetch('/search', {
@@ -449,45 +497,89 @@ async function searchDocuments(type = 'web') {
         body: JSON.stringify({ query, num_results: 8, include_summary: true })
       });
       const data = await resp.json();
-
       const results = data.results || [];
-      if (results.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-400 py-4"><p>No web results found</p></div>';
-        searchLabel.innerHTML = '🌐 Web search - no results';
-        return;
-      }
 
       document.getElementById('web-results-list').innerHTML = results.map(r => `
-        <div class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+        <div class="p-3 bg-white rounded mb-2">
           <a href="${r.url}" target="_blank" class="font-medium text-blue-600 hover:underline">${r.title}</a>
           <p class="text-sm text-gray-600 mt-1">${r.snippet || ''}</p>
         </div>
-      `).join('');
+      `).join('') || '<p class="text-gray-500">No results found</p>';
 
-      container.innerHTML = '';
-      searchLabel.innerHTML = '🌐 Web search complete | 📄 Docs search';
+      docsList.innerHTML = '';
+      searchLabel.textContent = `🌐 ${results.length} web results | 📚 Wiki | 🤖 RAG | 📄 Docs`;
+    } catch (err) {
+      console.error(err);
+      showToast('Web search failed');
+    }
 
-      // Option to add result to memory
-      if (results.length > 0) {
-        container.innerHTML += `
-          <div class="mt-4 p-4 bg-blue-50 rounded-lg">
-            <p class="text-sm text-blue-800 mb-2">💡 Add search results to memory?</p>
-            <button onclick="saveSearchToMemory('${query.replace(/'/g, "\\'")}')" class="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-              Save to Memory
-            </button>
+  } else if (type === 'rag') {
+    // RAG search with LangChain
+    searchLabel.textContent = '🤖 Searching RAG knowledge base...';
+    docsList.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching knowledge base...</p></div>';
+
+    try {
+      const resp = await fetch('/rag/comprehensive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      });
+      const data = await resp.json();
+
+      let html = '';
+
+      // Wikipedia results
+      if (data.wikipedia && data.wikipedia.answer) {
+        html += `
+          <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+            <h4 class="font-medium text-blue-800 mb-2">📚 From Wikipedia</h4>
+            <p class="text-gray-700">${data.wikipedia.answer}</p>
           </div>
         `;
       }
+
+      // Local documents
+      if (data.local_documents && data.local_documents.length > 0) {
+        html += `
+          <div class="mb-4">
+            <h4 class="font-medium text-gray-700 mb-2">📄 From Your Documents</h4>
+            ${data.local_documents.map(d => `
+              <div class="p-3 border border-gray-200 rounded mb-2">
+                <p class="text-sm font-medium">${d.title}</p>
+                <p class="text-sm text-gray-600 mt-1">${d.content?.substring(0, 200)}...</p>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      // Web results
+      if (data.web && data.web.length > 0) {
+        html += `
+          <div class="mb-4">
+            <h4 class="font-medium text-gray-700 mb-2">🌐 From Web</h4>
+            ${data.web.slice(0, 3).map(r => `
+              <a href="${r.url}" target="_blank" class="block text-blue-600 hover:underline text-sm">${r.title}</a>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      if (!html) {
+        html = '<div class="text-center text-gray-400 py-4"><p>No results from any source</p></div>';
+      }
+
+      docsList.innerHTML = html;
+      searchLabel.textContent = `🤖 RAG complete | 📚 Wiki | 🌐 Web | 📄 Docs`;
     } catch (err) {
-      container.innerHTML = '<div class="text-center text-red-400 py-4"><p>Web search failed</p></div>';
-      searchLabel.innerHTML = '🌐 Web search failed | 📄 Docs search';
       console.error(err);
+      showToast('RAG search failed - try other methods');
     }
+
   } else {
     // Search local documents
-    searchLabel.innerHTML = '📄 Searching documents...';
-    webResultsDiv.classList.add('hidden');
-    container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
+    searchLabel.textContent = '📄 Searching documents...';
+    docsList.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
 
     try {
       const resp = await fetch(`/documents/search?query=${encodeURIComponent(query)}`);
@@ -495,57 +587,56 @@ async function searchDocuments(type = 'web') {
       const results = data.results || [];
 
       if (results.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>No matches found in your documents</p></div>';
-        searchLabel.innerHTML = '📄 No doc results | 🌐 Web search';
+        docsList.innerHTML = '<div class="text-center text-gray-400 py-8"><p>No matches in your documents</p></div>';
+        searchLabel.textContent = '📄 No doc results | 📚 Wiki | 🌐 Web | 🤖 RAG';
         return;
       }
 
-      container.innerHTML = results.map(doc => `
-        <div class="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+      docsList.innerHTML = results.map(doc => `
+        <div class="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
           <div class="flex-1">
             <h3 class="font-medium text-gray-900">${doc.title || 'Untitled'}</h3>
             <p class="text-sm text-gray-500 mt-1 line-clamp-2">${doc.snippet || doc.content || ''}</p>
-            <div class="flex items-center gap-2 mt-2">
-              <span class="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">${doc.category || 'other'}</span>
-            </div>
           </div>
-          <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-          </button>
         </div>
       `).join('');
 
-      document.getElementById('docs-count').textContent = `${results.length} results`;
-      searchLabel.innerHTML = '📄 Doc search complete | 🌐 Web search';
+      searchLabel.textContent = `📄 ${results.length} doc results | 📚 Wiki | 🌐 Web | 🤖 RAG`;
     } catch (err) {
-      container.innerHTML = '<div class="text-center text-red-400 py-8"><p>Search failed</p></div>';
       console.error(err);
+      showToast('Doc search failed');
     }
   }
 }
 
-// Save search results to memory
-async function saveSearchToMemory(query) {
+// Add Wikipedia results to memory
+async function addWikiToMemory() {
+  const query = document.getElementById('doc-search').value;
   try {
-    const resp = await fetch('/memory/store', {
+    const resp = await fetch('/rag/comprehensive', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        key: `web_search_${Date.now()}`,
-        value: { query, timestamp: new Date().toISOString(), source: 'web' },
-        category: 'web_search'
-      })
+      body: JSON.stringify({ query })
     });
+    const data = await resp.json();
 
-    if (resp.ok) {
-      showToast('Saved to memory!');
-    } else {
-      showToast('Failed to save');
+    if (data.wikipedia && data.wikipedia.sources) {
+      for (const source of data.wikipedia.sources) {
+        await fetch('/rag/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: source.title,
+            title: source.title,
+            source: 'wikipedia',
+            url: source.url
+          })
+        });
+      }
+      showToast('Added to knowledge base!');
     }
   } catch (err) {
-    showToast('Error saving to memory');
+    showToast('Failed to add to memory');
   }
 }
 

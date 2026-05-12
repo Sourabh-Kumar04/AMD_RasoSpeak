@@ -33,6 +33,7 @@ from agents.recording_agent import RecordingAgent
 from agents.analytics_agent import AnalyticsAgent
 from agents.shared_memory_agent import SharedMemoryAgent
 from agents.partner_agent import RasoAgent
+from agents.rag_agent import RAGAgent
 from agents.wake_word_agent import WakeWordAgent
 from agents.document_agent import DocumentAgent
 from agents.notification_agent import NotificationAgent
@@ -87,6 +88,7 @@ async def lifespan(app: FastAPI):
         ("document", DocumentAgent, "PDF/URL import"),
         ("notification", NotificationAgent, "Phone notifications"),
         ("segmentation", SegmentationAgent, "Script chunking"),
+        ("rag", RAGAgent, "Advanced RAG with LangChain"),
     ]
 
     agent_health: dict[str, str] = {}
@@ -993,6 +995,124 @@ async def delete_document(doc_id: str):
 async def search_documents(query: str, limit: int = 10):
     """Search within imported documents."""
     return await agents["document"].search_documents(query, limit)
+
+
+# ── RAG ADVANCED SEARCH ENDPOINTS ────────────────────
+
+class RAGQueryRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=1000)
+    top_k: int = Field(default=5, ge=1, le=20)
+    method: str = Field(default="hybrid", pattern="^(vector|bm25|hybrid)$")
+
+
+@app.post("/rag/query")
+async def rag_query(req: RAGQueryRequest):
+    """
+    Query with RAG context (advanced).
+
+    Uses LangChain RAG with:
+    - Vector search (semantic)
+    - BM25 search (keyword)
+    - Hybrid search (both combined)
+    """
+    if not agents.get("rag"):
+        return {"error": "RAG agent not available"}
+
+    result = await agents["rag"].query_with_context(
+        query=req.query,
+        top_k=req.top_k
+    )
+    return result
+
+
+@app.post("/rag/wikipedia")
+async def rag_wikipedia_search(query: str, max_results: int = 3):
+    """
+    Search Wikipedia and add to RAG knowledge base.
+
+    Uses Karpathy's wiki-llm style approach for efficient
+    Wikipedia-based question answering.
+    """
+    if not agents.get("rag"):
+        return {"error": "RAG agent not available"}
+
+    result = await agents["rag"].wiki_qa(query, max_results)
+    return result
+
+
+@app.post("/rag/search")
+async def rag_search(
+    query: str,
+    method: str = "hybrid",
+    top_k: int = 5
+):
+    """
+    Direct RAG search without LLM context generation.
+
+    Args:
+        query: Search query
+        method: "vector" (semantic), "bm25" (keyword), "hybrid" (both)
+        top_k: Number of results
+    """
+    if not agents.get("rag"):
+        return {"error": "RAG agent not available"}
+
+    results = await agents["rag"].retrieve(
+        query=query,
+        top_k=top_k,
+        use_method=method
+    )
+    return {"results": results, "method": method}
+
+
+@app.post("/rag/comprehensive")
+async def rag_comprehensive_search(query: str):
+    """
+    Comprehensive search across all sources:
+    - Local documents
+    - Wikipedia
+    - Web search
+    """
+    if not agents.get("rag"):
+        return {"error": "RAG agent not available"}
+
+    result = await agents["rag"].comprehensive_search(query)
+    return result
+
+
+@app.get("/rag/stats")
+async def rag_stats():
+    """Get RAG system statistics."""
+    if not agents.get("rag"):
+        return {"error": "RAG agent not available"}
+
+    return await agents["rag"].get_stats()
+
+
+@app.post("/rag/add")
+async def rag_add_document(req: Request):
+    """Add a document to RAG knowledge base."""
+    if not agents.get("rag"):
+        return {"error": "RAG agent not available"}
+
+    body = await req.json()
+    result = await agents["rag"].add_document(
+        content=body.get("content", ""),
+        title=body.get("title", "Untitled"),
+        source=body.get("source", "text"),
+        url=body.get("url")
+    )
+    return result
+
+
+@app.post("/rag/clear")
+async def rag_clear():
+    """Clear all documents from RAG."""
+    if not agents.get("rag"):
+        return {"error": "RAG agent not available"}
+
+    await agents["rag"].clear()
+    return {"status": "cleared"}
 
 
 @app.post("/documents/upload")
