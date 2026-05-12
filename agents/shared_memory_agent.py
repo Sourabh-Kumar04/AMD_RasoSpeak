@@ -49,7 +49,7 @@ class SharedMemoryAgent(BaseAgent):
         self._storage_path = Path(settings.shared_memory_path or "./memory")
         self._user_profile: dict = {}
         self._conversation_history: list = []
-               self._session_summaries: list = []
+        self._session_summaries: list = []
         self._user_facts: dict = {}
         self._second_brain = None  # Reference to SecondBrainAgent for unified storage
         self._ensure_storage()
