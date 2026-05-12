@@ -6,63 +6,217 @@
   <title>RasoSpeak — Chat</title>
   <link rel="icon" type="image/png" href="logo.png"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
   <style>
-    * { font-family: 'Inter', system-ui, sans-serif; }
-    body { background: #FAFAFA; }
-    .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
-    .nav-link:hover { @apply bg-gray-100; }
-    .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
-    .chat-bubble { max-width: 85%; word-wrap: break-word; }
-    .chat-bubble.user { @apply ml-auto bg-emerald-500 text-white rounded-2xl rounded-br-sm; }
-    .chat-bubble.raso { @apply mr-auto bg-white border border-gray-200 rounded-2xl rounded-bl-sm; }
-    .chat-bubble.error { @apply mr-auto bg-red-50 border border-red-200 text-red-700; }
-    .typing-indicator span { @apply inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce; }
-    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    :root {
+      --bg: #F6F3EE;
+      --bg-card: #FFFEFA;
+      --forest: #1B4332;
+      --forest-light: #2D6A4F;
+      --sage: #52796F;
+      --sage-light: #84A98C;
+      --amber: #D97706;
+      --cream: #F6F3EE;
+      --warm-gray: #78716C;
+      --border: #E7E3DB;
+      --text: #1C1917;
+      --text-muted: #78716C;
+      --shadow-msg: 0 1px 3px rgba(28,25,23,0.06), 0 2px 8px rgba(28,25,23,0.04);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    h1, h2, h3 { font-family: 'Lora', Georgia, serif; }
+    .nav-link { padding: 0.5rem 1rem; border-radius: 0.625rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; color: var(--text-muted); }
+    .nav-link:hover { background: rgba(27,67,50,0.06); color: var(--forest); }
+    .nav-link.active { background: rgba(27,67,50,0.1); color: var(--forest); font-weight: 600; }
+    .header-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+    }
+    .messages-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      overflow: hidden;
+    }
+    .input-area {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+    }
+    .msg-user {
+      background: var(--forest);
+      color: white;
+      border-radius: 1.375rem 1.375rem 0.375rem 1.375rem;
+      box-shadow: var(--shadow-msg);
+    }
+    .msg-raso {
+      background: white;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 1.375rem 1.375rem 1.375rem 0.375rem;
+      box-shadow: var(--shadow-msg);
+    }
+    .msg-error {
+      background: #FEF2F2;
+      color: #991B1B;
+      border: 1.5px solid #FECACA;
+      border-radius: 1.375rem 1.375rem 1.375rem 0.375rem;
+    }
+    .msg-avatar {
+      width: 2rem; height: 2rem;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 1rem;
+    }
+    .typing-dot {
+      width: 0.5rem; height: 0.5rem;
+      border-radius: 50%;
+      background: var(--sage-light);
+      animation: typingBounce 1.4s infinite ease-in-out both;
+    }
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+    .btn-send {
+      background: var(--forest);
+      color: white;
+      border: none;
+      border-radius: 0.875rem;
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; gap: 0.375rem;
+    }
+    .btn-send:hover { background: var(--forest-light); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(27,67,50,0.2); }
+    .btn-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-icon {
+      width: 2.5rem; height: 2.5rem;
+      border-radius: 0.875rem;
+      border: 1.5px solid var(--border);
+      background: white;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-icon:hover { border-color: var(--sage); background: rgba(82,121,111,0.04); }
+    .btn-icon.active { background: var(--forest); border-color: var(--forest); color: white; }
+    .btn-icon.recording { background: #DC2626; border-color: #DC2626; color: white; animation: pulse-rec 1.5s infinite; }
+    @keyframes pulse-rec {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
+    }
+    .provider-select {
+      padding: 0.5rem 2rem 0.5rem 0.875rem;
+      border: 1.5px solid var(--border);
+      border-radius: 0.75rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      background: white;
+      color: var(--text);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2378716C' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.625rem center;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .provider-select:focus { border-color: var(--forest); }
+    .quick-chip {
+      padding: 0.5rem 1rem;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 9999px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .quick-chip:hover { border-color: var(--forest); color: var(--forest); background: rgba(27,67,50,0.04); }
+    .welcome-art {
+      width: 5rem; height: 5rem;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+      font-size: 2.5rem;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .msg-animate { animation: msgIn 0.3s ease forwards; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .divider-dot { width: 0.25rem; height: 0.25rem; border-radius: 50%; background: var(--border); }
   </style>
 </head>
-<body class="min-h-screen">
-
-<!-- Skip to main content -->
-<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
+<body class="min-h-screen flex flex-col">
 
 <!-- Navigation -->
-<nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
-  <div class="max-w-5xl mx-auto px-6">
+<nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200/80 flex-shrink-0">
+  <div class="max-w-3xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
       <a href="index.html" class="flex items-center gap-3">
-        <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
-        <span class="font-bold text-lg">RasoSpeak</span>
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: var(--forest);">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        </div>
+        <span class="font-bold text-lg" style="font-family:'Lora',serif; color:var(--forest);">RasoSpeak</span>
       </a>
       <div class="flex items-center gap-1">
-        <a href="index.html" class="nav-link" aria-label="Home">Home</a>
-        <a href="chat.html" class="nav-link active" aria-label="Chat">Chat</a>
-        <a href="memory.html" class="nav-link" aria-label="Memory">Memory</a>
-        <a href="coach.html" class="nav-link" aria-label="Coach">Coach</a>
-        <a href="docs.html" class="nav-link" aria-label="Docs">Docs</a>
-        <a href="settings.html" class="nav-link" aria-label="Settings">Settings</a>
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="chat.html" class="nav-link active">Chat</a>
+        <a href="memory.html" class="nav-link">Memory</a>
+        <a href="coach.html" class="nav-link">Coach</a>
+        <a href="docs.html" class="nav-link">Docs</a>
+        <a href="settings.html" class="nav-link">Settings</a>
       </div>
     </div>
   </div>
 </nav>
 
-<!-- Main Content -->
-<main id="main-content" class="max-w-3xl mx-auto px-6 py-8">
+<!-- Chat Area -->
+<main class="flex-1 max-w-3xl mx-auto px-6 py-6 w-full flex flex-col">
 
-  <!-- Chat Header -->
-  <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6 flex items-center justify-between">
+  <!-- Header -->
+  <div class="header-card p-4 mb-4 flex items-center justify-between flex-shrink-0">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-        <span class="text-lg">🤝</span>
+      <div class="msg-avatar" style="background: rgba(27,67,50,0.1);">
+        <svg class="w-5 h-5" style="color: var(--forest);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
       </div>
       <div>
-        <h2 class="font-semibold">Raso</h2>
-        <p id="raso-status" class="text-xs text-gray-500">Your AI companion</p>
+        <h2 class="font-semibold" style="font-family:'Lora',serif;">Raso</h2>
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full" style="background: var(--sage-light);"></span>
+          <p class="text-xs" style="color: var(--text-muted);">Your AI companion with memory</p>
+        </div>
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <select id="provider-select" class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="Select AI provider">
+      <select id="provider-select" class="provider-select" title="Select AI provider">
         <option value="google">Google Gemini</option>
         <option value="nvidia">NVIDIA NIM</option>
         <option value="openai">OpenAI GPT</option>
@@ -70,80 +224,67 @@
         <option value="openrouter">OpenRouter</option>
         <option value="deepseek">DeepSeek</option>
       </select>
-      <button onclick="clearChat()" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors" aria-label="Clear chat messages">
-        Clear
+      <button onclick="clearChat()" class="btn-icon" title="Clear chat" id="clear-btn">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
       </button>
     </div>
   </div>
 
-  <!-- Chat Messages -->
-  <div id="chat-messages" class="bg-white rounded-lg border border-gray-200 p-6 mb-6 min-h-[50vh] max-h-[60vh] overflow-y-auto space-y-4">
-    <div id="welcome-message" class="text-center text-gray-400 py-12">
-      <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <span class="text-2xl">🤝</span>
-      </div>
-      <p class="mb-2 font-medium">Raso is ready to chat!</p>
-      <p class="text-sm">Try: "Hey Raso, what is machine learning?"</p>
-      <p class="text-xs mt-4 text-gray-400">Or say "Hey Raso" to activate voice control</p>
+  <!-- Messages -->
+  <div id="chat-messages" class="messages-container p-6 mb-4 flex-1 overflow-y-auto scrollbar-hide space-y-4">
+    <div id="welcome-message" class="text-center" style="padding-top: 3rem;">
+      <div class="welcome-art" style="background: rgba(27,67,50,0.08);">🤝</div>
+      <h3 class="font-semibold text-lg mb-2" style="font-family:'Lora',serif;">Raso is ready to help</h3>
+      <p class="text-sm mb-1" style="color: var(--text-muted);">Ask anything — from complex questions to quick facts</p>
+      <p class="text-xs" style="color: var(--text-muted);">Say "Hey Raso" to activate voice control</p>
     </div>
   </div>
 
-  <!-- Chat Input -->
-  <div class="bg-white rounded-lg border border-gray-200 p-4">
-    <div class="flex gap-3">
-      <input type="text" id="chat-input" placeholder="Ask Raso anything..."
-        class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        aria-label="Chat message input"
-        onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }">
-      <button id="send-btn" onclick="sendMessage()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors flex items-center gap-2" aria-label="Send message">
+  <!-- Input -->
+  <div class="input-area p-4 flex-shrink-0">
+    <div class="flex items-end gap-3">
+      <div class="flex-1 relative">
+        <textarea id="chat-input" placeholder="Ask Raso anything..."
+          class="w-full px-4 py-3 pr-12 border-2 rounded-2xl resize-none text-base"
+          style="border-color: var(--border); background: white; outline: none; font-family: inherit; max-height: 8rem; overflow-y: auto;"
+          rows="1"
+          onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage()}"
+          oninput="autoResize(this)"
+          aria-label="Chat message"></textarea>
+      </div>
+      <button id="send-btn" onclick="sendMessage()" class="btn-send" title="Send message">
         <span>Send</span>
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-        </svg>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
       </button>
     </div>
     <div class="flex items-center justify-between mt-3">
-      <p class="text-xs text-gray-400">Press Enter to send, Shift+Enter for new line</p>
-      <div class="flex gap-2">
-        <button id="audio-record-btn" onclick="toggleAudioRecording()" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center gap-2" aria-label="Record conversation to memory">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
-          </svg>
-          <span>Record</span>
+      <div class="flex items-center gap-4">
+        <button id="voice-btn" onclick="toggleVoice()" class="btn-icon" title="Voice input">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
         </button>
-        <button id="voice-btn" onclick="toggleVoice()" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center gap-2" aria-label="Toggle voice input">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
-          </svg>
-          <span>Voice</span>
+        <button id="record-btn" onclick="toggleAudioRecording()" class="btn-icon" title="Record conversation to memory">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </button>
       </div>
+      <p class="text-xs" style="color: var(--text-muted);">Enter to send · Shift+Enter for new line</p>
     </div>
   </div>
 
   <!-- Quick Actions -->
-  <div class="mt-6">
-    <p class="text-sm text-gray-500 mb-3">Quick questions:</p>
+  <div class="mt-4">
     <div class="flex flex-wrap gap-2">
-      <button onclick="quickAsk('What can you help me with?')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Help me</button>
-      <button onclick="quickAsk('Tell me a joke')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Tell me a joke</button>
-      <button onclick="quickAsk('Search the web for latest AI news')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">AI News</button>
-      <button onclick="quickAsk('What did I last ask you about?')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Recall memory</button>
-      <button onclick="quickAsk('Summarize our conversation')" class="py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors">Summarize</button>
+      <button onclick="quickAsk('What can you help me with?')" class="quick-chip">Help me</button>
+      <button onclick="quickAsk('Tell me a joke')" class="quick-chip">Tell me a joke</button>
+      <button onclick="quickAsk('Search the web for latest AI news')" class="quick-chip">AI News</button>
+      <button onclick="quickAsk('What did I last ask you about?')" class="quick-chip">Recall memory</button>
+      <button onclick="quickAsk('Summarize our conversation')" class="quick-chip">Summarize</button>
     </div>
   </div>
 
 </main>
 
 <!-- Toast -->
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite" aria-atomic="true"></div>
-
-<!-- Scripts -->
-<script src="state.js"></script>
-<script src="nlp.js"></script>
-<script src="speech.js"></script>
-<script src="ui.js"></script>
-<script src="app.js"></script>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-semibold shadow-xl transition-all duration-300 opacity-0 pointer-events-none -translate-y-4 z-50" style="background: var(--text); color: white;" role="status" aria-live="polite"></div>
 
 <script>
 let conversationHistory = [];
@@ -152,365 +293,253 @@ let voiceEnabled = false;
 let recognition = null;
 let synthesis = window.speechSynthesis;
 
-// Toast notification
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
-  setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
+  t.classList.remove('opacity-0','-translate-y-4','pointer-events-none');
+  setTimeout(()=>t.classList.add('opacity-0','-translate-y-4','pointer-events-none'),3000);
 }
 
-// Escape HTML
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function escHtml(text) {
+  const d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
 }
 
-// Add message to chat
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 128) + 'px';
+}
+
 function addMessage(role, content, isError = false) {
-  const messagesContainer = document.getElementById('chat-messages');
+  const container = document.getElementById('chat-messages');
   const welcome = document.getElementById('welcome-message');
   if (welcome) welcome.remove();
 
-  const messageDiv = document.createElement('div');
-  const bubbleClass = isError ? 'chat-bubble error' : `chat-bubble ${role}`;
+  const isUser = role === 'user';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg-animate flex items-end gap-2 ' + (isUser ? 'flex-row-reverse' : '');
 
-  messageDiv.innerHTML = `
-    <div class="${bubbleClass} px-4 py-3">
-      <p class="whitespace-pre-wrap">${escapeHtml(content)}</p>
-    </div>
-    <p class="text-xs text-gray-400 mt-1 ${role === 'user' ? 'text-right' : ''}">
-      ${role === 'user' ? 'You' : 'Raso'} • Just now
-    </p>
-  `;
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar msg-animate ' + (isUser ? 'order-2' : '');
+  avatar.style.cssText = isUser
+    ? 'background: rgba(27,67,50,0.1); order: 2;'
+    : 'background: rgba(27,67,50,0.08);';
 
-  messagesContainer.appendChild(messageDiv);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  const bubble = document.createElement('div');
+  const bubbleClass = isError ? 'msg-error' : isUser ? 'msg-user' : 'msg-raso';
+  bubble.className = `${bubbleClass} px-4 py-3 max-w-[75%] msg-animate`;
+  bubble.innerHTML = `<p class="whitespace-pre-wrap text-sm leading-relaxed">${escHtml(content)}</p>`;
 
-  // Speak Raso's response
-  if (role === 'raso' && synthesis && !isError) {
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(bubble);
+  container.appendChild(wrapper);
+  container.scrollTop = container.scrollHeight;
+
+  if (!isUser && !isError && synthesis) {
     setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(content);
-      utterance.rate = 0.95;
+      if (!voiceEnabled) return;
+      const utterance = new SpeechSynthesisUtterance(content.substring(0, 200));
+      utterance.rate = 0.9;
       utterance.pitch = 1;
-      utterance.volume = 1;
       synthesis.speak(utterance);
     }, 100);
   }
-
-  return messageDiv;
 }
 
-// Show typing indicator
 function showTypingIndicator() {
-  const messagesContainer = document.getElementById('chat-messages');
-  const typingDiv = document.createElement('div');
-  typingDiv.id = 'typing-indicator';
-  typingDiv.innerHTML = `
-    <div class="chat-bubble raso px-4 py-3">
-      <div class="typing-indicator flex gap-1">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.id = 'typing-indicator';
+  div.className = 'flex items-end gap-2 msg-animate';
+  div.innerHTML = `
+    <div class="msg-avatar" style="background: rgba(27,67,50,0.08);">
+      <svg class="w-4 h-4" style="color: var(--sage);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
     </div>
-  `;
-  messagesContainer.appendChild(typingDiv);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    <div class="msg-raso px-4 py-3 flex items-center gap-1.5">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
 }
 
-// Remove typing indicator
 function removeTypingIndicator() {
-  const indicator = document.getElementById('typing-indicator');
-  if (indicator) indicator.remove();
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
 }
 
-// Send message
 async function sendMessage() {
   const input = document.getElementById('chat-input');
-  const message = input.value.trim();
+  const msg = input.value.trim();
+  if (!msg || isTyping) return;
 
-  if (!message) return;
-  if (isTyping) return;
-
-  // Add user message
-  addMessage('user', message);
-  input.value = '';
-
-  // Add to history
-  conversationHistory.push({ role: 'user', content: message });
-
-  // Show typing
   isTyping = true;
+  document.getElementById('send-btn').disabled = true;
+  input.value = '';
+  input.style.height = 'auto';
+
+  addMessage('user', msg);
+  conversationHistory.push({role:'user', content:msg});
   showTypingIndicator();
 
-  // Get provider
   const provider = document.getElementById('provider-select').value;
-
   try {
     const resp = await fetch('/raso/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        provider
-      })
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message: msg, provider})
     });
-
     removeTypingIndicator();
 
     if (resp.ok) {
       const data = await resp.json();
       const answer = data.answer || data.response || 'I apologize, but I could not generate a response.';
-
-      // Add assistant message
       addMessage('raso', answer);
-      conversationHistory.push({ role: 'assistant', content: answer });
-
-      // Save to memory
-      await saveToMemory(message, answer);
+      conversationHistory.push({role:'assistant', content:answer});
+      await saveToMemory(msg, answer);
     } else {
-      const error = await resp.json().catch(() => ({ error: 'Request failed' }));
-      addMessage('raso', error.error || 'Sorry, something went wrong.', true);
+      const err = await resp.json().catch(() => ({error:'Request failed'}));
+      addMessage('raso', err.error || 'Sorry, something went wrong.', true);
     }
-  } catch (err) {
+  } catch (e) {
     removeTypingIndicator();
     addMessage('raso', 'Connection error. Please check your API settings.', true);
-    console.error('Chat error:', err);
   }
 
   isTyping = false;
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
 }
 
-// Quick ask
-function quickAsk(question) {
-  document.getElementById('chat-input').value = question;
+function quickAsk(q) {
+  document.getElementById('chat-input').value = q;
   sendMessage();
 }
 
-// Save to Second Brain (primary memory)
 async function saveToMemory(userMsg, rasoMsg) {
   try {
     await fetch('/brain/conversation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_input: userMsg,
-        ai_response: rasoMsg,
-        ai_provider: 'nvidia'
-      })
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_input: userMsg, ai_response: rasoMsg, ai_provider: 'nvidia'})
     });
-  } catch (err) {
-    console.error('Failed to save to memory:', err);
-  }
+  } catch (e) {}
 }
 
-// Clear chat
 function clearChat() {
   if (!confirm('Clear all messages?')) return;
-
   conversationHistory = [];
-  const messagesContainer = document.getElementById('chat-messages');
-  messagesContainer.innerHTML = `
-    <div id="welcome-message" class="text-center text-gray-400 py-12">
-      <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <span class="text-2xl">🤝</span>
-      </div>
-      <p class="mb-2 font-medium">Raso is ready to chat!</p>
-      <p class="text-sm">Try: "Hey Raso, what is machine learning?"</p>
-    </div>
-  `;
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = `
+    <div id="welcome-message" class="text-center" style="padding-top: 3rem;">
+      <div class="welcome-art" style="background: rgba(27,67,50,0.08);">🤝</div>
+      <h3 class="font-semibold text-lg mb-2" style="font-family:'Lora',serif;">Raso is ready to help</h3>
+      <p class="text-sm mb-1" style="color: var(--text-muted);">Ask anything — from complex questions to quick facts</p>
+      <p class="text-xs" style="color: var(--text-muted);">Say "Hey Raso" to activate voice control</p>
+    </div>`;
   showToast('Chat cleared');
 }
 
-// Toggle voice input
 async function toggleVoice() {
   if (voiceEnabled) {
-    // Turn off
     voiceEnabled = false;
     const btn = document.getElementById('voice-btn');
-    btn.classList.remove('bg-emerald-500', 'text-white');
-    btn.classList.add('bg-gray-100');
+    btn.classList.remove('active');
     stopVoiceRecognition();
     showToast('Voice disabled');
     return;
   }
-
-  // Turn on - request microphone permission first
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach(track => track.stop());
-  } catch (err) {
-    showToast('Microphone permission denied');
-    return;
-  }
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    stream.getTracks().forEach(t=>t.stop());
+  } catch (e) { showToast('Microphone permission denied'); return; }
 
-  // Check for Web Speech API
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    showToast('Voice not supported in this browser');
-    return;
-  }
+  if (!SR) { showToast('Voice not supported in this browser'); return; }
 
-  // Enable and start
   voiceEnabled = true;
   const btn = document.getElementById('voice-btn');
-  btn.classList.add('bg-emerald-500', 'text-white');
-  btn.classList.remove('bg-gray-100');
-  showToast('Voice enabled - speak now');
+  btn.classList.add('active');
+  showToast('Voice enabled — speak now');
 
   recognition = new SR();
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
 
-  recognition.onresult = (event) => {
+  recognition.onresult = (e) => {
     let transcript = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (event.results[i].isFinal) {
-        transcript += event.results[i][0].transcript + ' ';
-      }
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) transcript += e.results[i][0].transcript + ' ';
     }
     if (transcript.trim()) {
       document.getElementById('chat-input').value = transcript.trim();
       sendMessage();
     }
   };
-
-  recognition.onerror = (event) => {
-    console.error('Voice error:', event.error);
-    // Network errors are expected in some environments - don't spam user
-    const ignorable = ['no-speech', 'aborted', 'network'];
-    if (!ignorable.includes(event.error)) {
-      showToast('Voice error: ' + event.error);
-    }
-    if (voiceEnabled && event.error !== 'network') {
-      setTimeout(() => { try { recognition.start(); } catch(e) {} }, 1000);
-    } else if (event.error === 'network') {
-      // Network error - try to restart after longer delay
-      setTimeout(() => {
-        if (voiceEnabled) {
-          try { recognition.start(); } catch(e) {}
-        }
-      }, 5000);
+  recognition.onerror = (e) => {
+    const ignorable = ['no-speech','aborted','network'];
+    if (!ignorable.includes(e.error)) showToast('Voice error: ' + e.error);
+    if (voiceEnabled && e.error !== 'network') {
+      setTimeout(()=>{ try{recognition.start()}catch(er){} }, 1000);
     }
   };
-
-  recognition.onend = () => {
-    if (voiceEnabled) {
-      setTimeout(() => { try { recognition.start(); } catch(e) {} }, 500);
-    }
-  };
-
+  recognition.onend = () => { if (voiceEnabled) setTimeout(()=>{ try{recognition.start()}catch(er){} }, 500); };
   recognition.start();
 }
 
-// Stop voice recognition
 function stopVoiceRecognition() {
-  if (recognition) {
-    try { recognition.stop(); } catch(e) {}
-    recognition = null;
-  }
+  if (recognition) { try{recognition.stop()}catch(e){} recognition = null; }
 }
 
-// Audio recording for second brain
 let audioRecorder = null;
 let audioChunks = [];
 let isRecordingAudio = false;
 
 async function toggleAudioRecording() {
-  const btn = document.getElementById('audio-record-btn');
-
+  const btn = document.getElementById('record-btn');
   if (isRecordingAudio) {
-    // Stop recording
     isRecordingAudio = false;
-    btn.classList.remove('bg-red-500', 'text-white');
-    btn.classList.add('bg-gray-100');
-    showToast('Audio recording saved');
-
-    if (audioRecorder && audioRecorder.state !== 'inactive') {
-      audioRecorder.stop();
-    }
+    btn.classList.remove('recording');
+    showToast('Conversation saved to memory');
+    if (audioRecorder && audioRecorder.state !== 'inactive') audioRecorder.stop();
     return;
   }
-
-  // Start recording
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
     audioRecorder = new MediaRecorder(stream);
     audioChunks = [];
-
-    audioRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        audioChunks.push(e.data);
-      }
-    };
-
+    audioRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
     audioRecorder.onstop = async () => {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      const reader = new FileReader();
-
-      reader.onloadend = async () => {
-        const base64 = reader.result.split(',')[1];
-
-        // For now, we'll store the conversation transcript
-        // In production, you'd send audio to transcription service
-        const lastConvs = conversationHistory.slice(-5);
-        const transcript = lastConvs.map(c => `${c.role}: ${c.content}`).join('\n');
-
-        try {
-          await fetch('/brain/audio', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              session_id: 'chat_' + Date.now(),
-              transcription: transcript,
-              speakers: ['user', 'raso'],
-              duration: 0
-            })
-          });
-          showToast('Audio conversation stored in memory');
-        } catch (err) {
-          console.error('Failed to store audio conversation:', err);
-        }
-      };
-
-      reader.readAsDataURL(audioBlob);
+      const transcript = conversationHistory.slice(-5).map(c=>`${c.role}: ${c.content}`).join('\n');
+      try {
+        await fetch('/brain/audio', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({session_id:'chat_'+Date.now(), transcription:transcript, speakers:['user','raso'], duration:0})
+        });
+      } catch(e) {}
     };
-
     audioRecorder.start();
     isRecordingAudio = true;
-    btn.classList.add('bg-red-500', 'text-white');
-    btn.classList.remove('bg-gray-100');
-    showToast('Recording audio conversation...');
-
-  } catch (err) {
-    showToast('Failed to start audio recording');
-    console.error('Audio recording error:', err);
-  }
+    btn.classList.add('recording');
+    showToast('Recording conversation...');
+  } catch (e) { showToast('Failed to start recording'); }
 }
 
-// Initialize
 window.addEventListener('load', async () => {
-  // Check available providers
   try {
     const resp = await fetch('/qa/providers');
     if (resp.ok) {
       const data = await resp.json();
       const providers = data.available || [];
-
       if (providers.length > 0) {
         document.getElementById('provider-select').innerHTML = providers.map(p =>
-          `<option value="${p}">${p.charAt(0).toUpperCase() + p.slice(1)}</option>`
+          `<option value="${p}">${p.charAt(0).toUpperCase()+p.slice(1)}</option>`
         ).join('');
       }
     }
-  } catch (err) {
-    console.log('Using default providers');
-  }
+  } catch (e) {}
 });
 </script>
-
 </body>
 </html>
