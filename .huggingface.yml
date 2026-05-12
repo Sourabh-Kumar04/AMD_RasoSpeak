@@ -1,7 +1,0 @@
-title: RasoSpeak
-emoji: 🎙️
-colorFrom: purple
-colorTo: red
-sdk: docker
-sdk_version: 3.12
-app_port: 7860
