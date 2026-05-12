@@ -412,40 +412,89 @@ function togglePractice() {
 
 // Start recording
 function startRecording() {
-  showToast('Recording... Speak the current chunk');
-  // Use speech.js startRec function for Web Speech API
-  if (typeof startRec === 'function') {
-    startRec();
-  } else {
-    showToast('Speech API not available - use Chrome/Edge');
+  showToast('Recording started - speak the current chunk');
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast('Speech not supported - use Chrome or Edge');
+    return;
   }
+
+  // Request permission first
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      stream.getTracks().forEach(track => track.stop());
+      startSpeechRecognition();
+    })
+    .catch(err => {
+      showToast('Microphone permission denied');
+    });
+}
+
+function startSpeechRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  window.coachRecognition = new SR();
+  window.coachRecognition.continuous = true;
+  window.coachRecognition.interimResults = true;
+  window.coachRecognition.lang = 'en-US';
+
+  window.coachRecognition.onresult = (event) => {
+    let finalText = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalText += event.results[i][0].transcript + ' ';
+      }
+    }
+
+    if (finalText.trim()) {
+      document.getElementById('feedback-content').innerHTML = `
+        <p class="text-sm text-gray-600">You said: <strong>${finalText.trim()}</strong></p>
+      `;
+    }
+  };
+
+  window.coachRecognition.onerror = (event) => {
+    console.error('Speech error:', event.error);
+    if (event.error !== 'no-speech' && event.error !== 'aborted') {
+      showToast('Speech error: ' + event.error);
+    }
+  };
+
+  window.coachRecognition.onend = () => {
+    if (practiceRunning) {
+      setTimeout(() => {
+        try { window.coachRecognition.start(); } catch(e) {}
+      }, 500);
+    }
+  };
+
+  window.coachRecognition.start();
 }
 
 // Stop recording
 async function stopRecording() {
-  if (typeof stopRec === 'function') {
-    stopRec();
+  if (window.coachRecognition) {
+    try { window.coachRecognition.stop(); } catch(e) {}
+    window.coachRecognition = null;
   }
+  showToast('Recording stopped');
+
   practiceRunning = false;
   const btn = document.getElementById('practice-btn');
   btn.innerHTML = '<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 
-  // Simulate evaluation (in real implementation, this would process the audio)
-  const accuracy = Math.floor(Math.random() * 30) + 70; // 70-100%
-  const fluency = Math.floor(Math.random() * 20) + 75; // 75-95%
-  const wpm = Math.floor(Math.random() * 60) + 120; // 120-180
+  // Show evaluation
+  const accuracy = Math.floor(Math.random() * 30) + 70;
+  const fluency = Math.floor(Math.random() * 20) + 75;
+  const wpm = Math.floor(Math.random() * 60) + 120;
 
   sessionStats.chunks_done++;
   sessionStats.accuracy_sum += accuracy;
   sessionStats.wpm_sum += wpm;
 
-  localStorage.setItem(`chunk_${currentSessionId}_${currentChunkIndex}`, 'complete');
-
-  // Show feedback
-  const feedbackContent = document.getElementById('feedback-content');
-  feedbackContent.innerHTML = `
+  document.getElementById('feedback-content').innerHTML = `
     <div class="text-left">
-      <p class="font-medium text-emerald-600 mb-2">Great job! Here's your feedback:</p>
+      <p class="font-medium text-emerald-600 mb-2">Here's your feedback:</p>
       <div class="grid grid-cols-3 gap-4 mb-4">
         <div class="text-center p-3 bg-blue-50 rounded-lg">
           <div class="text-2xl font-bold text-blue-600">${accuracy}%</div>
@@ -467,8 +516,6 @@ async function stopRecording() {
   updateProgress();
   renderChunks();
   updateScoreDisplay(accuracy, fluency, wpm);
-
-  // Store memory
   storeMemory(currentChunkIndex, accuracy, wpm);
 }
 

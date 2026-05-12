@@ -60,7 +60,7 @@ function speak(text, onDone, pace) {
 /* ── OFFLINE STT — browser Web Speech API ───────────── */
 function startRec() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { toast('⚠️ Speech recognition needs Chrome or Edge'); return; }
+  if (!SR) { alert('⚠️ Speech recognition needs Chrome or Edge'); return; }
 
   const r          = new SR();
   r.continuous     = true;
