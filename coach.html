@@ -396,32 +396,35 @@ function startCoachSession() {
   }
 
   const btn = document.getElementById('practice-btn');
-  btn.innerHTML = '🎤 Speaking...';
+  btn.innerHTML = '🔊 Listen...';
   btn.disabled = true;
 
   // Step 1: Speak the chunk aloud (TTS)
-  const utterance = new SpeechSynthesisUtterance(currentChunk);
-  utterance.rate = 0.85;
-  utterance.pitch = 1;
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(currentChunk);
+    utterance.rate = 0.85;
+    utterance.pitch = 1;
 
-  utterance.onend = () => {
-    showToast('Now speak the same text...');
+    utterance.onend = () => {
+      showToast('Now speak the same text...');
+      setTimeout(() => startUserRecording(), 500);
+    };
 
-    // Step 2: Start recording user
-    setTimeout(() => {
+    utterance.onerror = () => {
+      showToast('TTS failed - start speaking now');
       startUserRecording();
-    }, 500);
-  };
+    };
 
-  utterance.onerror = () => {
-    showToast('TTS failed - start speaking now');
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  } else {
+    showToast('TTS not available - start speaking now');
     startUserRecording();
-  };
-
-  speechSynthesis.speak(utterance);
+  }
 }
 
 let userTranscript = '';
+let silenceTimer = null;
 
 function startUserRecording() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -437,7 +440,7 @@ function startUserRecording() {
   window.coachRecognition.lang = 'en-US';
 
   const btn = document.getElementById('practice-btn');
-  btn.innerHTML = '🎤 Recording... (click to stop)';
+  btn.innerHTML = '🎤 Recording...';
   btn.disabled = false;
   btn.onclick = stopRecording;
 
@@ -452,7 +455,17 @@ function startUserRecording() {
 
     document.getElementById('feedback-content').innerHTML = `
       <p class="text-sm text-gray-600">You said: <strong>${userTranscript.trim()}</strong></p>
+      <p class="text-xs text-gray-400 mt-1">Stop talking to check...</p>
     `;
+
+    // Reset silence timer on speech
+    if (silenceTimer) clearTimeout(silenceTimer);
+    // Auto-evaluate after 2 seconds of silence (finished speaking)
+    silenceTimer = setTimeout(() => {
+      if (practiceRunning && userTranscript.trim()) {
+        stopRecording();
+      }
+    }, 2000);
   };
 
   window.coachRecognition.onerror = (event) => {
@@ -475,6 +488,7 @@ function startUserRecording() {
 
 // Stop recording
 async function stopRecording() {
+  if (silenceTimer) clearTimeout(silenceTimer);
   practiceRunning = false;
 
   if (window.coachRecognition) {
@@ -492,16 +506,16 @@ async function stopRecording() {
   const spoken = userTranscript.trim();
 
   // Simple word match comparison
-  const chunkWords = currentChunk.toLowerCase().split(/\s+/);
-  const spokenWords = spoken.toLowerCase().split(/\s+/);
+  const chunkWords = currentChunk.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
+  const spokenWords = spoken.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
 
   let matches = 0;
   chunkWords.forEach(word => {
     if (spokenWords.includes(word)) matches++;
   });
 
-  const accuracy = Math.round((matches / chunkWords.length) * 100);
-  const wpm = Math.round(spokenWords.length * 2); // Rough estimate
+  const accuracy = chunkWords.length > 0 ? Math.round((matches / chunkWords.length) * 100) : 0;
+  const wpm = Math.round(spokenWords.length * 2);
   const threshold = 75;
 
   document.getElementById('feedback-content').innerHTML = `
@@ -528,6 +542,9 @@ async function stopRecording() {
     </div>
   `;
 
+  updateProgress();
+  renderChunks();
+
   if (accuracy >= threshold) {
     sessionStats.chunks_done++;
     sessionStats.accuracy_sum += accuracy;
@@ -547,7 +564,7 @@ async function stopRecording() {
       }
     }, 1500);
   } else {
-    showToast(`Need ${threshold}% accuracy - try again`);
+    showToast(`Need ${threshold}% - keep practicing`);
   }
 }
 
