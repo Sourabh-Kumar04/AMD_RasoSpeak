@@ -57,7 +57,10 @@
         <div id="wake-pulse" class="absolute inset-0 w-20 h-20 rounded-full bg-emerald-500/40 animate-ping -z-10 hidden"></div>
       </div>
       <p id="wake-status" class="mt-4 text-sm text-gray-500">Click to start listening</p>
-      <p class="text-xs text-gray-400 mt-2">Brave: Allow microphone in <span class="font-mono">brave://settings/content</span></p>
+      <div id="brave-help" class="hidden mt-2 text-xs text-orange-600 bg-orange-50 p-2 rounded">
+        <strong>Brave:</strong> Go to brave://settings/content/microphone<br>
+        Set to "Allow" and refresh. Or use Chrome for best results.
+      </div>
     </div>
   </section>
 
@@ -170,7 +173,13 @@ function toggleWakeMode() {
   if (wakeModeActive) {
     btn.classList.add('ring-4', 'ring-emerald-500/30');
     pulse.classList.remove('hidden');
-    status.textContent = 'Listening for "Hey Raso"...';
+    const isBrave = navigator.userAgent.includes('Brave');
+    if (isBrave) {
+      status.textContent = 'Brave: Allow microphone if prompted';
+      toast('Brave: Allow mic when asked');
+    } else {
+      status.textContent = 'Listening for "Hey Raso"...';
+    }
     startWakeDetection();
     toast('Wake word detection active!');
   } else {
@@ -183,7 +192,13 @@ function toggleWakeMode() {
 }
 
 function startWakeDetection() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const isBrave = navigator.userAgent.includes('Brave') || navigator.brave !== undefined;
+
+  // Show Brave help
+  const braveHelp = document.getElementById('brave-help');
+  if (isBrave) {
+    braveHelp.classList.remove('hidden');
+  }
 
   // Check browser support
   const isBrave = navigator.userAgent.includes('Braves');
