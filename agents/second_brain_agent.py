@@ -1413,23 +1413,31 @@ class SecondBrainAgent(BaseAgent):
                 {"role": "user", "content": SKILL_EXTRACTION_PROMPT.format(conversation=conversation[:3000])}
             ]
 
-            result = await self._llm_client.chat(messages, temperature=0.1, max_tokens=1024)
+            result = await asyncio.wait_for(
+                self._llm_client.chat(messages, temperature=0.1, max_tokens=1024),
+                timeout=30.0,
+            )
             content = result.get("content", "{}")
 
             json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
-                data = json.loads(json_match.group())
-                skills_data = data.get("skills", [])
+                try:
+                    data = json.loads(json_match.group())
+                    skills_data = data.get("skills", [])
 
-                for skill_data in skills_data:
-                    await self.add_skill(
-                        name=skill_data.get("name", "Unknown"),
-                        category=skill_data.get("category", "general"),
-                        level=SkillLevel(skill_data.get("level", 1)),
-                    )
+                    for skill_data in skills_data:
+                        await self.add_skill(
+                            name=skill_data.get("name", "Unknown"),
+                            category=skill_data.get("category", "general"),
+                            level=SkillLevel(skill_data.get("level", 1)),
+                        )
 
-                return self.get_all_skills()
+                    return self.get_all_skills()
+                except (json.JSONDecodeError, ValueError, KeyError):
+                    pass
 
+        except asyncio.TimeoutError:
+            log.warning("Skill extraction timed out after 30s")
         except Exception as e:
             log.warning(f"Skill extraction failed: {e}")
 
@@ -2448,9 +2456,14 @@ Return ONLY JSON."""
                 {"role": "user", "content": f"Summarize this in 2-3 sentences:\n{text[:2000]}"}
             ]
 
-            result = await self._llm_client.chat(messages, temperature=0.3, max_tokens=256)
+            result = await asyncio.wait_for(
+                self._llm_client.chat(messages, temperature=0.3, max_tokens=256),
+                timeout=15.0,
+            )
             return result.get("content", text[:500])[:500]
 
+        except asyncio.TimeoutError:
+            return text[:500]
         except Exception:
             return text[:500]
 
@@ -2943,10 +2956,11 @@ Return ONLY JSON."""
 
         node = self._nodes[node_id]
         old_content = node.content
-        node.content = new_content
-        node.updated_at = datetime.utcnow().isoformat()
-        node.metadata["revised"] = True
-        node.metadata["old_content"] = str(old_content)[:500]
+        async with self._node_lock:
+            node.content = new_content
+            node.updated_at = datetime.utcnow().isoformat()
+            node.metadata["revised"] = True
+            node.metadata["old_content"] = str(old_content)[:500]
 
         await self._track_version(node_id, old_content, new_content, "revised")
         await self._save_node(node)
@@ -3123,7 +3137,8 @@ Return ONLY JSON."""
                 node_data_copy["type"] = MemoryType(node_data["type"])
                 node_data_copy["tier"] = MemoryTier(node_data["tier"])
                 node_data_copy["importance"] = Importance(node_data["importance"])
-                self._nodes[node_id] = MemoryNode(**node_data_copy)
+                async with self._node_lock:
+                    self._nodes[node_id] = MemoryNode(**node_data_copy)
 
             # Restore edges
             for edge_id, edge_data in data.get("edges", {}).items():

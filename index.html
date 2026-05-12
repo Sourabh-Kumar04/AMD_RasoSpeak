@@ -13,59 +13,186 @@
     .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
     .nav-link:hover { @apply bg-gray-100; }
     .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
+    .card-hover { @apply hover:shadow-md hover:border-emerald-300 transition-all duration-200; }
+    .memory-card { @apply bg-white border border-gray-200 rounded-lg p-4 hover:border-emerald-300 transition-colors; }
+    .pattern-badge { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium; }
+    .tier-working { @apply bg-blue-100 text-blue-700; }
+    .tier-short-term { @apply bg-yellow-100 text-yellow-700; }
+    .tier-long-term { @apply bg-emerald-100 text-emerald-700; }
+    .tier-episodic { @apply bg-purple-100 text-purple-700; }
+    .importance-critical { @apply bg-red-100 text-red-700; }
+    .importance-high { @apply bg-orange-100 text-orange-700; }
+    .importance-medium { @apply bg-gray-100 text-gray-700; }
+    .importance-low { @apply bg-gray-50 text-gray-500; }
+    .stat-card { @apply bg-white border border-gray-200 rounded-lg p-4 text-center hover:shadow-sm transition-shadow; }
   </style>
 </head>
 <body class="min-h-screen">
 
+<!-- Skip to main content -->
+<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
+
 <!-- Navigation -->
-<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
-  <div class="max-w-5xl mx-auto px-6">
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
+  <div class="max-w-6xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
       <a href="index.html" class="flex items-center gap-3">
         <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
         <span class="font-bold text-lg">RasoSpeak</span>
       </a>
       <div class="flex items-center gap-1">
-        <a href="index.html" class="nav-link active">Home</a>
-        <a href="chat.html" class="nav-link">Chat</a>
-        <a href="memory.html" class="nav-link">Memory</a>
-        <a href="coach.html" class="nav-link">Coach</a>
-        <a href="docs.html" class="nav-link">Docs</a>
-        <a href="settings.html" class="nav-link">Settings</a>
+        <a href="index.html" class="nav-link active" aria-label="Home">Home</a>
+        <a href="chat.html" class="nav-link" aria-label="Chat">Chat</a>
+        <a href="memory.html" class="nav-link" aria-label="Memory">Memory</a>
+        <a href="coach.html" class="nav-link" aria-label="Coach">Coach</a>
+        <a href="docs.html" class="nav-link" aria-label="Docs">Docs</a>
+        <a href="settings.html" class="nav-link" aria-label="Settings">Settings</a>
       </div>
     </div>
   </div>
 </nav>
 
 <!-- Main Content -->
-<main class="max-w-5xl mx-auto px-6 py-12">
+<main id="main-content" class="max-w-6xl mx-auto px-6 py-8">
 
   <!-- Hero -->
-  <section class="text-center py-12">
-    <h1 class="text-4xl font-bold mb-4">Meet RasoSpeak</h1>
-    <p class="text-xl text-gray-600 mb-8">Your AI companion with a Second Brain that remembers everything</p>
+  <section class="text-center py-8 mb-8">
+    <h1 class="text-4xl font-bold mb-3">Meet RasoSpeak</h1>
+    <p class="text-xl text-gray-600 mb-6">Your AI companion with a Second Brain that remembers everything</p>
 
-    <!-- Wake Word -->
-    <div class="inline-block bg-white border border-gray-200 rounded-lg p-8 mb-8">
-      <p class="text-gray-600 mb-4">Say <span class="font-semibold text-emerald-600">"Hey Raso"</span> to activate</p>
+    <!-- Quick Memory Search -->
+    <div class="max-w-xl mx-auto mb-6">
+      <div class="relative">
+        <input type="text" id="quick-search" placeholder="Search your memory... (e.g., 'What did I learn about Python?')"
+          class="w-full px-5 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm text-left"
+          aria-label="Quick memory search"
+          onkeydown="if(event.key==='Enter') quickSearchMemory()">
+        <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <button onclick="quickSearchMemory()" class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors">
+          Search
+        </button>
+      </div>
+      <div id="quick-search-results" class="hidden mt-3 bg-white border border-gray-200 rounded-xl p-4 text-left shadow-lg max-h-64 overflow-y-auto"></div>
+    </div>
+
+    <!-- Wake Word Button -->
+    <div class="inline-block bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+      <p class="text-sm text-gray-500 mb-3">Say <span class="font-semibold text-emerald-600">"Hey Raso"</span> to activate voice</p>
       <div class="relative inline-block">
-        <button id="wake-btn" onclick="toggleWakeMode()" class="w-20 h-20 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg hover:bg-emerald-600 transition-all">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button id="wake-btn" onclick="toggleWakeMode()" class="w-20 h-20 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg hover:bg-emerald-600 transition-all hover:scale-105" aria-label="Activate voice control">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
           </svg>
         </button>
         <div id="wake-pulse" class="absolute inset-0 w-20 h-20 rounded-full bg-emerald-500/40 animate-ping -z-10 hidden"></div>
       </div>
-      <p id="wake-status" class="mt-4 text-sm text-gray-500">Click to go to Chat</p>
-      <p class="text-xs text-gray-400 mt-2">Or click button to go directly to chat</p>
+      <p id="wake-status" class="mt-3 text-xs text-gray-400">Click to go to Chat</p>
     </div>
   </section>
 
+  <!-- Memory Stats Dashboard -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="stat-card cursor-pointer" onclick="window.location.href='memory.html'" title="View all memories">
+      <div id="stat-nodes" class="text-3xl font-bold text-emerald-600">--</div>
+      <div class="text-xs text-gray-500 mt-1">Total Memories</div>
+    </div>
+    <div class="stat-card cursor-pointer" onclick="window.location.href='memory.html?tab=facts'" title="View facts">
+      <div id="stat-facts" class="text-3xl font-bold text-purple-600">--</div>
+      <div class="text-xs text-gray-500 mt-1">Facts Stored</div>
+    </div>
+    <div class="stat-card cursor-pointer" onclick="window.location.href='memory.html?tab=conversations'" title="View conversations">
+      <div id="stat-conversations" class="text-3xl font-bold text-blue-600">--</div>
+      <div class="text-xs text-gray-500 mt-1">Conversations</div>
+    </div>
+    <div class="stat-card cursor-pointer" onclick="window.location.href='memory.html?tab=patterns'" title="View patterns">
+      <div id="stat-patterns" class="text-3xl font-bold text-orange-600">--</div>
+      <div class="text-xs text-gray-500 mt-1">Patterns Found</div>
+    </div>
+  </section>
+
+  <!-- Two-column: Proactive Memories + Persona + Goals -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+    <!-- Proactive Memories (spans 2 cols) -->
+    <div class="md:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+            <span class="text-sm">💡</span>
+          </div>
+          <h3 class="font-semibold">Proactive Memories</h3>
+        </div>
+        <span class="text-xs text-gray-400">AI-curated for you</span>
+      </div>
+      <div id="proactive-memories" class="space-y-3">
+        <div class="text-center py-6 text-gray-400">
+          <div class="text-2xl mb-2">🧠</div>
+          <p class="text-sm">Memories relevant to you will appear here</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar: Persona + Goals -->
+    <div class="space-y-6">
+
+      <!-- User Persona -->
+      <div id="persona-card" class="bg-white rounded-lg border border-gray-200 p-6">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <span class="text-sm">👤</span>
+          </div>
+          <h3 class="font-semibold text-sm">Your Persona</h3>
+        </div>
+        <div id="persona-content" class="space-y-2 text-sm">
+          <div class="text-center py-4 text-gray-400">
+            <div class="text-xl mb-2">👤</div>
+            <p class="text-xs">Persona builds as you chat</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Goals -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+              <span class="text-sm">🎯</span>
+            </div>
+            <h3 class="font-semibold text-sm">Active Goals</h3>
+          </div>
+          <button onclick="window.location.href='memory.html?tab=goals'" class="text-xs text-emerald-600 hover:underline">View all</button>
+        </div>
+        <div id="goals-list" class="space-y-2">
+          <div class="text-center py-4 text-gray-400">
+            <div class="text-xl mb-2">🎯</div>
+            <p class="text-xs">No active goals yet</p>
+          </div>
+        </div>
+        <button id="add-goal-btn" onclick="showAddGoal()" class="mt-3 w-full py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-emerald-400 hover:text-emerald-600 transition-colors hidden">
+          + Add a goal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory Type Breakdown -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold">Memory Overview</h3>
+      <button onclick="window.location.href='memory.html'" class="text-sm text-emerald-600 hover:underline">View all →</button>
+    </div>
+    <div id="memory-breakdown" class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
   <!-- Quick Actions -->
-  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-    <a href="chat.html" class="card p-6 rounded-lg border border-gray-200 hover:border-emerald-500 transition-colors">
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <a href="chat.html" class="card-hover bg-white border border-gray-200 rounded-lg p-6">
       <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
-        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
         </svg>
       </div>
@@ -73,9 +200,9 @@
       <p class="text-sm text-gray-500">Ask anything, search the web, get answers instantly</p>
     </a>
 
-    <a href="memory.html" class="card p-6 rounded-lg border border-gray-200 hover:border-emerald-500 transition-colors">
+    <a href="memory.html" class="card-hover bg-white border border-gray-200 rounded-lg p-6">
       <div class="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center mb-4">
-        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
         </svg>
       </div>
@@ -83,14 +210,14 @@
       <p class="text-sm text-gray-500">Your personal memory with semantic search, patterns, and proactive insights</p>
     </a>
 
-    <a href="coach.html" class="card p-6 rounded-lg border border-gray-200 hover:border-emerald-500 transition-colors">
+    <a href="coach.html" class="card-hover bg-white border border-gray-200 rounded-lg p-6">
       <div class="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-4">
-        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
         </svg>
       </div>
       <h3 class="font-semibold text-lg mb-2">Speech Coach</h3>
-      <p class="text-sm text-gray-500">Practice presentations with real-time feedback</p>
+      <p class="text-sm text-gray-500">Practice presentations with real-time AI feedback</p>
     </a>
   </section>
 
@@ -100,7 +227,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="flex items-start gap-4">
         <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
-          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
           </svg>
         </div>
@@ -111,7 +238,7 @@
       </div>
       <div class="flex items-start gap-4">
         <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
-          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
           </svg>
         </div>
@@ -122,7 +249,7 @@
       </div>
       <div class="flex items-start gap-4">
         <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
-          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
           </svg>
         </div>
@@ -133,7 +260,7 @@
       </div>
       <div class="flex items-start gap-4">
         <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
-          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
           </svg>
         </div>
@@ -148,7 +275,30 @@
 </main>
 
 <!-- Toast -->
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50"></div>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<!-- Add Goal Modal -->
+<div id="goal-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="goal-modal-title">
+  <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
+    <h3 id="goal-modal-title" class="font-semibold text-lg mb-4">Add a Goal</h3>
+    <input type="text" id="goal-title-input" placeholder="What do you want to achieve?" class="w-full px-4 py-3 border border-gray-200 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+    <textarea id="goal-desc-input" placeholder="Description (optional)" class="w-full px-4 py-2 border border-gray-200 rounded-lg mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500" rows="2"></textarea>
+    <div class="flex gap-3">
+      <input type="date" id="goal-deadline-input" class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      <select id="goal-priority-input" class="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <option value="3">Medium</option>
+        <option value="1">High Priority</option>
+        <option value="2">Medium-High</option>
+        <option value="4">Low Priority</option>
+        <option value="5">Lowest</option>
+      </select>
+    </div>
+    <div class="flex gap-3 mt-4">
+      <button onclick="closeGoalModal()" class="flex-1 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+      <button onclick="saveGoal()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium">Save Goal</button>
+    </div>
+  </div>
+</div>
 
 <!-- Scripts -->
 <script src="state.js"></script>
@@ -158,17 +308,260 @@
 <script src="app.js"></script>
 
 <script>
-function toggleWakeMode() {
-  // Click the button to go directly to chat
-  window.location.href = 'chat.html';
-}
+let memoryStats = {};
 
-function toast(msg) {
+// Toast notification
+function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
   setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
 }
+
+function toggleWakeMode() {
+  window.location.href = 'chat.html';
+}
+
+// Load all dashboard data
+window.addEventListener('load', async () => {
+  await loadMemoryStats();
+  await loadProactiveMemories();
+  await loadPersona();
+  await loadGoals();
+});
+
+async function loadMemoryStats() {
+  try {
+    const resp = await fetch('/brain/stats');
+    if (resp.ok) {
+      const data = await resp.json();
+      memoryStats = data;
+
+      document.getElementById('stat-nodes').textContent = data.total_nodes || 0;
+      document.getElementById('stat-facts').textContent = data.fact_count || 0;
+      document.getElementById('stat-conversations').textContent = data.conversation_count || 0;
+      document.getElementById('stat-patterns').textContent = data.pattern_count || 0;
+
+      // Memory breakdown
+      const breakdown = document.getElementById('memory-breakdown');
+      const breakdownData = [
+        { label: 'Conversations', count: data.conversation_count || 0, color: 'text-blue-600 bg-blue-50' },
+        { label: 'Facts', count: data.fact_count || 0, color: 'text-purple-600 bg-purple-50' },
+        { label: 'Documents', count: data.document_count || 0, color: 'text-gray-600 bg-gray-50' },
+        { label: 'Goals', count: data.goal_count || 0, color: 'text-red-600 bg-red-50' },
+        { label: 'Audio', count: data.audio_count || 0, color: 'text-cyan-600 bg-cyan-50' },
+      ];
+      breakdown.innerHTML = breakdownData.map(b => `
+        <div class="memory-card text-center cursor-pointer" onclick="window.location.href='memory.html'">
+          <div class="text-2xl font-bold ${b.color}">${b.count}</div>
+          <div class="text-xs text-gray-500 mt-1">${b.label}</div>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Failed to load memory stats:', err);
+    // Fallback to localStorage
+    const stats = JSON.parse(localStorage.getItem('rs_stats') || '{}');
+    document.getElementById('stat-nodes').textContent = stats.total || 0;
+  }
+}
+
+async function loadProactiveMemories() {
+  try {
+    const resp = await fetch('/brain/proactive');
+    if (resp.ok) {
+      const data = await resp.json();
+      const memories = data.memories || [];
+
+      if (memories.length === 0) {
+        document.getElementById('proactive-memories').innerHTML = `
+          <div class="text-center py-6 text-gray-400">
+            <div class="text-2xl mb-2">💡</div>
+            <p class="text-sm">Memories relevant to you will appear here as you use RasoSpeak</p>
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById('proactive-memories').innerHTML = memories.map(m => `
+        <div class="memory-card flex items-start gap-3 cursor-pointer" onclick="window.location.href='memory.html?node=${m.node?.id || m.id}'">
+          <div class="flex-1">
+            <p class="text-sm font-medium text-gray-800 line-clamp-2">${str(m.node?.content || m.content || '')}</p>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="pattern-badge bg-gray-100 text-gray-600">${m.node?.type || m.type || 'memory'}</span>
+              <span class="text-xs text-gray-400">${m.reason || 'relevant'}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Failed to load proactive memories:', err);
+  }
+}
+
+async function loadPersona() {
+  try {
+    const resp = await fetch('/brain/persona');
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.name && data.name !== 'Unknown') {
+        const interests = (data.interests || []).slice(0, 3);
+        const traits = (data.personality_traits || []).slice(0, 3);
+        document.getElementById('persona-content').innerHTML = `
+          <div class="font-semibold text-gray-800">${data.name}</div>
+          ${data.bio ? `<p class="text-xs text-gray-500 line-clamp-2">${data.bio}</p>` : ''}
+          ${interests.length ? `<div class="flex flex-wrap gap-1 mt-2">${interests.map(i => `<span class="pattern-badge bg-blue-50 text-blue-600">${i}</span>`).join('')}</div>` : ''}
+          ${traits.length ? `<div class="flex flex-wrap gap-1 mt-1">${traits.map(t => `<span class="pattern-badge bg-purple-50 text-purple-600">${t}</span>`).join('')}</div>` : ''}
+          <div class="mt-2 pt-2 border-t border-gray-100">
+            <div class="text-xs text-gray-400">Confidence: ${Math.round((data.confidence || 0) * 100)}%</div>
+          </div>
+        `;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load persona:', err);
+  }
+}
+
+async function loadGoals() {
+  try {
+    const resp = await fetch('/brain/goals');
+    if (resp.ok) {
+      const data = await resp.json();
+      const goals = data.goals || data.active_goals || [];
+      const goalEl = document.getElementById('goals-list');
+      const addBtn = document.getElementById('add-goal-btn');
+
+      if (goals.length > 0) {
+        addBtn.classList.remove('hidden');
+        goalEl.innerHTML = goals.slice(0, 3).map(g => `
+          <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-800 truncate">${g.title}</p>
+              ${g.deadline ? `<p class="text-xs text-gray-400">Due: ${g.deadline}</p>` : ''}
+            </div>
+            <div class="w-12 h-12 relative flex-shrink-0">
+              <svg class="w-12 h-12 -rotate-90">
+                <circle cx="24" cy="24" r="20" stroke="#e5e7eb" stroke-width="4" fill="none"/>
+                <circle cx="24" cy="24" r="20" stroke="#10b981" stroke-width="4" fill="none"
+                  stroke-dasharray="${125.6}"
+                  stroke-dashoffset="${125.6 - 125.6 * (g.progress || 0)}"
+                  stroke-linecap="round"/>
+              </svg>
+              <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-emerald-600">${Math.round((g.progress || 0) * 100)}%</span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        addBtn.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load goals:', err);
+    document.getElementById('add-goal-btn').classList.remove('hidden');
+  }
+}
+
+// Quick memory search
+let searchTimeout;
+async function quickSearchMemory() {
+  const query = document.getElementById('quick-search').value.trim();
+  const resultsEl = document.getElementById('quick-search-results');
+
+  if (!query) {
+    resultsEl.classList.add('hidden');
+    return;
+  }
+
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(async () => {
+    try {
+      const resp = await fetch('/brain/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, limit: 5 })
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        const results = data.results || [];
+
+        if (results.length === 0) {
+          resultsEl.innerHTML = '<div class="py-3 text-sm text-gray-500 text-center">No memories found. Ask Raso about it in chat.</div>';
+        } else {
+          resultsEl.innerHTML = results.map(r => `
+            <div class="py-2 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 rounded px-2"
+                 onclick="window.location.href='memory.html?node=${r.node?.id || r.id}'">
+              <p class="text-sm text-gray-800 line-clamp-2">${str(r.node?.content || r.content || '')}</p>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-xs text-gray-400">${r.node?.type || 'memory'}</span>
+                <span class="text-xs font-medium text-emerald-600">Score: ${Math.round((r.score || 0) * 100)}%</span>
+              </div>
+            </div>
+          `).join('');
+        }
+        resultsEl.classList.remove('hidden');
+      }
+    } catch (err) {
+      console.error('Search failed:', err);
+    }
+  }, 300);
+}
+
+function showAddGoal() {
+  document.getElementById('goal-modal').classList.remove('hidden');
+  document.getElementById('goal-title-input').focus();
+}
+
+function closeGoalModal() {
+  document.getElementById('goal-modal').classList.add('hidden');
+  document.getElementById('goal-title-input').value = '';
+  document.getElementById('goal-desc-input').value = '';
+  document.getElementById('goal-deadline-input').value = '';
+}
+
+async function saveGoal() {
+  const title = document.getElementById('goal-title-input').value.trim();
+  const desc = document.getElementById('goal-desc-input').value.trim();
+  const deadline = document.getElementById('goal-deadline-input').value;
+  const priority = parseInt(document.getElementById('goal-priority-input').value);
+
+  if (!title) {
+    showToast('Please enter a goal title');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/brain/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description: desc, deadline, priority })
+    });
+
+    if (resp.ok) {
+      showToast('Goal saved!');
+      closeGoalModal();
+      loadGoals();
+    } else {
+      showToast('Failed to save goal');
+    }
+  } catch (err) {
+    showToast('Failed to save goal');
+    console.error(err);
+  }
+}
+
+function str(val) {
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeGoalModal();
+});
 </script>
 
 </body>
