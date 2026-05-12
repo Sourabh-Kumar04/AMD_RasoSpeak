@@ -71,6 +71,7 @@ class RasoAgent(BaseAgent):
     def __init__(self):
         self._client: Optional[httpx.AsyncClient] = None
         self._shared_memory: Optional[SharedMemoryAgent] = None
+        self._second_brain = None  # NEW: Second Brain agent
         self._continuous_mode = False
         self._current_session_id = None
         self._reminders: list = []
@@ -94,6 +95,11 @@ class RasoAgent(BaseAgent):
         """Connect to shared memory for persistent storage."""
         self._shared_memory = shared_memory
         log.info("Raso connected to SharedMemoryAgent")
+
+    def set_second_brain(self, second_brain):
+        """Connect to Second Brain for enhanced memory."""
+        self._second_brain = second_brain
+        log.info("Raso connected to SecondBrainAgent")
 
     def set_search_agent(self, search_agent):
         """Connect to search agent for web search capability."""
@@ -331,9 +337,18 @@ class RasoAgent(BaseAgent):
         # Generate response using LLM
         answer = await self._generate_response(question, full_context, provider)
 
-        # Store this conversation
+        # Store this conversation in BOTH memory systems
         if self._shared_memory:
             await self._shared_memory.add_conversation(
+                user_input=question,
+                ai_response=answer,
+                ai_provider="partner",
+                context="continuous_partner_mode"
+            )
+
+        # Store in Second Brain for enhanced memory
+        if self._second_brain:
+            await self._second_brain.add_conversation(
                 user_input=question,
                 ai_response=answer,
                 ai_provider="partner",
@@ -352,6 +367,21 @@ class RasoAgent(BaseAgent):
 
     async def _query_past_internal(self, query: str) -> dict:
         """Internal method to query past."""
+        # Try Second Brain first (more advanced)
+        if self._second_brain:
+            try:
+                results = await self._second_brain.recall_conversation(query=query, limit=10)
+                if results:
+                    summary_parts = []
+                    for r in results[:5]:
+                        content = r.get("node", {}).get("content", {})
+                        if isinstance(content, dict):
+                            summary_parts.append(f"{content.get('user', '')[:80]} -> {content.get('ai_provider', 'AI')}")
+                    return {"results_count": len(results), "summary": "; ".join(summary_parts)}
+            except Exception:
+                pass
+
+        # Fallback to shared memory
         if not self._shared_memory:
             return {"results_count": 0}
 

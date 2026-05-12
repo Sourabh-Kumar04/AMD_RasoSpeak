@@ -100,12 +100,20 @@
     </div>
     <div class="flex items-center justify-between mt-3">
       <p class="text-xs text-gray-400">Press Enter to send, Shift+Enter for new line</p>
-      <button id="voice-btn" onclick="toggleVoice()" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
-        </svg>
-        <span>Voice</span>
-      </button>
+      <div class="flex gap-2">
+        <button id="audio-record-btn" onclick="toggleAudioRecording()" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center gap-2" title="Record conversation to memory">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+          </svg>
+          <span>Record</span>
+        </button>
+        <button id="voice-btn" onclick="toggleVoice()" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+          </svg>
+          <span>Voice</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -277,9 +285,10 @@ function quickAsk(question) {
   sendMessage();
 }
 
-// Save to memory
+// Save to memory (both systems)
 async function saveToMemory(userMsg, rasoMsg) {
   try {
+    // Save to shared memory (backward compatibility)
     await fetch('/memory/store', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -287,6 +296,17 @@ async function saveToMemory(userMsg, rasoMsg) {
         key: `chat_${Date.now()}`,
         value: { user: userMsg, raso: rasoMsg, timestamp: new Date().toISOString() },
         category: 'conversation'
+      })
+    });
+
+    // Save to Second Brain (enhanced memory)
+    await fetch('/brain/conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_input: userMsg,
+        ai_response: rasoMsg,
+        ai_provider: 'nvidia'
       })
     });
   } catch (err) {
@@ -399,6 +419,83 @@ function stopVoiceRecognition() {
   if (recognition) {
     try { recognition.stop(); } catch(e) {}
     recognition = null;
+  }
+}
+
+// Audio recording for second brain
+let audioRecorder = null;
+let audioChunks = [];
+let isRecordingAudio = false;
+
+async function toggleAudioRecording() {
+  const btn = document.getElementById('audio-record-btn');
+
+  if (isRecordingAudio) {
+    // Stop recording
+    isRecordingAudio = false;
+    btn.classList.remove('bg-red-500', 'text-white');
+    btn.classList.add('bg-gray-100');
+    showToast('Audio recording saved');
+
+    if (audioRecorder && audioRecorder.state !== 'inactive') {
+      audioRecorder.stop();
+    }
+    return;
+  }
+
+  // Start recording
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    audioRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        audioChunks.push(e.data);
+      }
+    };
+
+    audioRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const reader = new FileReader();
+
+      reader.onloadend = async () => {
+        const base64 = reader.result.split(',')[1];
+
+        // For now, we'll store the conversation transcript
+        // In production, you'd send audio to transcription service
+        const lastConvs = conversationHistory.slice(-5);
+        const transcript = lastConvs.map(c => `${c.role}: ${c.content}`).join('\n');
+
+        try {
+          await fetch('/brain/audio', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session_id: 'chat_' + Date.now(),
+              transcription: transcript,
+              speakers: ['user', 'raso'],
+              duration: 0
+            })
+          });
+          showToast('Audio conversation stored in memory');
+        } catch (err) {
+          console.error('Failed to store audio conversation:', err);
+        }
+      };
+
+      reader.readAsDataURL(audioBlob);
+    };
+
+    audioRecorder.start();
+    isRecordingAudio = true;
+    btn.classList.add('bg-red-500', 'text-white');
+    btn.classList.remove('bg-gray-100');
+    showToast('Recording audio conversation...');
+
+  } catch (err) {
+    showToast('Failed to start audio recording');
+    console.error('Audio recording error:', err);
   }
 }
 

@@ -140,10 +140,21 @@ function showToast(msg) {
   setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
 }
 
-// Load memory stats
+// Load memory stats (both systems)
 async function loadMemoryStats() {
   try {
-    // Get memory stats
+    // Get Second Brain stats (primary)
+    const brainResp = await fetch('/brain/stats');
+    if (brainResp.ok) {
+      const brainData = await brainResp.json();
+      document.getElementById('mem-conversations').textContent = brainData.type_counts?.conversation || 0;
+      document.getElementById('mem-facts').textContent = brainData.type_counts?.fact || 0;
+      document.getElementById('mem-documents').textContent = brainData.type_counts?.document || 0;
+      document.getElementById('mem-sessions').textContent = brainData.type_counts?.event || 0;
+      return;
+    }
+
+    // Fallback to shared memory stats
     const memResp = await fetch('/memory/stats');
     const memData = await memResp.json();
 
@@ -168,7 +179,7 @@ async function loadMemoryStats() {
   }
 }
 
-// Search memory
+// Search memory (Second Brain primary)
 async function searchMemory() {
   const query = document.getElementById('memory-search').value.trim();
   const resultsContent = document.getElementById('results-content');
@@ -181,7 +192,27 @@ async function searchMemory() {
   resultsContent.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
 
   try {
-    // Try to query memory via API
+    // Try Second Brain first (primary)
+    const brainResp = await fetch('/brain/recall', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: query,
+        limit: 10,
+        time_range: 'all'
+      })
+    });
+
+    if (brainResp.ok) {
+      const brainData = await brainResp.json();
+      const memories = brainData.results || [];
+
+      if (memories.length > 0) {
+        return displayBrainResults(memories, query);
+      }
+    }
+
+    // Fallback to shared memory
     const resp = await fetch(`/memory/recall?query=${encodeURIComponent(query)}&limit=10`);
 
     if (resp.ok) {
@@ -189,20 +220,48 @@ async function searchMemory() {
       const memories = data.results || data.memories || [];
 
       if (memories.length === 0) {
-        // Fallback to Raso query
         return queryRasoForMemory(query);
       }
 
       displayResults(memories, query);
     } else {
-      // Fallback to Raso query
       return queryRasoForMemory(query);
     }
   } catch (err) {
     console.error('Memory search failed:', err);
-    // Fallback to Raso query
     return queryRasoForMemory(query);
   }
+}
+
+// Display Second Brain results
+function displayBrainResults(memories, query) {
+  const resultsContent = document.getElementById('results-content');
+
+  resultsContent.innerHTML = `
+    <div class="space-y-3">
+      <p class="text-sm text-gray-500 mb-4">Found ${memories.length} results in your Second Brain for "${escapeHtml(query)}"</p>
+      ${memories.map(mem => {
+        const node = mem.node || mem;
+        const content = node.content;
+        const contentStr = typeof content === 'object' ? JSON.stringify(content) : content;
+        return `
+        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+          <p class="text-gray-800">${escapeHtml(String(contentStr).substring(0, 500))}</p>
+          <div class="flex flex-wrap gap-2 mt-2">
+            ${node.type ? `<span class="px-2 py-0.5 bg-emerald-100 rounded text-xs text-emerald-700">${node.type}</span>` : ''}
+            ${node.tier ? `<span class="px-2 py-0.5 bg-purple-100 rounded text-xs text-purple-700">${node.tier}</span>` : ''}
+            ${mem.score ? `<span class="px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">Score: ${(mem.score * 100).toFixed(0)}%</span>` : ''}
+          </div>
+          ${node.created_at ? `<p class="text-xs text-gray-400 mt-2">Created: ${new Date(node.created_at).toLocaleString()}</p>` : ''}
+        </div>
+      `}).join('')}
+      <div class="mt-4 p-4 bg-emerald-50 rounded-lg">
+        <p class="text-sm text-emerald-700">
+          <strong>Powered by Second Brain Memory</strong> — Graph-based, with entity extraction, temporal indexing, and active forgetting.
+        </p>
+      </div>
+    </div>
+  `;
 }
 
 // Query Raso for memory
@@ -261,7 +320,7 @@ function quickSearch(query) {
   searchMemory();
 }
 
-// Add fact to memory
+// Add fact to memory (both systems)
 async function addFactToMemory() {
   const input = document.getElementById('quick-fact-input');
   const catSelect = document.getElementById('fact-category');
@@ -274,20 +333,24 @@ async function addFactToMemory() {
   }
 
   try {
-    const resp = await fetch('/memory/fact', {
+    // Save to Second Brain (primary)
+    await fetch('/brain/fact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fact, category })
     });
 
-    if (resp.ok) {
-      showToast('Fact saved to memory!');
-      input.value = '';
-      loadMemoryStats();
-      loadRecentFacts();
-    } else {
-      throw new Error('Failed to save');
-    }
+    // Also save to shared memory (backward compatibility)
+    await fetch('/memory/fact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fact, category })
+    });
+
+    showToast('Fact saved to Second Brain!');
+    input.value = '';
+    loadMemoryStats();
+    loadRecentFacts();
   } catch (err) {
     // Save to localStorage as fallback
     const facts = JSON.parse(localStorage.getItem('rs_facts') || '[]');
@@ -308,11 +371,49 @@ async function addFactToMemory() {
   }
 }
 
-// Load recent facts
+// Load recent facts (Second Brain primary)
 async function loadRecentFacts() {
   const container = document.getElementById('recent-facts');
 
   try {
+    // Try Second Brain first
+    const brainResp = await fetch('/brain/recall', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memory_type: 'fact',
+        limit: 10,
+        time_range: 'all'
+      })
+    });
+
+    if (brainResp.ok) {
+      const brainData = await brainResp.json();
+      const facts = brainData.results || [];
+
+      if (facts.length > 0) {
+        container.innerHTML = facts.map(fact => {
+          const node = fact.node || fact;
+          const content = node.content;
+          const factText = typeof content === 'object' ? content.fact : content;
+          return `
+          <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="text-gray-800">${escapeHtml(String(factText).substring(0, 200))}</p>
+              ${content.category ? `<span class="text-xs text-gray-500 mt-1">${content.category}</span>` : ''}
+            </div>
+            <button onclick="deleteFact('${node.id}')" class="text-gray-400 hover:text-red-500">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        `}).join('');
+        return;
+      }
+    }
+
+    // Fallback to shared memory
     const resp = await fetch('/memory/recall?category=general&limit=10');
     if (resp.ok) {
       const data = await resp.json();

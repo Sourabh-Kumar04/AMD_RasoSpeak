@@ -32,6 +32,7 @@ from agents.search_agent import SearchAgent
 from agents.recording_agent import RecordingAgent
 from agents.analytics_agent import AnalyticsAgent
 from agents.shared_memory_agent import SharedMemoryAgent
+from agents.second_brain_agent import SecondBrainAgent
 from agents.partner_agent import RasoAgent
 from agents.rag_agent import LightweightRAGAgent as RAGAgent
 from agents.wake_word_agent import WakeWordAgent
@@ -71,7 +72,8 @@ async def lifespan(app: FastAPI):
 
     # Agent registry with initialization logic
     agent_init_order = [
-        # Core first - Shared Memory must be first!
+        # Core first - Second Brain must be first!
+        ("brain", SecondBrainAgent, "SECOND BRAIN (Multi-tier Memory)"),
         ("shared_memory", SharedMemoryAgent, "UNIFIED BRAIN"),
         # Core coaching - uses external APIs
         ("transcription", TranscriptionAgent, "Web Speech API / OpenAI Whisper"),
@@ -103,6 +105,15 @@ async def lifespan(app: FastAPI):
             agents[name] = None
             agent_health[name] = f"failed: {str(e)[:100]}"
             log.error(f"❌ {name.capitalize()}Agent failed to initialize: {e}")
+
+    # Set second brain references for agents that need it
+    if agents.get("brain"):
+        for agent_name in ["qa", "search", "recording", "analytics", "raso", "document"]:
+            if agents.get(agent_name):
+                try:
+                    agents[agent_name].set_second_brain(agents["brain"])
+                except Exception as e:
+                    log.warning(f"⚠️ {agent_name} second_brain setup failed: {e}")
 
     # Set shared memory references for agents that need it
     if agents.get("shared_memory"):
@@ -637,6 +648,273 @@ class WeakWordRequest(BaseModel):
 async def add_weak_word(req: WeakWordRequest, session_id: str = None):
     """Add a word the user struggles with."""
     return await agents["shared_memory"].add_weak_word(req.word, req.context, session_id)
+
+
+# ══════════════════════════════════════════════════════
+# SECOND BRAIN ENDPOINTS — Complete Memory System
+# ══════════════════════════════════════════════════════
+
+class BrainStoreRequest(BaseModel):
+    content: Any
+    memory_type: str = "conversation"
+    tier: str = "long_term"
+    importance: int = 3
+    tags: list = []
+    source: str = "unknown"
+
+
+class BrainConversationRequest(BaseModel):
+    user_input: str
+    ai_response: str
+    ai_provider: str
+    context: str = None
+
+
+class BrainDocumentRequest(BaseModel):
+    content: str
+    title: str
+    doc_type: str = "document"
+    tags: list = []
+
+
+class BrainFactRequest(BaseModel):
+    fact: str
+    category: str = "general"
+    importance: int = 3
+
+
+class BrainAudioRequest(BaseModel):
+    session_id: str
+    transcription: str
+    speakers: list = []
+    duration: float = 0
+
+
+class BrainRelationshipRequest(BaseModel):
+    source_id: str
+    target_id: str
+    relation_type: str
+    weight: float = 1.0
+
+
+class BrainRecallRequest(BaseModel):
+    query: str = None
+    memory_type: str = None
+    tier: str = None
+    limit: int = 20
+    time_range: str = None  # "1h", "24h", "7d", "30d", "all"
+
+
+@app.post("/brain/store")
+async def brain_store(req: BrainStoreRequest):
+    """Store a memory node in the second brain."""
+    from agents.second_brain_agent import MemoryType, MemoryTier, Importance
+    return await agents["brain"].store(
+        content=req.content,
+        memory_type=MemoryType(req.memory_type),
+        tier=MemoryTier(req.tier),
+        importance=Importance(req.importance),
+        tags=req.tags,
+        source=req.source,
+    )
+
+
+@app.post("/brain/conversation")
+async def brain_add_conversation(req: BrainConversationRequest):
+    """Add a conversation to second brain."""
+    return await agents["brain"].add_conversation(
+        user_input=req.user_input,
+        ai_response=req.ai_response,
+        ai_provider=req.ai_provider,
+        context=req.context,
+    )
+
+
+@app.post("/brain/document")
+async def brain_add_document(req: BrainDocumentRequest):
+    """Add a document to second brain."""
+    return await agents["brain"].add_document(
+        content=req.content,
+        title=req.title,
+        doc_type=req.doc_type,
+        tags=req.tags,
+    )
+
+
+@app.post("/brain/fact")
+async def brain_add_fact(req: BrainFactRequest):
+    """Add a fact about the user."""
+    from agents.second_brain_agent import Importance
+    return await agents["brain"].add_user_fact(
+        fact=req.fact,
+        category=req.category,
+        importance=Importance(req.importance),
+    )
+
+
+@app.post("/brain/audio")
+async def brain_add_audio(req: BrainAudioRequest):
+    """Store an audio conversation with full processing."""
+    return await agents["brain"].store_audio_conversation(
+        session_id=req.session_id,
+        transcription=req.transcription,
+        speakers=req.speakers,
+        duration=req.duration,
+    )
+
+
+@app.post("/brain/relationship")
+async def brain_add_relationship(req: BrainRelationshipRequest):
+    """Add a relationship edge between nodes."""
+    return await agents["brain"].add_relationship(
+        source_id=req.source_id,
+        target_id=req.target_id,
+        relation_type=req.relation_type,
+        weight=req.weight,
+    )
+
+
+@app.post("/brain/recall")
+async def brain_recall(req: BrainRecallRequest):
+    """Recall memories with hybrid search."""
+    from agents.second_brain_agent import MemoryType, MemoryTier
+    return await agents["brain"].recall(
+        query=req.query,
+        memory_type=MemoryType(req.memory_type) if req.memory_type else None,
+        tier=MemoryTier(req.tier) if req.tier else None,
+        limit=req.limit,
+        time_range=req.time_range,
+    )
+
+
+@app.get("/brain/recall/graph")
+async def brain_recall_graph(entity: str, depth: int = 2):
+    """Recall related nodes through the knowledge graph."""
+    return await agents["brain"].recall_graph(entity=entity, depth=depth)
+
+
+@app.get("/brain/recall/temporal")
+async def brain_recall_temporal(query: str, start_date: str = None, end_date: str = None):
+    """Recall memories within a time range."""
+    return await agents["brain"].recall_temporal(
+        query=query,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+@app.get("/brain/recall/conversation")
+async def brain_recall_conversation(query: str = None, limit: int = 10):
+    """Recall past conversations."""
+    return await agents["brain"].recall_conversation(query=query, limit=limit)
+
+
+@app.get("/brain/recall/entity/{entity_name}")
+async def brain_recall_entity(entity_name: str, limit: int = 10):
+    """Recall all memories related to an entity."""
+    return await agents["brain"].recall_entity(entity_name=entity_name, limit=limit)
+
+
+@app.get("/brain/recall/topic/{topic}")
+async def brain_recall_topic(topic: str, limit: int = 20):
+    """Recall all memories related to a topic."""
+    return await agents["brain"].recall_by_topic(topic=topic, limit=limit)
+
+
+@app.get("/brain/recall/audio")
+async def brain_recall_audio(query: str = None, session_id: str = None, limit: int = 10):
+    """Recall audio conversations."""
+    return await agents["brain"].recall_audio_conversations(
+        query=query,
+        session_id=session_id,
+        limit=limit,
+    )
+
+
+@app.get("/brain/related/{node_id}")
+async def brain_find_related(node_id: str, relation_type: str = None, depth: int = 1):
+    """Find nodes related to a given node."""
+    return await agents["brain"].find_related(node_id=node_id, relation_type=relation_type, depth=depth)
+
+
+@app.get("/brain/working-memory")
+async def brain_get_working_memory():
+    """Get current working memory contents."""
+    return await agents["brain"].get_working_memory()
+
+
+@app.post("/brain/working-memory/clear")
+async def brain_clear_working_memory():
+    """Clear working memory."""
+    await agents["brain"].clear_working_memory()
+    return {"status": "cleared"}
+
+
+@app.get("/brain/context")
+async def brain_get_context(ai_name: str = None, max_tokens: int = 4000):
+    """Get formatted context for AI prompts."""
+    return await agents["brain"].get_context_for_ai(ai_name=ai_name, max_tokens=max_tokens)
+
+
+@app.post("/brain/revise/{node_id}")
+async def brain_revise_memory(node_id: str, new_content: Any):
+    """Revise an existing memory."""
+    return await agents["brain"].revise_memory(node_id=node_id, new_content=new_content)
+
+
+@app.post("/brain/forget/{node_id}")
+async def brain_forget(node_id: str, reason: str = "user_request"):
+    """Forget a memory."""
+    return await agents["brain"].forget(node_id=node_id, reason=reason)
+
+
+@app.post("/brain/auto-forget")
+async def brain_auto_forget(threshold: float = 0.2):
+    """Automatically forget low-importance memories."""
+    return await agents["brain"].auto_forget_low_importance(threshold=threshold)
+
+
+@app.get("/brain/weak-words")
+async def brain_get_weak_words(limit: int = 20):
+    """Get all weak words."""
+    return await agents["brain"].get_weak_words(limit=limit)
+
+
+@app.post("/brain/weak-word")
+async def brain_add_weak_word(word: str, context: str = None, session_id: str = None):
+    """Add a weak word."""
+    return await agents["brain"].add_weak_word(word=word, context=context, session_id=session_id)
+
+
+@app.get("/brain/sessions")
+async def brain_get_recent_sessions(limit: int = 10):
+    """Get recent session summaries."""
+    return await agents["brain"].get_recent_sessions(limit=limit)
+
+
+@app.post("/brain/session-summary")
+async def brain_save_session_summary(session_id: str, summary: dict):
+    """Save a session summary."""
+    return await agents["brain"].save_session_summary(session_id=session_id, summary=summary)
+
+
+@app.get("/brain/stats")
+async def brain_get_stats():
+    """Get comprehensive memory statistics."""
+    return await agents["brain"].get_memory_stats()
+
+
+@app.get("/brain/size")
+async def brain_get_size():
+    """Get memory size in MB."""
+    size = await agents["brain"].get_memory_size_mb()
+    return {"size_mb": round(size, 2)}
+
+
+@app.post("/brain/clear")
+async def brain_clear_all():
+    """Clear all second brain memory."""
+    return await agents["brain"].clear_all()
 
 
 # ══════════════════════════════════════════════════════
