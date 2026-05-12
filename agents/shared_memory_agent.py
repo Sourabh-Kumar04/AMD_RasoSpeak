@@ -1,25 +1,13 @@
 """
-RasoSpeak v2 — Shared Memory Agent
-A unified memory system that ALL AI agents can access and refer to.
+RasoSpeak v2 — Shared Memory Agent (Legacy Proxy)
+DEPRECATED: All functionality now lives in SecondBrainAgent.
+This module provides backward compatibility for /memory/* API endpoints.
 
-This is the "brain" that maintains:
-- User profile and preferences
-- Conversation history across all AIs
-- Weak words and improvement areas
-- Session summaries
-- Facts about the user
-- Preferred AI provider settings
-
-Every agent can read/write to this shared memory for context-aware responses.
+New code should use SecondBrainAgent directly via /brain/* endpoints.
 """
 
-import json
 import logging
-import time
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Optional
-from collections import Counter
 
 from .base_agent import BaseAgent
 from config.settings import settings
@@ -29,52 +17,30 @@ log = logging.getLogger("rasospeak.shared_memory")
 
 class SharedMemoryAgent(BaseAgent):
     """
-    Agent 0: Shared Memory — The brain that connects all agents.
+    Legacy proxy — all functionality moved to SecondBrainAgent.
+    This class exists for backward compatibility only.
 
-    Provides a unified memory system that:
-    - Stores user profile and preferences
-    - Maintains conversation history with all AIs
-    - Tracks weak words and pronunciation issues
-    - Stores session summaries
-    - Remembers facts about the user
-    - Tracks which AI providers work best
-
-    All other agents (QAAgent, CoachingAgent, ScoringAgent, etc.)
-    can read/write to this shared memory for context-aware responses.
+    DEPRECATED: Use /brain/* endpoints directly.
     """
 
     name = "SharedMemoryAgent"
 
     def __init__(self):
-        self._storage_path = Path(settings.shared_memory_path or "./memory")
+        self._second_brain = None  # Reference to SecondBrainAgent
         self._user_profile: dict = {}
-        self._conversation_history: list = []
-        self._session_summaries: list = []
         self._user_facts: dict = {}
-        self._second_brain = None  # Reference to SecondBrainAgent for unified storage
-        self._ensure_storage()
 
     def set_second_brain(self, second_brain):
-        """Connect to SecondBrainAgent for unified memory operations."""
+        """Connect to SecondBrainAgent for all operations."""
         self._second_brain = second_brain
-        log.info("SharedMemoryAgent connected to SecondBrainAgent")
-
-    def _ensure_storage(self):
-        """Create storage directories."""
-        self._storage_path.mkdir(parents=True, exist_ok=True)
-        (self._storage_path / "profile.json").touch(exist_ok=True)
-        (self._storage_path / "conversations.json").touch(exist_ok=True)
-        (self._storage_path / "facts.json").touch(exist_ok=True)
-        (self._storage_path / "sessions").mkdir(exist_ok=True)
-        log.info(f"Shared memory storage: {self._storage_path}")
+        log.info("SharedMemoryAgent connected to SecondBrainAgent (proxy mode)")
 
     async def initialize(self):
-        """Load existing memory or create new profile."""
-        await self._load_memory()
-        log.info("✅ SharedMemoryAgent initialized")
+        """Load minimal profile for backward compat."""
+        log.info("⚠️  SharedMemoryAgent running in DEPRECATED proxy mode — use /brain/* endpoints")
 
     # ══════════════════════════════════════════════════════
-    # CORE MEMORY OPERATIONS
+    # PROXY METHODS — delegate to Second Brain
     # ══════════════════════════════════════════════════════
 
     async def store(
@@ -83,59 +49,32 @@ class SharedMemoryAgent(BaseAgent):
         value: Any,
         category: str = "general",
     ) -> dict:
-        """
-        Store a memory item (dual-write: both old system and Second Brain).
+        """Proxy to Second Brain. Deprecated — use /brain/memory instead."""
+        if self._second_brain:
+            # Map legacy categories to Second Brain memory types
+            type_map = {
+                "conversation": "conversation",
+                "fact": "semantic",
+                "profile": "persona",
+                "session": "episodic",
+                "coaching": "coaching",
+            }
+            memory_type = type_map.get(category, "general")
 
-        Args:
-            key: Unique key for this memory
-            value: The memory content
-            category: Category (profile | conversation | fact | session | preference)
+            # Handle value as dict or string
+            if isinstance(value, dict):
+                content = f"{key}: {value}"
+            else:
+                content = str(value)
 
-        Returns:
-            Result with timestamp
-        """
-        memory_entry = {
-            "key": key,
-            "value": value,
-            "category": category,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
-
-        if category == "profile":
-            self._user_profile[key] = value
-            await self._save_profile()
-            # Also update persona in Second Brain
-            if self._second_brain:
-                await self._second_brain.update_persona_field(key, value)
-
-        elif category == "fact":
-            self._user_facts[key] = value
-            await self._save_facts()
-            # Also add as user fact in Second Brain
-            if self._second_brain and isinstance(value, str):
-                await self._second_brain.add_user_fact(value, category="general")
-
-        elif category == "conversation":
-            self._conversation_history.append(memory_entry)
-            if len(self._conversation_history) > 1000:
-                self._conversation_history = self._conversation_history[-1000:]
-            await self._save_conversations()
-            # Also add conversation in Second Brain
-            if self._second_brain and isinstance(value, dict):
-                await self._second_brain.add_conversation(
-                    user_input=value.get("user", ""),
-                    ai_response=value.get("ai", ""),
-                    ai_provider=value.get("ai_provider", "unknown"),
-                )
-
-        elif category == "session":
-            self._session_summaries.append(memory_entry)
-            if len(self._session_summaries) > 100:
-                self._session_summaries = self._session_summaries[-100:]
-            await self._save_sessions()
-
-        log.debug(f"Stored memory: {category}/{key}")
-        return {"stored": True, "key": key, "category": category, "second_brain_synced": self._second_brain is not None}
+            return await self._second_brain.store(
+                content=content,
+                memory_type=memory_type,
+                tier="long_term",
+                importance=3,
+                tags=[category, key],
+            )
+        return {"stored": False, "error": "SecondBrainAgent not connected"}
 
     async def recall(
         self,
@@ -144,89 +83,46 @@ class SharedMemoryAgent(BaseAgent):
         category: str = None,
         limit: int = 10,
     ) -> dict:
-        """
-        Recall memories based on query, key, or category.
-        Uses Second Brain as primary source with fallback to legacy storage.
+        """Proxy to Second Brain recall. Deprecated — use /brain/recall instead."""
+        if self._second_brain:
+            result = await self._second_brain.recall(query=query, limit=limit)
+            return {
+                "query": query,
+                "results": result.get("results", []),
+                "total_found": result.get("total", 0),
+                "source": "second_brain",
+            }
+        return {"query": query, "results": [], "total_found": 0, "source": "deprecated"}
 
-        Args:
-            query: Natural language query (will match keywords)
-            key: Specific memory key
-            category: Filter by category
-            limit: Max results to return
+    async def get_context_for_ai(
+        self,
+        ai_name: str = None,
+        include_recent: int = 5,
+    ) -> str:
+        """Proxy to Second Brain context. Deprecated — use /brain/context instead."""
+        if self._second_brain:
+            return await self._second_brain.get_context_for_ai(ai_name, max_tokens=3000)
+        return ""
 
-        Returns:
-            List of matching memories
-        """
-        # Try Second Brain first for semantic search
-        if self._second_brain and query:
-            try:
-                results = await self._second_brain.recall(
-                    query=query,
-                    limit=limit,
-                    memory_type=category if category else None,
-                )
-                if results.get("results"):
-                    return {
-                        "query": query,
-                        "results": results["results"],
-                        "total_found": len(results["results"]),
-                        "source": "second_brain",
-                    }
-            except Exception as e:
-                log.warning(f"Second Brain recall failed, falling back: {e}")
-
-        # Fallback to keyword-based search
-        results = []
-
-        # Filter by category
-        if category == "profile":
-            items = [(k, v) for k, v in self._user_profile.items()]
-        elif category == "fact":
-            items = [(k, v) for k, v in self._user_facts.items()]
-        elif category == "conversation":
-            items = [(m["key"], m) for m in self._conversation_history[-100:]]
-        elif category == "session":
-            items = [(m["key"], m) for m in self._session_summaries[-50:]]
-        else:
-            # Search all categories
-            items = (
-                [(k, v) for k, v in self._user_profile.items()] +
-                [(k, v) for k, v in self._user_facts.items()] +
-                [(m["key"], m) for m in self._conversation_history[-100:]] +
-                [(m["key"], m) for m in self._session_summaries[-50:]]
-            )
-
-        # Filter by key
-        if key:
-            items = [(k, v) for k, v in items if key.lower() in k.lower()]
-
-        # Filter by query (keyword matching)
-        if query:
-            query_words = query.lower().split()
-            for k, v in items:
-                text = f"{k} {str(v)}".lower()
-                if any(word in text for word in query_words):
-                    results.append({"key": k, "value": v, "relevance": len([w for w in query_words if w in text])})
-            results.sort(key=lambda x: x["relevance"], reverse=True)
-        else:
-            results = [{"key": k, "value": v} for k, v in items[:limit]]
-
-        return {
-            "query": query,
-            "results": results[:limit],
-            "total_found": len(results),
-            "source": "legacy",
-        }
-
-    # ══════════════════════════════════════════════════════
-    # SPECIALIZED MEMORY FUNCTIONS
-    # ══════════════════════════════════════════════════════
+    async def get_memory_stats(self) -> dict:
+        """Get stats from Second Brain. Deprecated — use /brain/stats instead."""
+        if self._second_brain:
+            stats = await self._second_brain.get_stats()
+            return {
+                "total_memories": stats.get("total_memories", 0),
+                "total_conversations": stats.get("conversations", 0),
+                "total_facts": stats.get("semantic", 0),
+                "total_sessions": stats.get("episodes", 0),
+                "quality_score": stats.get("quality_score", 0),
+                "weak_words_count": 0,
+                "top_weak_words": [],
+                "source": "second_brain",
+            }
+        return {"source": "deprecated", "error": "SecondBrainAgent not connected"}
 
     async def remember_user_fact(self, fact: str, category: str = "general") -> dict:
-        """Store a fact about the user."""
-        key = f"fact_{int(time.time())}"
-        await self.store(key, {"fact": fact, "category": category}, category="fact")
-        return {"stored": True, "fact": fact}
+        """Proxy to Second Brain. Deprecated."""
+        return await self.store(f"fact_{fact[:30]}", {"fact": fact, "category": category}, category="fact")
 
     async def add_conversation(
         self,
@@ -235,238 +131,51 @@ class SharedMemoryAgent(BaseAgent):
         ai_provider: str,
         context: str = None,
     ) -> dict:
-        """Add a conversation to history."""
-        conversation = {
-            "user": user_input,
-            "ai": ai_response,
-            "provider": ai_provider,
-            "context": context,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
-        key = f"conv_{int(time.time())}"
-        await self.store(key, conversation, category="conversation")
-        return {"stored": True}
-
-    async def add_weak_word(self, word: str, context: str = None, session_id: str = None) -> dict:
-        """Add a word the user struggles with."""
-        weak_words = self._user_profile.get("weak_words", {})
-
-        if word in weak_words:
-            weak_words[word]["count"] += 1
-            if session_id:
-                weak_words[word]["sessions"].append(session_id)
-        else:
-            weak_words[word] = {
-                "count": 1,
-                "first_seen": datetime.utcnow().isoformat(),
-                "sessions": [session_id] if session_id else [],
-                "context": context,
-            }
-
-        await self.store("weak_words", weak_words, category="profile")
-        return {"stored": True, "word": word}
-
-    async def get_context_for_ai(
-        self,
-        ai_name: str = None,
-        include_recent: int = 5,
-    ) -> str:
-        """
-        Get formatted context string to prepend to AI prompts.
-        Uses Second Brain as primary source with legacy fallback.
-
-        Args:
-            ai_name: Which AI (for personalization)
-            include_recent: How many recent conversations to include
-
-        Returns:
-            Formatted context string for AI prompts
-        """
-        context_parts = []
-
-        # Try Second Brain first for rich context
-        if self._second_brain:
-            try:
-                brain_context = await self._second_brain.get_context_for_ai(ai_name, max_tokens=3000)
-                if brain_context:
-                    return brain_context
-            except Exception as e:
-                log.warning(f"Second Brain context failed: {e}")
-
-        # Fallback to legacy context generation
-        # User profile
-        if self._user_profile.get("name"):
-            context_parts.append(f"User name: {self._user_profile['name']}")
-
-        if self._user_profile.get("goals"):
-            context_parts.append(f"User goals: {self._user_profile['goals']}")
-
-        # Weak words
-        weak_words = self._user_profile.get("weak_words", {})
-        if weak_words:
-            top_weak = [w for w, d in sorted(weak_words.items(), key=lambda x: x[1]["count"], reverse=True)[:5]]
-            context_parts.append(f"Words user struggles with: {', '.join(top_weak)}")
-
-        # Recent sessions
-        recent_sessions = self._session_summaries[-include_recent:]
-        if recent_sessions:
-            session_summary = "; ".join([
-                f"{s.get('value', {}).get('summary', 'session')[:100]}"
-                for s in recent_sessions
-            ])
-            context_parts.append(f"Recent sessions: {session_summary}")
-
-        # User facts
-        if self._user_facts:
-            facts_str = ", ".join([f"{k}: {v}" for k, v in list(self._user_facts.items())[:5]])
-            context_parts.append(f"Known facts: {facts_str}")
-
-        if context_parts:
-            return "\n".join([f"[User Context: {p}]" for p in context_parts])
-        return ""
-
-    async def save_session_summary(
-        self,
-        session_id: str,
-        summary: dict,
-    ) -> dict:
-        """Save a session summary to memory."""
-        session_data = {
-            "session_id": session_id,
-            "summary": summary,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
-        await self.store(f"session_{session_id}", session_data, category="session")
-        return {"stored": True}
-
-    async def get_user_preferences(self) -> dict:
-        """Get user's preferred settings."""
-        return {
-            "preferred_provider": self._user_profile.get("preferred_provider", "qwen_local"),
-            "preferred_coaching_mode": self._user_profile.get("preferred_coaching_mode", "hint"),
-            "strictness_level": self._user_profile.get("strictness_level", 3),
-            "chunk_size": self._user_profile.get("chunk_size", 8),
-        }
-
-    async def set_user_preference(self, key: str, value: Any) -> dict:
-        """Set a user preference."""
-        await self.store(key, value, category="profile")
-        return {"stored": True, "key": key, "value": value}
-
-    # ══════════════════════════════════════════════════════
-    # ANALYTICS
-    # ══════════════════════════════════════════════════════
-
-    async def get_memory_stats(self) -> dict:
-        """Get statistics about the shared memory."""
-        weak_words = self._user_profile.get("weak_words", {})
-
-        return {
-            "total_conversations": len(self._conversation_history),
-            "total_sessions": len(self._session_summaries),
-            "total_facts": len(self._user_facts),
-            "weak_words_count": len(weak_words),
-            "top_weak_words": [
-                {"word": w, "count": d["count"]}
-                for w, d in sorted(weak_words.items(), key=lambda x: x[1]["count"], reverse=True)[:10]
-            ],
-            "memory_size_kb": self._estimate_size(),
-        }
-
-    def _estimate_size(self) -> int:
-        """Estimate memory size in KB."""
-        return len(json.dumps(self._user_profile)) // 1024
-
-    # ══════════════════════════════════════════════════════
-    # PERSISTENCE
-    # ══════════════════════════════════════════════════════
-
-    async def _load_memory(self):
-        """Load all memory from disk."""
-        # Load profile
-        profile_path = self._storage_path / "profile.json"
-        if profile_path.exists():
-            try:
-                self._user_profile = json.loads(profile_path.read_text())
-            except Exception:
-                self._user_profile = {"weak_words": {}}
-
-        # Load facts
-        facts_path = self._storage_path / "facts.json"
-        if facts_path.exists():
-            try:
-                self._user_facts = json.loads(facts_path.read_text())
-            except Exception:
-                self._user_facts = {}
-
-        # Load recent conversations
-        conv_path = self._storage_path / "conversations.json"
-        if conv_path.exists():
-            try:
-                self._conversation_history = json.loads(conv_path.read_text())
-            except Exception:
-                self._conversation_history = []
-
-        log.info(f"Loaded memory: {len(self._user_profile)} profile items, {len(self._conversation_history)} conversations")
-
-    async def _save_profile(self):
-        """Save profile to disk."""
-        (self._storage_path / "profile.json").write_text(json.dumps(self._user_profile, indent=2))
-
-    async def _save_facts(self):
-        """Save facts to disk."""
-        (self._storage_path / "facts.json").write_text(json.dumps(self._user_facts, indent=2))
-
-    async def _save_conversations(self):
-        """Save conversations to disk."""
-        (self._storage_path / "conversations.json").write_text(
-            json.dumps(self._conversation_history[-500:], indent=2)
+        """Proxy to Second Brain. Deprecated."""
+        return await self.store(
+            f"conv_{ai_provider}",
+            {"user": user_input, "ai": ai_response, "provider": ai_provider},
+            category="conversation",
         )
 
-    async def _save_sessions(self):
-        """Save session summaries to disk."""
-        (self._storage_path / "sessions").mkdir(exist_ok=True)
-        for session in self._session_summaries[-10:]:
-            session_id = session.get("key", "").replace("session_", "")
-            if session_id:
-                path = self._storage_path / "sessions" / f"{session_id}.json"
-                path.write_text(json.dumps(session.get("value", {}), indent=2))
+    async def add_weak_word(self, word: str, context: str = None, session_id: str = None) -> dict:
+        """Proxy to Second Brain. Deprecated."""
+        return await self.store(
+            f"weak_word_{word}",
+            {"word": word, "context": context, "session": session_id},
+            category="coaching",
+        )
 
-    async def clear_old_memory(self, days: int = 30) -> dict:
-        """Clear memory older than specified days."""
-        from datetime import timedelta
+    async def set_user_preference(self, key: str, value: Any) -> dict:
+        """Proxy to Second Brain persona. Deprecated."""
+        if self._second_brain:
+            await self._second_brain.update_persona_field(key, value)
+            return {"stored": True, "key": key, "value": value}
+        return {"stored": False}
 
-        cutoff = datetime.utcnow() - timedelta(days=days)
-        original_count = len(self._conversation_history)
+    async def get_user_preferences(self) -> dict:
+        """Get from Second Brain persona. Deprecated."""
+        if self._second_brain:
+            persona = self._second_brain.get_persona()
+            return {
+                "preferred_provider": persona.get("preferred_provider", "qwen_local"),
+                "preferred_coaching_mode": persona.get("preferred_coaching_mode", "hint"),
+                "strictness_level": persona.get("strictness_level", 3),
+                "chunk_size": persona.get("chunk_size", 8),
+            }
+        return {}
 
-        self._conversation_history = [
-            c for c in self._conversation_history
-            if datetime.fromisoformat(c.get("timestamp", "2020-01-01")) > cutoff
-        ]
-
-        await self._save_conversations()
-
-        cleared = original_count - len(self._conversation_history)
-        log.info(f"Cleared {cleared} old conversations")
-        return {"cleared": cleared}
-
-    async def clear_all(self) -> dict:
-        """Clear all memory entries."""
-        self._conversation_history = []
-        self._session_summaries = []
-        self._user_facts = {}
-        self._user_profile["preferences"] = {}
-        self._user_profile["weak_words"] = {}
-
-        await self._save_profile()
-        await self._save_facts()
-        await self._save_conversations()
-
-        log.info("All memory cleared")
-        return {"status": "cleared", "conversations": 0, "sessions": 0, "facts": 0}
+    async def save_session_summary(self, session_id: str, summary: dict) -> dict:
+        """Proxy to Second Brain episodic memory. Deprecated."""
+        if self._second_brain:
+            return await self._second_brain.store(
+                content=f"Session {session_id}: {summary}",
+                memory_type="episodic",
+                tier="long_term",
+                importance=3,
+                tags=["session", session_id],
+            )
+        return {"stored": False}
 
     async def shutdown(self):
-        await self._save_profile()
-        await self._save_facts()
-        await self._save_conversations()
         log.info("SharedMemoryAgent shut down")

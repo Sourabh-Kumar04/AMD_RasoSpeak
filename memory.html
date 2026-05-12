@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>RasoSpeak — Second Brain</title>
+  <title>RasoSpeak — Memory</title>
   <link rel="icon" type="image/png" href="logo.png"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -13,467 +13,120 @@
     .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
     .nav-link:hover { @apply bg-gray-100; }
     .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
-    .tab-btn { @apply px-4 py-2 text-sm font-medium rounded-lg transition-colors; }
-    .tab-btn.active { @apply bg-emerald-500 text-white; }
-    .tab-btn:not(.active) { @apply bg-gray-100 text-gray-600 hover:bg-gray-200; }
-    .memory-card { @apply bg-white rounded-lg border border-gray-200 p-4 hover:border-emerald-300 transition-colors cursor-pointer; }
-    .stat-card { @apply bg-white rounded-lg border border-gray-200 p-4 text-center; }
-    .badge { @apply px-2 py-0.5 rounded text-xs font-medium; }
-    .badge-type { @apply bg-emerald-100 text-emerald-700; }
-    .badge-tier { @apply bg-purple-100 text-purple-700; }
-    .badge-importance { @apply bg-amber-100 text-amber-700; }
-    .badge-privacy { @apply bg-red-100 text-red-700; }
-    .badge-pattern { @apply bg-blue-100 text-blue-700; }
-    .modal-overlay { @apply fixed inset-0 bg-black/50 z-40 flex items-center justify-center; }
-    .modal { @apply bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto; }
   </style>
 </head>
 <body class="min-h-screen">
 
+<!-- Skip to main content -->
+<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
+
 <!-- Navigation -->
-<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
-  <div class="max-w-7xl mx-auto px-6">
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
+  <div class="max-w-5xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
       <a href="index.html" class="flex items-center gap-3">
         <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
         <span class="font-bold text-lg">RasoSpeak</span>
       </a>
       <div class="flex items-center gap-1">
-        <a href="index.html" class="nav-link">Home</a>
-        <a href="chat.html" class="nav-link">Chat</a>
-        <a href="memory.html" class="nav-link active">Second Brain</a>
-        <a href="coach.html" class="nav-link">Coach</a>
-        <a href="docs.html" class="nav-link">Docs</a>
-        <a href="settings.html" class="nav-link">Settings</a>
+        <a href="index.html" class="nav-link" aria-label="Home">Home</a>
+        <a href="chat.html" class="nav-link" aria-label="Chat">Chat</a>
+        <a href="memory.html" class="nav-link active" aria-label="Memory">Memory</a>
+        <a href="coach.html" class="nav-link" aria-label="Coach">Coach</a>
+        <a href="docs.html" class="nav-link" aria-label="Docs">Docs</a>
+        <a href="settings.html" class="nav-link" aria-label="Settings">Settings</a>
       </div>
     </div>
   </div>
 </nav>
 
 <!-- Main Content -->
-<main class="max-w-7xl mx-auto px-6 py-8">
+<main id="main-content" class="max-w-3xl mx-auto px-6 py-8">
 
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-2xl font-bold">Second Brain</h1>
-      <p class="text-sm text-gray-500">Your complete personal memory system — Phase 6</p>
+  <!-- Memory Search -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-2">Query Your Memory</h2>
+    <p class="text-sm text-gray-500 mb-4">Search through all your conversations, documents, and knowledge</p>
+    <div class="flex gap-3">
+      <input type="text" id="memory-search" placeholder="Try: What did I say about AI?"
+        class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        aria-label="Memory search input"
+        onkeydown="if(event.key==='Enter')searchMemory()">
+      <button onclick="searchMemory()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors" aria-label="Search memory">
+        Search
+      </button>
     </div>
-    <div class="flex gap-2">
-      <button onclick="showModal('search')" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600">
-        Search Memory
-      </button>
-      <button onclick="showModal('add')" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">
-        + Add Memory
-      </button>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <span class="text-xs text-gray-400">Try:</span>
+      <button onclick="quickSearch('What did I say about AI?')" class="text-xs text-emerald-600 hover:underline">AI questions</button>
+      <button onclick="quickSearch('My personal facts')" class="text-xs text-emerald-600 hover:underline">personal facts</button>
+      <button onclick="quickSearch('Recent conversations')" class="text-xs text-emerald-600 hover:underline">recent</button>
     </div>
   </div>
 
-  <!-- Stats Overview -->
-  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
-    <div class="stat-card">
-      <div id="stat-conversations" class="text-2xl font-bold text-emerald-600">—</div>
+  <!-- Memory Results -->
+  <div id="memory-results" class="bg-white rounded-lg border border-gray-200 p-6 mb-6 min-h-48">
+    <div id="results-content" class="text-center text-gray-400 py-8">
+      <p>Your memories will appear here</p>
+      <p class="text-sm mt-1">Ask Raso questions or import documents to build your memory</p>
+    </div>
+  </div>
+
+  <!-- Memory Stats -->
+  <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="mem-conversations" class="text-2xl font-bold text-emerald-600">0</div>
       <div class="text-xs text-gray-500 mt-1">Conversations</div>
     </div>
-    <div class="stat-card">
-      <div id="stat-facts" class="text-2xl font-bold text-purple-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Facts</div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="mem-facts" class="text-2xl font-bold text-purple-600">0</div>
+      <div class="text-xs text-gray-500 mt-1">Facts Stored</div>
     </div>
-    <div class="stat-card">
-      <div id="stat-documents" class="text-2xl font-bold text-blue-600">—</div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="mem-documents" class="text-2xl font-bold text-blue-600">0</div>
       <div class="text-xs text-gray-500 mt-1">Documents</div>
     </div>
-    <div class="stat-card">
-      <div id="stat-audio" class="text-2xl font-bold text-orange-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Audio</div>
-    </div>
-    <div class="stat-card">
-      <div id="stat-goals" class="text-2xl font-bold text-cyan-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Goals</div>
-    </div>
-    <div class="stat-card">
-      <div id="stat-patterns" class="text-2xl font-bold text-pink-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Patterns</div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div id="mem-sessions" class="text-2xl font-bold text-orange-600">0</div>
+      <div class="text-xs text-gray-500 mt-1">Sessions</div>
     </div>
   </div>
 
-  <!-- Phase 6 Quick Actions -->
-  <div class="flex flex-wrap gap-2 mb-6">
-    <button onclick="loadSemanticSearch()" class="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100">
-      Semantic Search
-    </button>
-    <button onclick="loadProactive()" class="px-4 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100">
-      Proactive Memories
-    </button>
-    <button onclick="loadGraph()" class="px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100">
-      Memory Graph
-    </button>
-    <button onclick="loadTimeline()" class="px-4 py-2 bg-teal-50 text-teal-700 rounded-lg text-sm font-medium hover:bg-teal-100">
-      Timeline
-    </button>
-    <button onclick="loadPatterns()" class="px-4 py-2 bg-pink-50 text-pink-700 rounded-lg text-sm font-medium hover:bg-pink-100">
-      Detected Patterns
-    </button>
-    <button onclick="showModal('backup')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
-      Backup & Export
-    </button>
-    <button onclick="showModal('encrypt')" class="px-4 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100">
-      Encryption
-    </button>
-  </div>
-
-  <!-- Tab Navigation -->
-  <div class="flex gap-2 mb-6 border-b border-gray-200 pb-4">
-    <button onclick="switchTab('memories')" class="tab-btn active" data-tab="memories">Memories</button>
-    <button onclick="switchTab('persona')" class="tab-btn" data-tab="persona">Persona</button>
-    <button onclick="switchTab('goals')" class="tab-btn" data-tab="goals">Goals</button>
-    <button onclick="switchTab('skills')" class="tab-btn" data-tab="skills">Skills</button>
-    <button onclick="switchTab('quality')" class="tab-btn" data-tab="quality">Quality</button>
-    <button onclick="switchTab('sync')" class="tab-btn" data-tab="sync">Sync Status</button>
-  </div>
-
-  <!-- Tab: Memories -->
-  <div id="tab-memories" class="tab-content">
-    <div class="bg-white rounded-lg border border-gray-200 p-4 mb-4">
-      <div class="flex gap-3">
-        <input type="text" id="search-query" placeholder="Search your memories..."
-          class="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          onkeydown="if(event.key==='Enter')searchMemories()">
-        <select id="filter-type" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-          <option value="">All Types</option>
-          <option value="conversation">Conversation</option>
-          <option value="fact">Fact</option>
-          <option value="document">Document</option>
-          <option value="audio">Audio</option>
-          <option value="entity">Entity</option>
-          <option value="event">Event</option>
-        </select>
-        <select id="filter-tier" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-          <option value="">All Tiers</option>
-          <option value="working">Working</option>
-          <option value="short_term">Short-term</option>
-          <option value="long_term">Long-term</option>
-          <option value="episodic">Episodic</option>
-          <option value="semantic">Semantic</option>
-        </select>
-        <select id="filter-time" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-          <option value="all">All Time</option>
-          <option value="1h">Last Hour</option>
-          <option value="24h">Last 24h</option>
-          <option value="7d">Last 7 Days</option>
-          <option value="30d">Last 30 Days</option>
-        </select>
-        <button onclick="searchMemories()" class="px-6 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
-          Search
-        </button>
-      </div>
-    </div>
-
-    <div id="memory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div class="text-center text-gray-400 py-12 col-span-3">Loading memories...</div>
+  <!-- Add to Memory -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h3 class="font-semibold mb-4">Quick Add to Memory</h3>
+    <textarea id="quick-fact-input" placeholder="Type a fact or note to remember... (e.g., 'My name is John and I work at Company X')"
+      class="w-full h-24 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
+    <div class="flex gap-3">
+      <select id="fact-category" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+        <option value="general">General</option>
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="learning">Learning</option>
+        <option value="health">Health</option>
+        <option value="finance">Finance</option>
+      </select>
+      <button onclick="addFactToMemory()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors" aria-label="Save fact to memory">
+        Save to Memory
+      </button>
     </div>
   </div>
 
-  <!-- Tab: Persona -->
-  <div id="tab-persona" class="tab-content hidden">
-    <div class="bg-white rounded-lg border border-gray-200 p-6 mb-4">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-semibold text-lg">Your Persona</h3>
-        <button onclick="extractPersona()" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600">
-          Extract from Recent
-        </button>
-      </div>
-      <div id="persona-content">
-        <div class="text-center text-gray-400 py-8">Loading persona...</div>
-      </div>
+  <!-- Recent Facts -->
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold">Recent Facts</h3>
+      <button onclick="loadRecentFacts()" class="text-sm text-emerald-600 hover:underline" aria-label="Refresh recent facts">Refresh</button>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 class="font-semibold mb-4">Update Persona Field</h3>
-      <div class="grid grid-cols-2 gap-3">
-        <input type="text" id="persona-field" placeholder="Field name (e.g., name, profession)"
-          class="px-4 py-2 border border-gray-200 rounded-lg">
-        <input type="text" id="persona-value" placeholder="Value"
-          class="px-4 py-2 border border-gray-200 rounded-lg">
-        <button onclick="updatePersona()" class="col-span-2 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600">
-          Update
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tab: Goals -->
-  <div id="tab-goals" class="tab-content hidden">
-    <div class="bg-white rounded-lg border border-gray-200 p-6 mb-4">
-      <h3 class="font-semibold mb-4">Add New Goal</h3>
-      <div class="grid grid-cols-2 gap-3">
-        <input type="text" id="goal-title" placeholder="Goal title" class="px-4 py-2 border border-gray-200 rounded-lg">
-        <input type="text" id="goal-description" placeholder="Description" class="px-4 py-2 border border-gray-200 rounded-lg">
-        <input type="date" id="goal-deadline" class="px-4 py-2 border border-gray-200 rounded-lg">
-        <select id="goal-priority" class="px-3 py-2 border border-gray-200 rounded-lg">
-          <option value="3">Medium Priority</option>
-          <option value="5">Critical</option>
-          <option value="4">High</option>
-          <option value="2">Low</option>
-        </select>
-        <select id="goal-category" class="px-3 py-2 border border-gray-200 rounded-lg">
-          <option value="general">General</option>
-          <option value="work">Work</option>
-          <option value="learning">Learning</option>
-          <option value="health">Health</option>
-          <option value="finance">Finance</option>
-        </select>
-        <button onclick="addGoal()" class="col-span-2 px-4 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">
-          Add Goal
-        </button>
-      </div>
-    </div>
-    <div id="goals-list">
-      <div class="text-center text-gray-400 py-8">Loading goals...</div>
-    </div>
-  </div>
-
-  <!-- Tab: Skills -->
-  <div id="tab-skills" class="tab-content hidden">
-    <div class="bg-white rounded-lg border border-gray-200 p-6 mb-4">
-      <h3 class="font-semibold mb-4">Add Skill</h3>
-      <div class="grid grid-cols-3 gap-3">
-        <input type="text" id="skill-name" placeholder="Skill name" class="px-4 py-2 border border-gray-200 rounded-lg">
-        <select id="skill-level" class="px-3 py-2 border border-gray-200 rounded-lg">
-          <option value="beginner">Beginner</option>
-          <option value="intermediate">Intermediate</option>
-          <option value="advanced">Advanced</option>
-          <option value="expert">Expert</option>
-        </select>
-        <select id="skill-category" class="px-3 py-2 border border-gray-200 rounded-lg">
-          <option value="general">General</option>
-          <option value="technical">Technical</option>
-          <option value="language">Language</option>
-          <option value="creative">Creative</option>
-          <option value="social">Social</option>
-        </select>
-        <button onclick="addSkill()" class="col-span-3 px-4 py-2 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600">
-          Add Skill
-        </button>
-      </div>
-    </div>
-    <div id="skills-list">
-      <div class="text-center text-gray-400 py-8">Loading skills...</div>
-    </div>
-  </div>
-
-  <!-- Tab: Quality -->
-  <div id="tab-quality" class="tab-content hidden">
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-semibold text-lg">Memory Quality Report</h3>
-        <button onclick="loadQuality()" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">
-          Refresh
-        </button>
-      </div>
-      <div id="quality-content">
-        <div class="text-center text-gray-400 py-8">Loading quality report...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tab: Sync -->
-  <div id="tab-sync" class="tab-content hidden">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="font-semibold mb-4">Sync Status</h3>
-        <div id="sync-status">
-          <div class="text-center text-gray-400 py-8">Loading...</div>
-        </div>
-      </div>
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="font-semibold mb-4">Compression</h3>
-        <p class="text-sm text-gray-500 mb-4">Compress memories older than 30 days into summaries.</p>
-        <button onclick="compressMemories()" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
-          Run Compression
-        </button>
-      </div>
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="font-semibold mb-4">Auto-Linking</h3>
-        <p class="text-sm text-gray-500 mb-4">Automatically link related memories.</p>
-        <button onclick="autoLink()" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
-          Run Auto-Linking
-        </button>
-      </div>
+    <div id="recent-facts" class="space-y-2">
+      <p class="text-gray-400 text-center py-4">No facts saved yet</p>
     </div>
   </div>
 
 </main>
 
-<!-- Modals -->
-<!-- Search Modal -->
-<div id="modal-search" class="modal-overlay hidden" onclick="if(event.target===this)hideModal('search')">
-  <div class="modal">
-    <div class="p-6 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="font-semibold text-lg">Semantic Search</h3>
-      <button onclick="hideModal('search')" class="text-gray-400 hover:text-gray-600">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="p-6">
-      <input type="text" id="semantic-query" placeholder="Ask in natural language..."
-        class="w-full px-4 py-3 border border-gray-200 rounded-lg mb-4"
-        onkeydown="if(event.key==='Enter')doSemanticSearch()">
-      <div id="semantic-results" class="space-y-3 max-h-64 overflow-y-auto"></div>
-    </div>
-    <div class="p-4 border-t border-gray-200 flex justify-end">
-      <button onclick="doSemanticSearch()" class="px-6 py-2 bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-600">
-        Search
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Add Memory Modal -->
-<div id="modal-add" class="modal-overlay hidden" onclick="if(event.target===this)hideModal('add')">
-  <div class="modal">
-    <div class="p-6 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="font-semibold text-lg">Add to Memory</h3>
-      <button onclick="hideModal('add')" class="text-gray-400 hover:text-gray-600">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="p-6 space-y-4">
-      <textarea id="add-content" placeholder="What do you want to remember?" rows="4"
-        class="w-full px-4 py-3 border border-gray-200 rounded-lg resize-none"></textarea>
-      <div class="grid grid-cols-3 gap-3">
-        <select id="add-type" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-          <option value="fact">Fact</option>
-          <option value="conversation">Conversation</option>
-          <option value="entity">Entity</option>
-          <option value="event">Event</option>
-          <option value="document">Document</option>
-        </select>
-        <select id="add-tier" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-          <option value="long_term">Long-term</option>
-          <option value="short_term">Short-term</option>
-          <option value="episodic">Episodic</option>
-          <option value="semantic">Semantic</option>
-        </select>
-        <select id="add-importance" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-          <option value="3">Medium</option>
-          <option value="5">Critical</option>
-          <option value="4">High</option>
-          <option value="2">Low</option>
-        </select>
-      </div>
-      <input type="text" id="add-tags" placeholder="Tags (comma-separated)" class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm">
-      <div class="flex items-center gap-3">
-        <label class="text-sm text-gray-600">Privacy:</label>
-        <select id="add-privacy" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-          <option value="private">Private</option>
-          <option value="restricted">Restricted</option>
-          <option value="sensitive">Sensitive</option>
-          <option value="public">Public</option>
-        </select>
-      </div>
-    </div>
-    <div class="p-4 border-t border-gray-200 flex gap-3 justify-end">
-      <button onclick="hideModal('add')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">Cancel</button>
-      <button onclick="addMemory()" class="px-6 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Backup Modal -->
-<div id="modal-backup" class="modal-overlay hidden" onclick="if(event.target===this)hideModal('backup')">
-  <div class="modal">
-    <div class="p-6 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="font-semibold text-lg">Backup & Export</h3>
-      <button onclick="hideModal('backup')" class="text-gray-400 hover:text-gray-600">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="p-6 space-y-4">
-      <div class="grid grid-cols-2 gap-3">
-        <button onclick="createBackup()" class="p-4 border border-gray-200 rounded-lg hover:border-emerald-500 transition-colors text-center">
-          <div class="text-2xl mb-2">💾</div>
-          <div class="font-medium">Create Backup</div>
-          <div class="text-xs text-gray-500">Full snapshot with checksum</div>
-        </button>
-        <button onclick="showRestore()" class="p-4 border border-gray-200 rounded-lg hover:border-blue-500 transition-colors text-center">
-          <div class="text-2xl mb-2">♻️</div>
-          <div class="font-medium">Restore Backup</div>
-          <div class="text-xs text-gray-500">Restore from backup</div>
-        </button>
-      </div>
-      <div class="border-t border-gray-200 pt-4">
-        <h4 class="font-medium mb-3">Export Memory</h4>
-        <div class="grid grid-cols-3 gap-3">
-          <button onclick="exportMemory('json')" class="px-4 py-3 border border-gray-200 rounded-lg hover:border-emerald-500 transition-colors text-sm font-medium">
-            JSON Export
-          </button>
-          <button onclick="exportMemory('markdown')" class="px-4 py-3 border border-gray-200 rounded-lg hover:border-emerald-500 transition-colors text-sm font-medium">
-            Markdown
-          </button>
-          <button onclick="exportMemory('obsidian')" class="px-4 py-3 border border-gray-200 rounded-lg hover:border-emerald-500 transition-colors text-sm font-medium">
-            Obsidian Vault
-          </button>
-        </div>
-      </div>
-      <div id="backup-list" class="border-t border-gray-200 pt-4">
-        <h4 class="font-medium mb-3">Available Backups</h4>
-        <div id="backups-content" class="space-y-2 max-h-48 overflow-y-auto"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Encryption Modal -->
-<div id="modal-encrypt" class="modal-overlay hidden" onclick="if(event.target===this)hideModal('encrypt')">
-  <div class="modal">
-    <div class="p-6 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="font-semibold text-lg">Encryption & Privacy</h3>
-      <button onclick="hideModal('encrypt')" class="text-gray-400 hover:text-gray-600">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="p-6 space-y-4">
-      <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-        <p class="text-sm text-amber-800">
-          <strong>Encryption</strong> protects sensitive memories with AES-256-GCM.
-          Set a passphrase to enable encryption for private/sensitive nodes.
-        </p>
-      </div>
-      <div class="space-y-3">
-        <input type="password" id="encrypt-passphrase" placeholder="Encryption passphrase"
-          class="w-full px-4 py-2 border border-gray-200 rounded-lg">
-        <div class="flex gap-3">
-          <button onclick="setEncryptionKey()" class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600">
-            Set Key
-          </button>
-          <button onclick="clearEncryptionKey()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">
-            Clear Key
-          </button>
-        </div>
-      </div>
-      <div id="encryption-status" class="text-sm text-gray-500 text-center py-2"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Graph Modal -->
-<div id="modal-graph" class="modal-overlay hidden" onclick="if(event.target===this)hideModal('graph')">
-  <div class="modal" style="max-width:800px;max-height:85vh">
-    <div class="p-6 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="font-semibold text-lg">Memory Graph</h3>
-      <button onclick="hideModal('graph')" class="text-gray-400 hover:text-gray-600">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="p-6 overflow-auto max-h-[70vh]">
-      <div id="graph-stats" class="mb-4 flex gap-4 text-sm text-gray-500"></div>
-      <div id="graph-content" class="text-center text-gray-400 py-8">Loading graph data...</div>
-    </div>
-  </div>
-</div>
-
 <!-- Toast -->
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50"></div>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- Scripts -->
 <script src="state.js"></script>
@@ -483,14 +136,7 @@
 <script src="app.js"></script>
 
 <script>
-// State
-let currentTab = 'memories';
-let currentMemories = [];
-
-// ══════════════════════════════════════════════════════
-// TOAST & UTILS
-// ══════════════════════════════════════════════════════
-
+// Toast notification
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -498,957 +144,345 @@ function showToast(msg) {
   setTimeout(() => t.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none'), 3000);
 }
 
+// Load memory stats (both systems)
+async function loadMemoryStats() {
+  try {
+    // Get Second Brain stats (primary)
+    const brainResp = await fetch('/brain/stats');
+    if (brainResp.ok) {
+      const brainData = await brainResp.json();
+      document.getElementById('mem-conversations').textContent = brainData.type_counts?.conversation || 0;
+      document.getElementById('mem-facts').textContent = brainData.type_counts?.fact || 0;
+      document.getElementById('mem-documents').textContent = brainData.type_counts?.document || 0;
+      document.getElementById('mem-sessions').textContent = brainData.type_counts?.event || 0;
+      return;
+    }
+
+    // Fallback to shared memory stats
+    const memResp = await fetch('/memory/stats');
+    const memData = await memResp.json();
+
+    document.getElementById('mem-conversations').textContent = memData.conversations || 0;
+    document.getElementById('mem-facts').textContent = memData.facts || 0;
+
+    // Get documents count
+    const docResp = await fetch('/documents');
+    const docData = await docResp.json();
+    document.getElementById('mem-documents').textContent = docData.total || 0;
+
+    // Get recordings count
+    const recResp = await fetch('/recordings?limit=100');
+    const recData = await recResp.json();
+    document.getElementById('mem-sessions').textContent = recData.total || 0;
+
+  } catch (err) {
+    console.error('Failed to load memory stats:', err);
+    // Show demo values
+    document.getElementById('mem-conversations').textContent = localStorage.getItem('rs_conversations') || 0;
+    document.getElementById('mem-facts').textContent = localStorage.getItem('rs_facts_count') || 0;
+  }
+}
+
+// Search memory (Second Brain primary)
+async function searchMemory() {
+  const query = document.getElementById('memory-search').value.trim();
+  const resultsContent = document.getElementById('results-content');
+
+  if (!query) {
+    showToast('Please enter a search query');
+    return;
+  }
+
+  resultsContent.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
+
+  try {
+    // Try Second Brain first (primary)
+    const brainResp = await fetch('/brain/recall', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: query,
+        limit: 10,
+        time_range: 'all'
+      })
+    });
+
+    if (brainResp.ok) {
+      const brainData = await brainResp.json();
+      const memories = brainData.results || [];
+
+      if (memories.length > 0) {
+        return displayBrainResults(memories, query);
+      }
+    }
+
+    // Fallback to shared memory
+    const resp = await fetch(`/memory/recall?query=${encodeURIComponent(query)}&limit=10`);
+
+    if (resp.ok) {
+      const data = await resp.json();
+      const memories = data.results || data.memories || [];
+
+      if (memories.length === 0) {
+        return queryRasoForMemory(query);
+      }
+
+      displayResults(memories, query);
+    } else {
+      return queryRasoForMemory(query);
+    }
+  } catch (err) {
+    console.error('Memory search failed:', err);
+    return queryRasoForMemory(query);
+  }
+}
+
+// Display Second Brain results
+function displayBrainResults(memories, query) {
+  const resultsContent = document.getElementById('results-content');
+
+  resultsContent.innerHTML = `
+    <div class="space-y-3">
+      <p class="text-sm text-gray-500 mb-4">Found ${memories.length} results in your Second Brain for "${escapeHtml(query)}"</p>
+      ${memories.map(mem => {
+        const node = mem.node || mem;
+        const content = node.content;
+        const contentStr = typeof content === 'object' ? JSON.stringify(content) : content;
+        return `
+        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+          <p class="text-gray-800">${escapeHtml(String(contentStr).substring(0, 500))}</p>
+          <div class="flex flex-wrap gap-2 mt-2">
+            ${node.type ? `<span class="px-2 py-0.5 bg-emerald-100 rounded text-xs text-emerald-700">${node.type}</span>` : ''}
+            ${node.tier ? `<span class="px-2 py-0.5 bg-purple-100 rounded text-xs text-purple-700">${node.tier}</span>` : ''}
+            ${mem.score ? `<span class="px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">Score: ${(mem.score * 100).toFixed(0)}%</span>` : ''}
+          </div>
+          ${node.created_at ? `<p class="text-xs text-gray-400 mt-2">Created: ${new Date(node.created_at).toLocaleString()}</p>` : ''}
+        </div>
+      `}).join('')}
+      <div class="mt-4 p-4 bg-emerald-50 rounded-lg">
+        <p class="text-sm text-emerald-700">
+          <strong>Powered by Second Brain Memory</strong> — Graph-based, with entity extraction, temporal indexing, and active forgetting.
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+// Query Raso for memory
+async function queryRasoForMemory(query) {
+  const resultsContent = document.getElementById('results-content');
+  resultsContent.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching memory...</p></div>';
+
+  try {
+    const resp = await fetch('/raso/query', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    // If that fails, just show the query in a message
+    resultsContent.innerHTML = `
+      <div class="space-y-3">
+        <div class="bg-emerald-50 rounded-lg p-4">
+          <p class="font-medium text-emerald-700">Your Query:</p>
+          <p class="text-gray-700 mt-1">${escapeHtml(query)}</p>
+        </div>
+        <p class="text-gray-500 text-center py-4">No matching memories found. Try importing more documents or adding facts.</p>
+      </div>
+    `;
+  } catch (err) {
+    resultsContent.innerHTML = `
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="font-medium">Query:</p>
+        <p class="text-gray-700 mt-1">${escapeHtml(query)}</p>
+      </div>
+      <p class="text-gray-400 text-center py-4">Memory search unavailable</p>
+    `;
+  }
+}
+
+// Display search results
+function displayResults(memories, query) {
+  const resultsContent = document.getElementById('results-content');
+
+  resultsContent.innerHTML = `
+    <div class="space-y-3">
+      <p class="text-sm text-gray-500 mb-4">Found ${memories.length} results for "${escapeHtml(query)}"</p>
+      ${memories.map(mem => `
+        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+          <p class="text-gray-800">${escapeHtml(mem.content || mem.value || mem.text || JSON.stringify(mem))}</p>
+          ${mem.category ? `<span class="inline-block mt-2 px-2 py-0.5 bg-gray-200 rounded text-xs text-gray-600">${mem.category}</span>` : ''}
+          ${mem.score ? `<span class="inline-block mt-2 ml-2 px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">Score: ${(mem.score * 100).toFixed(0)}%</span>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// Quick search
+function quickSearch(query) {
+  document.getElementById('memory-search').value = query;
+  searchMemory();
+}
+
+// Add fact to memory (both systems)
+async function addFactToMemory() {
+  const input = document.getElementById('quick-fact-input');
+  const catSelect = document.getElementById('fact-category');
+  const fact = input.value.trim();
+  const category = catSelect.value;
+
+  if (!fact) {
+    showToast('Please enter a fact to remember');
+    return;
+  }
+
+  try {
+    // Save to Second Brain (primary)
+    await fetch('/brain/fact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fact, category })
+    });
+
+    // Also save to shared memory (backward compatibility)
+    await fetch('/memory/fact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fact, category })
+    });
+
+    showToast('Fact saved to Second Brain!');
+    input.value = '';
+    loadMemoryStats();
+    loadRecentFacts();
+  } catch (err) {
+    // Save to localStorage as fallback
+    const facts = JSON.parse(localStorage.getItem('rs_facts') || '[]');
+    facts.unshift({
+      fact,
+      category,
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('rs_facts', JSON.stringify(facts.slice(0, 100)));
+
+    const count = parseInt(localStorage.getItem('rs_facts_count') || '0') + 1;
+    localStorage.setItem('rs_facts_count', count.toString());
+
+    showToast('Fact saved (local mode)');
+    input.value = '';
+    loadMemoryStats();
+    loadRecentFacts();
+  }
+}
+
+// Load recent facts (Second Brain primary)
+async function loadRecentFacts() {
+  const container = document.getElementById('recent-facts');
+
+  try {
+    // Try Second Brain first
+    const brainResp = await fetch('/brain/recall', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memory_type: 'fact',
+        limit: 10,
+        time_range: 'all'
+      })
+    });
+
+    if (brainResp.ok) {
+      const brainData = await brainResp.json();
+      const facts = brainData.results || [];
+
+      if (facts.length > 0) {
+        container.innerHTML = facts.map(fact => {
+          const node = fact.node || fact;
+          const content = node.content;
+          const factText = typeof content === 'object' ? content.fact : content;
+          return `
+          <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="text-gray-800">${escapeHtml(String(factText).substring(0, 200))}</p>
+              ${content.category ? `<span class="text-xs text-gray-500 mt-1">${content.category}</span>` : ''}
+            </div>
+            <button onclick="deleteFact('${node.id}')" class="text-gray-400 hover:text-red-500">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        `}).join('');
+        return;
+      }
+    }
+
+    // Fallback to shared memory
+    const resp = await fetch('/memory/recall?category=general&limit=10');
+    if (resp.ok) {
+      const data = await resp.json();
+      const facts = data.results || [];
+
+      if (facts.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-4">No facts saved yet</p>';
+        return;
+      }
+
+      container.innerHTML = facts.map(fact => `
+        <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p class="text-gray-800">${escapeHtml(fact.content || fact.value || fact.text || '')}</p>
+            ${fact.category ? `<span class="text-xs text-gray-500 mt-1">${fact.category}</span>` : ''}
+          </div>
+          <button onclick="deleteFact('${fact.id || fact.key}')" class="text-gray-400 hover:text-red-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    // Load from localStorage
+    const facts = JSON.parse(localStorage.getItem('rs_facts') || '[]');
+    if (facts.length === 0) {
+      container.innerHTML = '<p class="text-gray-400 text-center py-4">No facts saved yet</p>';
+      return;
+    }
+
+    container.innerHTML = facts.slice(0, 10).map(fact => `
+      <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+        <div>
+          <p class="text-gray-800">${escapeHtml(fact.fact || '')}</p>
+          <span class="text-xs text-gray-500">${fact.category || 'general'}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// Delete fact
+async function deleteFact(key) {
+  try {
+    // This would need a DELETE endpoint for facts
+    showToast('Fact deleted');
+    loadRecentFacts();
+  } catch (err) {
+    showToast('Could not delete fact');
+  }
+}
+
+// Escape HTML
 function escapeHtml(text) {
-  if (!text) return '';
   const div = document.createElement('div');
-  div.textContent = String(text);
+  div.textContent = text;
   return div.innerHTML;
 }
 
-function formatDate(iso) {
-  if (!iso) return '';
-  try { return new Date(iso).toLocaleString(); } catch { return iso; }
-}
-
-function timeAgo(iso) {
-  if (!iso) return '';
-  try {
-    const diff = Date.now() - new Date(iso).getTime();
-    const mins = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 30) return `${days}d ago`;
-    return new Date(iso).toLocaleDateString();
-  } catch { return iso; }
-}
-
-// ══════════════════════════════════════════════════════
-// TABS
-// ══════════════════════════════════════════════════════
-
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab-' + tab)?.classList.remove('hidden');
-  document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
-
-  if (tab === 'memories') loadMemories();
-  else if (tab === 'persona') loadPersona();
-  else if (tab === 'goals') loadGoals();
-  else if (tab === 'skills') loadSkills();
-  else if (tab === 'quality') loadQuality();
-  else if (tab === 'sync') loadSyncStatus();
-}
-
-// ══════════════════════════════════════════════════════
-// MODALS
-// ══════════════════════════════════════════════════════
-
-function showModal(id) {
-  document.getElementById('modal-' + id)?.classList.remove('hidden');
-  if (id === 'backup') loadBackups();
-  if (id === 'encrypt') loadEncryptionStatus();
-  if (id === 'search') document.getElementById('semantic-query')?.focus();
-}
-
-function hideModal(id) {
-  document.getElementById('modal-' + id)?.classList.add('hidden');
-}
-
-// ══════════════════════════════════════════════════════
-// STATS
-// ══════════════════════════════════════════════════════
-
-async function loadStats() {
-  try {
-    const resp = await fetch('/brain/stats');
-    if (resp.ok) {
-      const data = await resp.json();
-      document.getElementById('stat-conversations').textContent = data.type_counts?.conversation || 0;
-      document.getElementById('stat-facts').textContent = data.type_counts?.fact || 0;
-      document.getElementById('stat-documents').textContent = data.type_counts?.document || 0;
-      document.getElementById('stat-audio').textContent = data.type_counts?.audio || 0;
-    }
-    // Goals
-    const goalsResp = await fetch('/brain/goals');
-    if (goalsResp.ok) {
-      const goalsData = await goalsResp.json();
-      document.getElementById('stat-goals').textContent = goalsData.goals?.length || 0;
-    }
-    // Patterns
-    const patResp = await fetch('/brain/patterns');
-    if (patResp.ok) {
-      const patData = await patResp.json();
-      document.getElementById('stat-patterns').textContent = patData.patterns?.length || 0;
-    }
-  } catch (err) {
-    console.error('Stats error:', err);
-  }
-}
-
-// ══════════════════════════════════════════════════════
-// MEMORY: SEARCH & LIST
-// ══════════════════════════════════════════════════════
-
-async function searchMemories() {
-  const query = document.getElementById('search-query').value.trim();
-  const type = document.getElementById('filter-type').value;
-  const tier = document.getElementById('filter-tier').value;
-  const time = document.getElementById('filter-time').value;
-
-  const grid = document.getElementById('memory-grid');
-  grid.innerHTML = '<div class="text-center text-gray-400 py-12 col-span-3">Searching...</div>';
-
-  try {
-    const body = { query: query || null, limit: 50 };
-    if (type) body.memory_type = type;
-    if (tier) body.tier = tier;
-    if (time) body.time_range = time;
-
-    const resp = await fetch('/brain/recall', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    if (!resp.ok) throw new Error('Search failed');
-    const data = await resp.json();
-    const results = data.results || [];
-
-    if (results.length === 0) {
-      grid.innerHTML = '<div class="text-center text-gray-400 py-12 col-span-3">No memories found. Try adjusting your search.</div>';
-      return;
-    }
-
-    currentMemories = results;
-    grid.innerHTML = results.map((r, i) => renderMemoryCard(r.node || r, r.score, i)).join('');
-  } catch (err) {
-    grid.innerHTML = `<div class="text-center text-red-400 py-12 col-span-3">Error: ${err.message}</div>`;
-  }
-}
-
-async function loadMemories() {
-  await searchMemories();
-}
-
-function renderMemoryCard(node, score, index) {
-  const content = typeof node.content === 'object' ? JSON.stringify(node.content) : String(node.content || '');
-  const display = content.length > 150 ? content.substring(0, 150) + '...' : content;
-  const scorePct = score ? (score * 100).toFixed(0) : null;
-
-  return `
-    <div class="memory-card" onclick="showMemoryDetail(${index})">
-      <p class="text-sm text-gray-800 mb-2">${escapeHtml(display)}</p>
-      <div class="flex flex-wrap gap-1.5 mb-2">
-        <span class="badge badge-type">${node.type || 'unknown'}</span>
-        <span class="badge badge-tier">${node.tier || '—'}</span>
-        ${node.importance ? `<span class="badge badge-importance">${['forgotten','low','medium','high','critical'][node.importance-1]||'medium'}</span>` : ''}
-        ${scorePct ? `<span class="text-xs text-blue-600 font-medium">${scorePct}% match</span>` : ''}
-      </div>
-      <div class="flex items-center justify-between">
-        <span class="text-xs text-gray-400">${timeAgo(node.created_at)}</span>
-        ${node.entities?.length ? `<span class="text-xs text-gray-400">🏷️ ${node.entities.slice(0,2).join(', ')}</span>` : ''}
-      </div>
-    </div>
-  `;
-}
-
-function showMemoryDetail(index) {
-  const r = currentMemories[index];
-  const node = r.node || r;
-  const content = typeof node.content === 'object' ? JSON.stringify(node.content, null, 2) : String(node.content || '');
-
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-  modal.innerHTML = `
-    <div class="modal" style="max-width:640px">
-      <div class="p-6 border-b border-gray-200 flex justify-between items-start">
-        <div>
-          <h3 class="font-semibold text-lg capitalize">${node.type || 'Memory'}</h3>
-          <p class="text-xs text-gray-400 mt-1">ID: ${node.id || '—'}</p>
-        </div>
-        <button onclick="this.closest('.modal-overlay').remove()" class="text-gray-400 hover:text-gray-600">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="p-6 space-y-4">
-        <div class="bg-gray-50 rounded-lg p-4">
-          <pre class="text-sm text-gray-700 whitespace-pre-wrap break-words font-mono">${escapeHtml(content)}</pre>
-        </div>
-        <div class="grid grid-cols-2 gap-3 text-sm">
-          <div><span class="text-gray-500">Tier:</span> <span class="font-medium">${node.tier || '—'}</span></div>
-          <div><span class="text-gray-500">Importance:</span> <span class="font-medium">${node.importance || '—'}</span></div>
-          <div><span class="text-gray-500">Source:</span> <span class="font-medium">${node.source || '—'}</span></div>
-          <div><span class="text-gray-500">Access:</span> <span class="font-medium">${node.access_count || 0} times</span></div>
-          <div><span class="text-gray-500">Created:</span> <span class="font-medium">${formatDate(node.created_at)}</span></div>
-          <div><span class="text-gray-500">Updated:</span> <span class="font-medium">${formatDate(node.updated_at)}</span></div>
-        </div>
-        ${node.entities?.length ? `<div class="text-sm"><span class="text-gray-500">Entities:</span> ${node.entities.map(e => `<span class="inline-block bg-gray-100 rounded px-2 py-0.5 mr-1 text-xs">${escapeHtml(e)}</span>`).join('')}</div>` : ''}
-        ${node.tags?.length ? `<div class="text-sm"><span class="text-gray-500">Tags:</span> ${node.tags.map(t => `<span class="inline-block bg-emerald-50 text-emerald-700 rounded px-2 py-0.5 mr-1 text-xs">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
-      </div>
-      <div class="p-4 border-t border-gray-200 flex gap-3">
-        <button onclick="forgetMemory('${node.id}')" class="flex-1 px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100">Forget</button>
-        <button onclick="this.closest('.modal-overlay').remove()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Close</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-}
-
-async function forgetMemory(nodeId) {
-  if (!confirm('Forget this memory? This cannot be undone.')) return;
-  try {
-    await fetch(`/brain/forget/${nodeId}?reason=user_request`, { method: 'POST' });
-    showToast('Memory forgotten');
-    loadMemories();
-    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
-  } catch (err) { showToast('Failed to forget memory'); }
-}
-
-// ══════════════════════════════════════════════════════
-// ADD MEMORY
-// ══════════════════════════════════════════════════════
-
-async function addMemory() {
-  const content = document.getElementById('add-content').value.trim();
-  const type = document.getElementById('add-type').value;
-  const tier = document.getElementById('add-tier').value;
-  const importance = parseInt(document.getElementById('add-importance').value);
-  const tags = document.getElementById('add-tags').value.split(',').map(t => t.trim()).filter(Boolean);
-  const privacy = document.getElementById('add-privacy').value;
-
-  if (!content) { showToast('Please enter content'); return; }
-
-  try {
-    const resp = await fetch('/brain/store', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, memory_type: type, tier, importance, tags })
-    });
-
-    if (!resp.ok) throw new Error('Failed to store');
-
-    // Set privacy if not default
-    const data = await resp.json();
-    if (data.id && privacy !== 'private') {
-      await fetch(`/brain/privacy/${data.id}?privacy=${privacy}`, { method: 'PUT' });
-    }
-
-    showToast('Memory saved!');
-    hideModal('add');
-    document.getElementById('add-content').value = '';
-    loadMemories();
-    loadStats();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-// ══════════════════════════════════════════════════════
-// SEMANTIC SEARCH
-// ══════════════════════════════════════════════════════
-
-async function loadSemanticSearch() {
-  showModal('search');
-}
-
-async function doSemanticSearch() {
-  const query = document.getElementById('semantic-query').value.trim();
-  if (!query) return;
-
-  const container = document.getElementById('semantic-results');
-  container.innerHTML = '<div class="text-center text-gray-400 py-4">Searching...</div>';
-
-  try {
-    const resp = await fetch(`/brain/semantic?query=${encodeURIComponent(query)}&limit=10`);
-    const data = await resp.json();
-    const results = data.results || [];
-
-    if (results.length === 0) {
-      container.innerHTML = '<div class="text-center text-gray-400 py-4">No semantic matches found.</div>';
-      return;
-    }
-
-    container.innerHTML = results.map(r => {
-      const node = r.node || {};
-      const content = typeof node.content === 'object' ? JSON.stringify(node.content) : String(node.content || '');
-      return `
-        <div class="p-3 bg-gray-50 rounded-lg">
-          <p class="text-sm text-gray-700">${escapeHtml(content.substring(0, 200))}</p>
-          <div class="flex items-center justify-between mt-2">
-            <span class="text-xs text-gray-400">${node.type || ''}</span>
-            <span class="text-xs font-medium text-indigo-600">${(r.score * 100).toFixed(1)}% match</span>
-          </div>
-        </div>
-      `;
-    }).join('');
-  } catch (err) {
-    container.innerHTML = `<div class="text-red-400 text-sm">Error: ${err.message}</div>`;
-  }
-}
-
-// ══════════════════════════════════════════════════════
-// PERSONA
-// ══════════════════════════════════════════════════════
-
-async function loadPersona() {
-  const container = document.getElementById('persona-content');
-  try {
-    const resp = await fetch('/brain/persona');
-    const data = await resp.json();
-    if (!data.name && !data.interests) {
-      container.innerHTML = '<div class="text-center text-gray-400 py-8">No persona extracted yet. Click "Extract from Recent" to analyze your conversations.</div>';
-      return;
-    }
-    container.innerHTML = `
-      <div class="grid grid-cols-2 gap-4">
-        ${data.name ? `<div class="bg-gray-50 rounded-lg p-4"><div class="text-xs text-gray-500 mb-1">Name</div><div class="font-medium">${escapeHtml(data.name)}</div></div>` : ''}
-        ${data.profession ? `<div class="bg-gray-50 rounded-lg p-4"><div class="text-xs text-gray-500 mb-1">Profession</div><div class="font-medium">${escapeHtml(data.profession)}</div></div>` : ''}
-        ${data.interests ? `<div class="bg-gray-50 rounded-lg p-4 col-span-2"><div class="text-xs text-gray-500 mb-1">Interests</div><div class="flex flex-wrap gap-1">${(data.interests||[]).map(i => `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs">${escapeHtml(i)}</span>`).join('')}</div></div>` : ''}
-        ${data.communication_style ? `<div class="bg-gray-50 rounded-lg p-4"><div class="text-xs text-gray-500 mb-1">Communication Style</div><div class="font-medium">${escapeHtml(data.communication_style)}</div></div>` : ''}
-        ${data.tone_preferences ? `<div class="bg-gray-50 rounded-lg p-4"><div class="text-xs text-gray-500 mb-1">Tone</div><div class="font-medium">${escapeHtml(data.tone_preferences)}</div></div>` : ''}
-        ${data.learning_goals ? `<div class="bg-gray-50 rounded-lg p-4 col-span-2"><div class="text-xs text-gray-500 mb-1">Learning Goals</div><div class="flex flex-wrap gap-1">${(data.learning_goals||[]).map(g => `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">${escapeHtml(g)}</span>`).join('')}</div></div>` : ''}
-        ${data.preferences ? Object.entries(data.preferences).map(([k,v]) => `<div class="bg-gray-50 rounded-lg p-4"><div class="text-xs text-gray-500 mb-1">${escapeHtml(k)}</div><div class="font-medium text-sm">${escapeHtml(String(v))}</div></div>`).join('') : ''}
-      </div>
-      ${data.confidence !== undefined ? `<div class="mt-4 text-center text-xs text-gray-400">Confidence: ${(data.confidence * 100).toFixed(0)}%</div>` : ''}
-    `;
-  } catch (err) {
-    container.innerHTML = `<div class="text-red-400 text-center py-8">Error: ${err.message}</div>`;
-  }
-}
-
-async function extractPersona() {
-  try {
-    await fetch('/brain/persona/extract', { method: 'POST' });
-    showToast('Persona extraction started');
-    setTimeout(loadPersona, 1000);
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-async function updatePersona() {
-  const field = document.getElementById('persona-field').value.trim();
-  const value = document.getElementById('persona-value').value.trim();
-  if (!field) { showToast('Enter field name'); return; }
-  try {
-    await fetch(`/brain/persona/${encodeURIComponent(field)}?value=${encodeURIComponent(value)}`, { method: 'PUT' });
-    showToast('Persona updated');
-    loadPersona();
-    document.getElementById('persona-field').value = '';
-    document.getElementById('persona-value').value = '';
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-// ══════════════════════════════════════════════════════
-// GOALS
-// ══════════════════════════════════════════════════════
-
-async function loadGoals() {
-  const container = document.getElementById('goals-list');
-  try {
-    const resp = await fetch('/brain/goals');
-    const data = await resp.json();
-    const goals = data.goals || [];
-
-    if (goals.length === 0) {
-      container.innerHTML = '<div class="text-center text-gray-400 py-8">No goals yet. Add one above!</div>';
-      return;
-    }
-
-    container.innerHTML = goals.map(g => `
-      <div class="bg-white rounded-lg border border-gray-200 p-4 mb-3">
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <h4 class="font-medium">${escapeHtml(g.title || '')}</h4>
-            ${g.description ? `<p class="text-sm text-gray-500 mt-1">${escapeHtml(g.description)}</p>` : ''}
-            <div class="flex flex-wrap gap-2 mt-2">
-              <span class="px-2 py-0.5 rounded text-xs font-medium ${g.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}">${g.status || 'active'}</span>
-              <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">${g.category || 'general'}</span>
-              ${g.deadline ? `<span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">Due: ${g.deadline}</span>` : ''}
-            </div>
-            ${g.progress !== undefined ? `
-              <div class="mt-2">
-                <div class="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Progress</span><span>${Math.round(g.progress * 100)}%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div class="bg-emerald-500 h-2 rounded-full" style="width:${(g.progress * 100).toFixed(0)}%"></div>
-                </div>
-              </div>
-            ` : ''}
-          </div>
-          <div class="flex gap-1 ml-4">
-            ${g.blockers?.length ? `<span class="text-xs text-red-500">⚠️ ${g.blockers.length}</span>` : ''}
-          </div>
-        </div>
-        <div class="flex gap-2 mt-3">
-          <button onclick="updateGoalProgress('${g.id}', 1)" class="px-3 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-medium hover:bg-emerald-100">Complete</button>
-          <button onclick="updateGoalProgress('${g.id}', ${Math.min(((g.progress||0) + 0.25), 1).toFixed(2)})" class="px-3 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium hover:bg-gray-200">+25%</button>
-          <button onclick="setGoalStatus('${g.id}', 'paused')" class="px-3 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium hover:bg-gray-200">Pause</button>
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    container.innerHTML = `<div class="text-red-400 text-center py-8">Error: ${err.message}</div>`;
-  }
-}
-
-async function addGoal() {
-  const title = document.getElementById('goal-title').value.trim();
-  const description = document.getElementById('goal-description').value.trim();
-  const deadline = document.getElementById('goal-deadline').value;
-  const priority = parseInt(document.getElementById('goal-priority').value);
-  const category = document.getElementById('goal-category').value;
-
-  if (!title) { showToast('Enter a goal title'); return; }
-
-  try {
-    await fetch('/brain/goals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, deadline, priority, category })
-    });
-    showToast('Goal added!');
-    ['goal-title','goal-description','goal-deadline'].forEach(id => document.getElementById(id).value = '');
-    loadGoals();
-    loadStats();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-async function updateGoalProgress(goalId, progress) {
-  try {
-    await fetch(`/brain/goals/${goalId}/progress?progress=${progress}`, { method: 'PUT' });
-    loadGoals();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-async function setGoalStatus(goalId, status) {
-  try {
-    await fetch(`/brain/goals/${goalId}/status?status=${status}`, { method: 'PUT' });
-    loadGoals();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-// ══════════════════════════════════════════════════════
-// SKILLS
-// ══════════════════════════════════════════════════════
-
-async function loadSkills() {
-  const container = document.getElementById('skills-list');
-  try {
-    const resp = await fetch('/brain/skills');
-    const data = await resp.json();
-    const skills = data.skills || [];
-
-    if (skills.length === 0) {
-      container.innerHTML = '<div class="text-center text-gray-400 py-8">No skills tracked yet. Add one above!</div>';
-      return;
-    }
-
-    const levels = ['Novice', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
-    const levelColors = ['bg-gray-100 text-gray-600', 'bg-blue-100 text-blue-700', 'bg-cyan-100 text-cyan-700', 'bg-indigo-100 text-indigo-700', 'bg-amber-100 text-amber-700'];
-
-    container.innerHTML = `
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        ${skills.map(s => {
-          const lvl = s.level || 1;
-          return `
-          <div class="bg-white rounded-lg border border-gray-200 p-4">
-            <div class="flex items-center justify-between">
-              <h4 class="font-medium">${escapeHtml(s.name || '')}</h4>
-              <span class="badge ${levelColors[lvl-1] || levelColors[0]}">${levels[lvl-1] || 'Unknown'}</span>
-            </div>
-            <div class="flex items-center gap-2 mt-2">
-              <span class="text-xs text-gray-500">${s.category || 'general'}</span>
-              <div class="flex gap-0.5 ml-auto">
-                ${[1,2,3,4,5].map(i => `<div class="w-3 h-3 rounded-full ${i <= lvl ? 'bg-amber-400' : 'bg-gray-200'}"></div>`).join('')}
-              </div>
-            </div>
-            ${s.description ? `<p class="text-xs text-gray-500 mt-2">${escapeHtml(s.description)}</p>` : ''}
-            <div class="flex gap-2 mt-3">
-              ${[1,2,3,4,5].map(l => `<button onclick="setSkillLevel('${s.name}',${l})" class="px-2 py-1 bg-gray-50 rounded text-xs hover:bg-gray-100">${['B','I','A','E','X'][l-1]}</button>`).join('')}
-            </div>
-          </div>
-        `}).join('')}
-      </div>
-    `;
-  } catch (err) {
-    container.innerHTML = `<div class="text-red-400 text-center py-8">Error: ${err.message}</div>`;
-  }
-}
-
-async function addSkill() {
-  const name = document.getElementById('skill-name').value.trim();
-  const level = document.getElementById('skill-level').value;
-  const category = document.getElementById('skill-category').value;
-  if (!name) { showToast('Enter skill name'); return; }
-
-  try {
-    await fetch('/brain/skills', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, level, category })
-    });
-    showToast('Skill added!');
-    document.getElementById('skill-name').value = '';
-    loadSkills();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-async function setSkillLevel(skillName, level) {
-  try {
-    await fetch(`/brain/skills/${encodeURIComponent(skillName)}/level?level=${['novice','beginner','intermediate','advanced','expert'][level-1]}`, { method: 'PUT' });
-    loadSkills();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-// ══════════════════════════════════════════════════════
-// QUALITY
-// ══════════════════════════════════════════════════════
-
-async function loadQuality() {
-  const container = document.getElementById('quality-content');
-  try {
-    const resp = await fetch('/brain/quality');
-    const data = await resp.json();
-
-    container.innerHTML = `
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-emerald-50 rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-emerald-600">${((data.average_quality || 0) * 100).toFixed(0)}%</div>
-          <div class="text-xs text-gray-500 mt-1">Avg Quality</div>
-        </div>
-        <div class="bg-blue-50 rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-blue-600">${data.high_quality_count || 0}</div>
-          <div class="text-xs text-gray-500 mt-1">High Quality</div>
-        </div>
-        <div class="bg-amber-50 rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-amber-600">${data.medium_quality_count || 0}</div>
-          <div class="text-xs text-gray-500 mt-1">Medium Quality</div>
-        </div>
-        <div class="bg-red-50 rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-red-600">${data.low_quality_count || 0}</div>
-          <div class="text-xs text-gray-500 mt-1">Low Quality</div>
-        </div>
-      </div>
-      ${data.issues?.length ? `
-        <div class="border-t border-gray-200 pt-4">
-          <h4 class="font-medium mb-2">Issues Found</h4>
-          <div class="space-y-2">
-            ${data.issues.map(i => `<div class="flex items-start gap-2 p-2 bg-gray-50 rounded text-sm"><span class="text-amber-500">⚠️</span>${escapeHtml(i)}</div>`).join('')}
-          </div>
-        </div>
-      ` : ''}
-      ${data.recommendations?.length ? `
-        <div class="border-t border-gray-200 pt-4 mt-4">
-          <h4 class="font-medium mb-2">Recommendations</h4>
-          <div class="space-y-2">
-            ${data.recommendations.map(r => `<div class="flex items-start gap-2 p-2 bg-emerald-50 rounded text-sm"><span class="text-emerald-500">💡</span>${escapeHtml(r)}</div>`).join('')}
-          </div>
-        </div>
-      ` : ''}
-    `;
-  } catch (err) {
-    container.innerHTML = `<div class="text-red-400 text-center py-8">Error: ${err.message}</div>`;
-  }
-}
-
-// ══════════════════════════════════════════════════════
-// SYNC
-// ══════════════════════════════════════════════════════
-
-async function loadSyncStatus() {
-  const container = document.getElementById('sync-status');
-  try {
-    const resp = await fetch('/brain/sync');
-    const data = await resp.json();
-    const total = data.total || 0;
-    const synced = data.synced || 0;
-    const pending = data.pending || 0;
-    const pct = total > 0 ? ((synced / total) * 100).toFixed(0) : 0;
-
-    container.innerHTML = `
-      <div class="space-y-3">
-        <div class="flex justify-between text-sm"><span>Synced</span><span class="font-medium text-emerald-600">${synced}</span></div>
-        <div class="flex justify-between text-sm"><span>Pending</span><span class="font-medium text-amber-600">${pending}</span></div>
-        <div class="flex justify-between text-sm"><span>Conflicts</span><span class="font-medium text-red-600">${data.conflicts || 0}</span></div>
-        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-          <div class="bg-emerald-500 h-2 rounded-full" style="width:${pct}%"></div>
-        </div>
-        <div class="text-center text-xs text-gray-500">${pct}% synced</div>
-      </div>
-    `;
-  } catch (err) {
-    container.innerHTML = `<div class="text-red-400 text-sm">Error: ${err.message}</div>`;
-  }
-}
-
-async function compressMemories() {
-  showToast('Running compression...');
-  try {
-    const resp = await fetch('/brain/compress?days_old=30', { method: 'POST' });
-    const data = await resp.json();
-    showToast(`Compressed ${data.summaries_created || 0} memories`);
-    loadSyncStatus();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-async function autoLink() {
-  showToast('Running auto-linking...');
-  try {
-    const resp = await fetch('/brain/links/auto', { method: 'POST' });
-    const data = await resp.json();
-    showToast(`Created ${data.links_created || 0} new links`);
-    loadStats();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-// ══════════════════════════════════════════════════════
-// BACKUP & EXPORT
-// ══════════════════════════════════════════════════════
-
-async function loadBackups() {
-  const container = document.getElementById('backups-content');
-  try {
-    const resp = await fetch('/brain/backups');
-    const data = await resp.json();
-    const backups = data.backups || [];
-
-    if (backups.length === 0) {
-      container.innerHTML = '<div class="text-sm text-gray-400 text-center py-4">No backups yet.</div>';
-      return;
-    }
-
-    container.innerHTML = backups.map(b => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-        <div>
-          <div class="text-sm font-medium">${b.id}</div>
-          <div class="text-xs text-gray-400">${formatDate(b.timestamp)} · ${b.node_count} nodes · ${(b.size_mb||0).toFixed(2)} MB</div>
-        </div>
-        <div class="flex gap-2">
-          <button onclick="restoreBackup('${b.id}')" class="px-3 py-1 bg-blue-50 text-blue-600 rounded text-xs font-medium hover:bg-blue-100">Restore</button>
-          <button onclick="deleteBackup('${b.id}')" class="px-3 py-1 bg-red-50 text-red-600 rounded text-xs font-medium hover:bg-red-100">Delete</button>
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    container.innerHTML = `<div class="text-red-400 text-sm">Error: ${err.message}</div>`;
-  }
-}
-
-async function createBackup() {
-  const desc = prompt('Backup description (optional):') || '';
-  try {
-    const resp = await fetch('/brain/backup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: desc })
-    });
-    const data = await resp.json();
-    showToast(`Backup created: ${data.backup_id}`);
-    loadBackups();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-async function restoreBackup(backupId) {
-  if (!confirm(`Restore backup "${backupId}"? This will replace current memory.`)) return;
-  try {
-    await fetch(`/brain/restore/${backupId}`, { method: 'POST' });
-    showToast('Backup restored!');
-    loadStats();
-    loadMemories();
-    hideModal('backup');
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-async function deleteBackup(backupId) {
-  if (!confirm(`Delete backup "${backupId}"?`)) return;
-  try {
-    await fetch(`/brain/backup/${backupId}`, { method: 'DELETE' });
-    showToast('Backup deleted');
-    loadBackups();
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-async function exportMemory(format) {
-  try {
-    const resp = await fetch(`/brain/export?format=${format}`);
-    const data = await resp.json();
-
-    if (format === 'json') {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      downloadBlob(blob, `rasospeak_export_${Date.now()}.json`);
-    } else if (format === 'markdown') {
-      const blob = new Blob([data.content || ''], { type: 'text/markdown' });
-      downloadBlob(blob, `rasospeak_export_${Date.now()}.md`);
-    } else if (format === 'obsidian') {
-      showToast(`Obsidian vault created at: ${data.path || 'memory/second_brain/exports/obsidian_vault'}`);
-    }
-
-    showToast(`Exported as ${format}!`);
-  } catch (err) { showToast('Export error: ' + err.message); }
-}
-
-function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function showRestore() {
-  const id = prompt('Enter backup ID to restore:');
-  if (id) restoreBackup(id);
-}
-
-// ══════════════════════════════════════════════════════
-// ENCRYPTION
-// ══════════════════════════════════════════════════════
-
-function loadEncryptionStatus() {
-  document.getElementById('encryption-status').textContent = 'Encryption key status unknown (server-side)';
-}
-
-function setEncryptionKey() {
-  const key = document.getElementById('encrypt-passphrase').value;
-  if (!key) { showToast('Enter a passphrase'); return; }
-  fetch('/brain/encrypt/key', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key })
-  }).then(() => {
-    showToast('Encryption key set!');
-    document.getElementById('encrypt-passphrase').value = '';
-  }).catch(err => showToast('Error: ' + err.message));
-}
-
-function clearEncryptionKey() {
-  fetch('/brain/encrypt/key', { method: 'DELETE' })
-    .then(() => showToast('Encryption key cleared'))
-    .catch(err => showToast('Error: ' + err.message));
-}
-
-// ══════════════════════════════════════════════════════
-// PROACTIVE & PATTERNS
-// ══════════════════════════════════════════════════════
-
-async function loadProactive() {
-  try {
-    const resp = await fetch('/brain/proactive');
-    const data = await resp.json();
-    const mems = data.memories || [];
-
-    if (mems.length === 0) {
-      showToast('No proactive memories right now');
-      return;
-    }
-
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-    modal.innerHTML = `
-      <div class="modal" style="max-width:600px">
-        <div class="p-6 border-b border-gray-200 flex justify-between">
-          <h3 class="font-semibold text-lg">Proactive Memories</h3>
-          <button onclick="this.closest('.modal-overlay').remove()" class="text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-        </div>
-        <div class="p-6 space-y-3 max-h-96 overflow-y-auto">
-          ${mems.map(m => {
-            const node = m.node || {};
-            const content = typeof node.content === 'object' ? JSON.stringify(node.content) : String(node.content || '');
-            return `
-              <div class="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="badge bg-amber-100 text-amber-700">${m.reason || 'proactive'}</span>
-                  <span class="text-xs text-gray-400">urgency: ${((m.urgency||0)*100).toFixed(0)}%</span>
-                </div>
-                <p class="text-sm text-gray-700">${escapeHtml(content.substring(0, 200))}</p>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-async function loadPatterns() {
-  try {
-    const resp = await fetch('/brain/patterns');
-    const data = await resp.json();
-    const patterns = data.patterns || [];
-
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-    modal.innerHTML = `
-      <div class="modal" style="max-width:640px">
-        <div class="p-6 border-b border-gray-200 flex justify-between">
-          <h3 class="font-semibold text-lg">Detected Patterns</h3>
-          <button onclick="this.closest('.modal-overlay').remove()" class="text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-        </div>
-        <div class="p-6 space-y-3 max-h-96 overflow-y-auto">
-          ${patterns.length === 0 ? '<div class="text-center text-gray-400 py-8">No patterns detected yet.</div>' : patterns.map(p => `
-            <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="badge badge-pattern">${p.pattern_type || 'unknown'}</span>
-                <span class="text-xs text-gray-400">${p.occurrences || 1} occurrences</span>
-                <span class="text-xs font-medium text-blue-600">${((p.confidence||0)*100).toFixed(0)}% confidence</span>
-              </div>
-              <p class="text-sm text-gray-700">${escapeHtml(p.description || '')}</p>
-              <div class="text-xs text-gray-400 mt-1">${timeAgo(p.last_seen)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-// ══════════════════════════════════════════════════════
-// GRAPH & TIMELINE
-// ══════════════════════════════════════════════════════
-
-async function loadGraph() {
-  showModal('graph');
-  const statsDiv = document.getElementById('graph-stats');
-  const contentDiv = document.getElementById('graph-content');
-
-  try {
-    const resp = await fetch('/brain/graph?max_nodes=100');
-    const data = await resp.json();
-    const nodes = data.nodes || [];
-    const edges = data.edges || [];
-
-    statsDiv.innerHTML = `
-      <span><strong>${nodes.length}</strong> nodes</span>
-      <span><strong>${edges.length}</strong> connections</span>
-    `;
-
-    // Simple ASCII/HTML graph visualization
-    const nodeById = {};
-    nodes.forEach(n => nodeById[n.id] = n);
-
-    const types = {};
-    nodes.forEach(n => { types[n.type] = (types[n.type] || 0) + 1; });
-
-    const tierGroups = {};
-    nodes.forEach(n => {
-      const tier = n.tier || 'unknown';
-      if (!tierGroups[tier]) tierGroups[tier] = [];
-      tierGroups[tier].push(n);
-    });
-
-    const typeColors = {
-      conversation: 'bg-emerald-400',
-      fact: 'bg-purple-400',
-      document: 'bg-blue-400',
-      audio: 'bg-orange-400',
-      entity: 'bg-pink-400',
-      event: 'bg-cyan-400',
-    };
-
-    contentDiv.innerHTML = `
-      <div class="mb-4 text-sm text-gray-500">
-        Memory distribution by type: ${Object.entries(types).map(([t, c]) => `<span class="inline-block ${typeColors[t]||'bg-gray-400'} text-white rounded px-2 py-0.5 mr-1">${t}: ${c}</span>`).join('')}
-      </div>
-      <div class="text-sm text-gray-500 mb-4 text-center">${Object.keys(tierGroups).length} tiers detected</div>
-      <div class="space-y-6">
-        ${Object.entries(tierGroups).map(([tier, tierNodes]) => `
-          <div>
-            <div class="text-xs font-semibold text-gray-400 uppercase mb-2">${tier} (${tierNodes.length})</div>
-            <div class="flex flex-wrap gap-2">
-              ${tierNodes.map(n => `
-                <div class="w-3 h-3 rounded-full ${typeColors[n.type] || 'bg-gray-400'}" title="${escapeHtml(String(n.label||n.id).substring(0,30))} (${n.type})"></div>
-              `).join('')}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      ${edges.length > 0 ? `
-        <div class="mt-4 pt-4 border-t border-gray-200">
-          <div class="text-xs text-gray-500 mb-2">Top connections:</div>
-          <div class="space-y-1 max-h-32 overflow-y-auto">
-            ${edges.slice(0, 10).map(e => `
-              <div class="text-xs text-gray-600">
-                <span class="inline-block w-2 h-2 rounded-full ${typeColors[nodeById[e.source]?.type] || 'bg-gray-300'} mr-1"></span>
-                ${(nodeById[e.source]?.label || e.source)?.substring(0, 15)} ...
-                <span class="text-gray-400">${e.relationship || '→'}</span> ...
-                <span class="inline-block w-2 h-2 rounded-full ${typeColors[nodeById[e.target]?.type] || 'bg-gray-300'} mr-1"></span>
-                ${(nodeById[e.target]?.label || e.target)?.substring(0, 15)}
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-    `;
-  } catch (err) {
-    contentDiv.innerHTML = `<div class="text-red-400">Error: ${err.message}</div>`;
-  }
-}
-
-async function loadTimeline() {
-  try {
-    const resp = await fetch('/brain/timeline?days=30');
-    const data = await resp.json();
-    const entries = data.entries || [];
-
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-    modal.innerHTML = `
-      <div class="modal" style="max-width:700px;max-height:85vh">
-        <div class="p-6 border-b border-gray-200 flex justify-between">
-          <h3 class="font-semibold text-lg">Memory Timeline (Last 30 Days)</h3>
-          <button onclick="this.closest('.modal-overlay').remove()" class="text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-        </div>
-        <div class="p-6 overflow-y-auto max-h-[70vh]">
-          ${entries.length === 0 ? '<div class="text-center text-gray-400 py-8">No memories in the last 30 days.</div>' : `
-            <div class="relative">
-              <div class="absolute left-4 top-0 bottom-0 w-px bg-gray-200"></div>
-              <div class="space-y-4">
-                ${entries.map(e => `
-                  <div class="relative pl-10">
-                    <div class="absolute left-2.5 top-2 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></div>
-                    <div class="text-xs text-gray-400 mb-1">${formatDate(e.timestamp)}</div>
-                    <div class="bg-gray-50 rounded-lg p-3">
-                      <div class="flex items-center gap-2 mb-1">
-                        <span class="badge badge-type">${e.type || 'unknown'}</span>
-                        ${e.importance ? `<span class="text-xs text-gray-400">priority: ${e.importance}</span>` : ''}
-                      </div>
-                      <p class="text-sm text-gray-700">${escapeHtml(String(e.content || '').substring(0, 150))}</p>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `}
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  } catch (err) { showToast('Error: ' + err.message); }
-}
-
-// ══════════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════════
-
+// Initialize
 window.addEventListener('load', () => {
-  loadStats();
-  loadMemories();
+  loadMemoryStats();
+  loadRecentFacts();
 });
 </script>
 

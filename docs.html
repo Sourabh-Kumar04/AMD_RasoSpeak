@@ -17,8 +17,11 @@
 </head>
 <body class="min-h-screen">
 
+<!-- Skip to main content -->
+<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
+
 <!-- Navigation -->
-<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
   <div class="max-w-5xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
       <a href="index.html" class="flex items-center gap-3">
@@ -26,19 +29,19 @@
         <span class="font-bold text-lg">RasoSpeak</span>
       </a>
       <div class="flex items-center gap-1">
-        <a href="index.html" class="nav-link">Home</a>
-        <a href="chat.html" class="nav-link">Chat</a>
-        <a href="memory.html" class="nav-link">Memory</a>
-        <a href="coach.html" class="nav-link">Coach</a>
-        <a href="docs.html" class="nav-link active">Docs</a>
-        <a href="settings.html" class="nav-link">Settings</a>
+        <a href="index.html" class="nav-link" aria-label="Home">Home</a>
+        <a href="chat.html" class="nav-link" aria-label="Chat">Chat</a>
+        <a href="memory.html" class="nav-link" aria-label="Memory">Memory</a>
+        <a href="coach.html" class="nav-link" aria-label="Coach">Coach</a>
+        <a href="docs.html" class="nav-link active" aria-label="Docs">Docs</a>
+        <a href="settings.html" class="nav-link" aria-label="Settings">Settings</a>
       </div>
     </div>
   </div>
 </nav>
 
 <!-- Main Content -->
-<main class="max-w-4xl mx-auto px-6 py-8">
+<main id="main-content" class="max-w-4xl mx-auto px-6 py-8">
 
   <!-- Header -->
   <div class="mb-8">
@@ -82,10 +85,10 @@
   <!-- Upload File -->
   <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
     <h2 class="text-lg font-semibold mb-4">Upload Document</h2>
-    <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors cursor-pointer" onclick="document.getElementById('doc-upload').click()">
+    <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors cursor-pointer" onclick="document.getElementById('doc-upload').click()" role="button" tabindex="0" aria-label="Click to upload a document" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('doc-upload').click()}">
       <input type="file" id="doc-upload" accept=".pdf,.txt,.md,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
       <div class="text-gray-400 mb-2">
-        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
         </svg>
       </div>
@@ -109,20 +112,21 @@
       <div class="flex items-center gap-2">
         <div class="relative flex items-center">
           <input type="text" id="doc-search" placeholder="Search knowledge..."
-            class="pl-10 pr-32 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-72">
-          <button id="voice-search-btn" onclick="toggleVoiceSearch()" class="absolute left-2 p-1 text-gray-400 hover:text-emerald-500">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="pl-10 pr-32 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-72"
+            aria-label="Search documents">
+          <button id="voice-search-btn" onclick="toggleVoiceSearch()" class="absolute left-2 p-1 text-gray-400 hover:text-emerald-500" aria-label="Toggle voice search">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
             </svg>
           </button>
           <div class="absolute right-1 flex gap-1">
-            <button onclick="searchDocs('wiki')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200" title="Search Wikipedia">📚</button>
-            <button onclick="searchDocs('web')" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200" title="Search web">🌐</button>
-            <button onclick="searchDocs('rag')" class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs hover:bg-purple-200" title="RAG search">🤖</button>
+            <button onclick="searchDocs('wiki')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200" aria-label="Search Wikipedia">📚</button>
+            <button onclick="searchDocs('web')" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200" aria-label="Search web">🌐</button>
+            <button onclick="searchDocs('rag')" class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs hover:bg-purple-200" aria-label="RAG search">🤖</button>
           </div>
         </div>
-        <button onclick="searchDocs('docs')" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">📄 Docs</button>
-        <button onclick="loadDocuments()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Refresh</button>
+        <button onclick="searchDocs('docs')" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200" aria-label="Search documents">📄 Docs</button>
+        <button onclick="loadDocuments()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200" aria-label="Refresh document list">Refresh</button>
       </div>
     </div>
     <div id="search-type-label" class="text-xs text-gray-400 mb-2">
@@ -146,8 +150,8 @@
     <div id="docs-pagination" class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
       <p id="docs-count" class="text-sm text-gray-500"></p>
       <div class="flex gap-2">
-        <button id="prev-page" onclick="prevPage()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200 disabled:opacity-50" disabled>Previous</button>
-        <button id="next-page" onclick="nextPage()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200 disabled:opacity-50" disabled>Next</button>
+        <button id="prev-page" onclick="prevPage()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200 disabled:opacity-50" disabled aria-label="Previous page">Previous</button>
+        <button id="next-page" onclick="nextPage()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200 disabled:opacity-50" disabled aria-label="Next page">Next</button>
       </div>
     </div>
   </div>
@@ -155,7 +159,7 @@
 </main>
 
 <!-- Toast -->
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50"></div>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- Scripts -->
 <script src="state.js"></script>
@@ -414,8 +418,8 @@ async function loadDocuments(page = 1) {
           </div>
         </div>
         <div class="flex items-center gap-2 ml-4">
-          <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500 transition-colors" aria-label="Delete document">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
             </svg>
           </button>

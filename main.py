@@ -575,7 +575,9 @@ async def get_qa_topics(user_id: str):
 
 
 # ══════════════════════════════════════════════════════
-# SHARED MEMORY ENDPOINTS — Unified brain for all AIs
+# SHARED MEMORY ENDPOINTS — DEPRECATED (use /brain/* instead)
+# Migration: /memory/store → /brain/memory, /memory/recall → /brain/recall
+# These endpoints will be removed in v3.0.
 # ══════════════════════════════════════════════════════
 
 class MemoryStoreRequest(BaseModel):
@@ -589,33 +591,33 @@ class RememberFactRequest(BaseModel):
     category: str = "general"
 
 
-@app.post("/memory/store")
+@app.post("/memory/store", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Use /brain/memory instead")
 async def store_memory(req: MemoryStoreRequest):
-    """Store a memory item in shared memory."""
+    """⚠️ DEPRECATED: Use /brain/memory instead. Will be removed in v3.0."""
     return await agents["shared_memory"].store(req.key, req.value, req.category)
 
 
-@app.get("/memory/recall")
+@app.get("/memory/recall", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Use /brain/recall instead")
 async def recall_memory(query: str = None, key: str = None, category: str = None, limit: int = 10):
-    """Recall memories based on query, key, or category."""
+    """⚠️ DEPRECATED: Use /brain/recall instead. Will be removed in v3.0."""
     return await agents["shared_memory"].recall(query, key, category, limit)
 
 
-@app.post("/memory/fact")
+@app.post("/memory/fact", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Use /brain/memory instead")
 async def remember_fact(req: RememberFactRequest):
-    """Store a fact about the user."""
+    """⚠️ DEPRECATED: Use /brain/memory with memory_type=semantic. Will be removed in v3.0."""
     return await agents["shared_memory"].remember_user_fact(req.fact, req.category)
 
 
-@app.get("/memory/stats")
+@app.get("/memory/stats", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Use /brain/stats instead")
 async def get_memory_stats():
-    """Get shared memory statistics."""
+    """⚠️ DEPRECATED: Use /brain/stats instead. Will be removed in v3.0."""
     return await agents["shared_memory"].get_memory_stats()
 
 
-@app.post("/memory/cleanup")
+@app.post("/memory/cleanup", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Second Brain manages memory automatically")
 async def cleanup_memory(max_age_days: int = 30):
-    """Clean up old sessions to prevent memory leaks."""
+    """⚠️ DEPRECATED: Second Brain manages memory automatically. Will be removed in v3.0."""
     removed = await agents["memory"].cleanup_old_sessions(max_age_days)
     session_count = await agents["memory"].get_session_count()
     return {
@@ -624,9 +626,9 @@ async def cleanup_memory(max_age_days: int = 30):
     }
 
 
-@app.get("/memory/context")
+@app.get("/memory/context", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Use /brain/context instead")
 async def get_ai_context(ai_name: str = None):
-    """Get formatted context for AI prompts."""
+    """⚠️ DEPRECATED: Use /brain/context instead. Will be removed in v3.0."""
     return await agents["shared_memory"].get_context_for_ai(ai_name)
 
 
@@ -635,15 +637,15 @@ class PreferenceRequest(BaseModel):
     value: Any
 
 
-@app.post("/memory/preference")
+@app.post("/memory/preference", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Use /brain/persona instead")
 async def set_preference(req: PreferenceRequest):
-    """Set a user preference."""
+    """⚠️ DEPRECATED: Use /brain/persona instead. Will be removed in v3.0."""
     return await agents["shared_memory"].set_user_preference(req.key, req.value)
 
 
-@app.get("/memory/preferences")
+@app.get("/memory/preferences", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Use /brain/persona instead")
 async def get_preferences():
-    """Get user preferences."""
+    """⚠️ DEPRECATED: Use /brain/persona instead. Will be removed in v3.0."""
     return await agents["shared_memory"].get_user_preferences()
 
 
@@ -652,9 +654,9 @@ class WeakWordRequest(BaseModel):
     context: str = None
 
 
-@app.post("/memory/weak-word")
+@app.post("/memory/weak-word", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Use /brain/memory instead")
 async def add_weak_word(req: WeakWordRequest, session_id: str = None):
-    """Add a word the user struggles with."""
+    """⚠️ DEPRECATED: Use /brain/memory with tags=['weak-word']. Will be removed in v3.0."""
     return await agents["shared_memory"].add_weak_word(req.word, req.context, session_id)
 
 
@@ -1309,6 +1311,197 @@ async def brain_mark_synced(node_ids: list[str]):
 
 
 # ══════════════════════════════════════════════════════
+# UNIFIED RAG — Documents + Memory combined
+# ══════════════════════════════════════════════════════
+
+
+class UnifiedRAGRequest(BaseModel):
+    query: str
+    memory_top_k: int = 5
+    doc_top_k: int = 5
+    use_memory: bool = True
+    use_docs: bool = True
+    use_llm: bool = True
+
+
+@app.post("/brain/rag", tags=["🧠 Unified Search"], summary="[Phase 7] Unified RAG: Documents + Memory combined")
+async def unified_rag_query(req: UnifiedRAGRequest):
+    """
+    Phase 7: Unified RAG search combining documents AND memory.
+
+    Searches both:
+    - Document knowledge base (via RAG agent BM25 retrieval)
+    - Personal memory (via Second Brain semantic search)
+
+    Returns combined results with optional LLM synthesis.
+    """
+    t_start = time.perf_counter()
+
+    context_parts: list[dict] = []
+    memory_sources: list[dict] = []
+    doc_sources: list[dict] = []
+
+    # ── Step 1: Query Second Brain Memory ──────────────
+    if req.use_memory and "brain" in agents:
+        try:
+            memory_results = await agents["brain"].recall(query=req.query, limit=req.memory_top_k)
+            for r in memory_results.get("results", []):
+                node_id = r.get("node_id") or r.get("id", "")
+                memory_type = r.get("memory_type", "general")
+                content = r.get("content", "") or str(r.get("value", ""))
+                if content:
+                    context_parts.append({
+                        "source": "memory",
+                        "type": memory_type,
+                        "id": node_id,
+                        "content": content[:500],
+                        "relevance": r.get("relevance", r.get("score", 0)),
+                    })
+                    memory_sources.append({
+                        "type": memory_type,
+                        "content_preview": content[:150],
+                        "relevance": r.get("relevance", r.get("score", 0)),
+                    })
+        except Exception as e:
+            log.warning(f"Memory retrieval failed: {e}")
+
+    # ── Step 2: Query Document Knowledge Base ──────────
+    if req.use_docs and "rag" in agents:
+        try:
+            doc_results = await agents["rag"].retrieve(req.query, top_k=req.doc_top_k)
+            for r in doc_results:
+                context_parts.append({
+                    "source": "document",
+                    "type": r.get("metadata", {}).get("title", "Document"),
+                    "id": r.get("id", ""),
+                    "content": r.get("content", "")[:500],
+                    "relevance": r.get("score", 0),
+                })
+                doc_sources.append({
+                    "title": r.get("metadata", {}).get("title", "Document"),
+                    "url": r.get("metadata", {}).get("url"),
+                    "score": r.get("score", 0),
+                })
+        except Exception as e:
+            log.warning(f"Document retrieval failed: {e}")
+
+    if not context_parts:
+        return {
+            "answer": "No relevant results found. Try adding documents or memories first.",
+            "memory_results": [],
+            "doc_results": [],
+            "context_used": False,
+            "processing_ms": int((time.perf_counter() - t_start) * 1000),
+        }
+
+    # Sort by relevance
+    context_parts.sort(key=lambda x: x.get("relevance", 0), reverse=True)
+
+    # ── Step 3: Build unified context ──────────────────
+    memory_context = "\n".join([
+        f"[Memory - {c['type']}]: {c['content']}"
+        for c in context_parts if c["source"] == "memory"
+    ])
+    doc_context = "\n".join([
+        f"[Document - {c['type']}]: {c['content']}"
+        for c in context_parts if c["source"] == "document"
+    ])
+
+    # ── Step 4: LLM synthesis ───────────────────────────
+    answer = None
+    if req.use_llm and "qa" in agents:
+        try:
+            system_prompt = """You are Raso, an AI with perfect memory and document knowledge.
+
+You have access to two types of information:
+1. PERSONAL MEMORY: The user's conversation history, preferences, goals, and facts
+2. DOCUMENTS: Imported knowledge base documents
+
+Synthesize both sources to give a complete, personalized answer.
+- Use memory for personal context (what the user has discussed, their preferences)
+- Use documents for factual knowledge
+
+If information comes from both sources, mention it explicitly."""
+
+            user_prompt = f"""Personal Memory:
+{memory_context or '(no relevant memory found)'}
+
+Document Knowledge:
+{doc_context or '(no relevant documents found)'}
+
+Question: {req.query}"""
+
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+            result = await agents["qa"]._llm_client.chat(messages, temperature=0.15, max_tokens=2048)
+            answer = result.get("content") if isinstance(result, dict) else str(result)
+        except Exception as e:
+            log.warning(f"LLM synthesis failed: {e}")
+            answer = None
+
+    elapsed_ms = int((time.perf_counter() - t_start) * 1000)
+
+    return {
+        "answer": answer or (
+            f"Found {len(memory_sources)} memory results and {len(doc_sources)} document results. "
+            f"See 'memory_results' and 'doc_results' for details."
+        ),
+        "memory_results": memory_sources[:req.memory_top_k],
+        "doc_results": doc_sources[:req.doc_top_k],
+        "total_sources": len(context_parts),
+        "context_used": True,
+        "processing_ms": elapsed_ms,
+    }
+
+
+@app.get("/brain/search", tags=["🧠 Unified Search"], summary="[Phase 7] Search both memory and documents")
+async def unified_search(query: str, limit: int = 10):
+    """
+    Phase 7: Search both memory and documents in one call.
+    Returns combined, relevance-ranked results.
+    """
+    results = {"memory": [], "documents": []}
+
+    # Memory search
+    if "brain" in agents:
+        try:
+            mem = await agents["brain"].recall(query=query, limit=limit)
+            results["memory"] = [
+                {
+                    "id": r.get("node_id", r.get("id", "")),
+                    "type": r.get("memory_type", "general"),
+                    "content": (r.get("content", "") or str(r.get("value", "")))[:300],
+                    "relevance": r.get("relevance", r.get("score", 0)),
+                }
+                for r in mem.get("results", [])
+                if r.get("content") or r.get("value")
+            ]
+        except Exception as e:
+            log.warning(f"Memory search failed: {e}")
+
+    # Document search
+    if "rag" in agents:
+        try:
+            docs = await agents["rag"].retrieve(query=query, top_k=limit)
+            results["documents"] = [
+                {
+                    "id": r.get("id", ""),
+                    "title": r.get("metadata", {}).get("title", "Document"),
+                    "url": r.get("metadata", {}).get("url"),
+                    "content": r.get("content", "")[:300],
+                    "score": r.get("score", 0),
+                }
+                for r in docs
+            ]
+        except Exception as e:
+            log.warning(f"Document search failed: {e}")
+
+    return results
+
+
+# ══════════════════════════════════════════════════════
 # RASO — Your AI Companion with Memory & Personality
 # ══════════════════════════════════════════════════════
 
@@ -1802,12 +1995,12 @@ async def upload_document(file: UploadFile = File(...), title: str = "Untitled",
 # ══════════════════════════════════════════════════════
 
 
-@app.post("/memory/clear")
+@app.post("/memory/clear", tags=["⚠️ DEPRECATED"], summary="[DEPRECATED] Use /brain/clear instead")
 async def clear_memory():
-    """Clear all memory entries."""
-    if "shared_memory" in agents:
-        return await agents["shared_memory"].clear_all()
-    return {"status": "cleared"}
+    """⚠️ DEPRECATED: Use /brain/clear instead. Will be removed in v3.0."""
+    if "brain" in agents:
+        return await agents["brain"].clear_all()
+    return {"status": "cleared", "warning": "SecondBrainAgent not available"}
 
 
 # ══════════════════════════════════════════════════════
