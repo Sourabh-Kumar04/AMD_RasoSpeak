@@ -1461,6 +1461,157 @@ async def send(ws: WebSocket, msg_type: WSMessageType, data: dict):
         log.warning(f"WebSocket send failed: {e}")
 
 
+# ══════════════════════════════════════════════════════════
+# TEST ENDPOINT — run all agents to verify everything works
+# ══════════════════════════════════════════════════════════
+
+class AgentTestResult(BaseModel):
+    name: str
+    status: str
+    duration_ms: float
+    detail: str = ""
+
+
+class SystemTestResult(BaseModel):
+    total: int
+    passed: int
+    failed: int
+    duration_ms: float
+    agents: list[AgentTestResult]
+
+
+@app.get("/test", response_model=SystemTestResult)
+async def run_system_tests():
+    """
+    Run integration tests against all agents and endpoints.
+    Use this to verify the system is fully functional after deployment.
+
+    Returns pass/fail for each agent with timing.
+    """
+    import time
+    results: list[AgentTestResult] = []
+
+    async def test(name: str, fn, *args, **kwargs):
+        t0 = time.time()
+        try:
+            result = await fn(*args, **kwargs)
+            dur = round((time.time() - t0) * 1000, 1)
+            return AgentTestResult(name=name, status="pass", duration_ms=dur, detail=str(result)[:200])
+        except Exception as e:
+            dur = round((time.time() - t0) * 1000, 1)
+            return AgentTestResult(name=name, status="fail", duration_ms=dur, detail=str(e)[:200])
+
+    tests = []
+
+    # ── Shared Memory ──────────────────────────
+    tests.append(test("shared_memory.store", agents["shared_memory"].store,
+                     "test_key_pytest", {"msg": "hello"}, "test"))
+    tests.append(test("shared_memory.recall", agents["shared_memory"].recall,
+                     query="hello"))
+    tests.append(test("shared_memory.get_user_facts", agents["shared_memory"].get_user_facts))
+    tests.append(test("shared_memory.get_conversation_history", agents["shared_memory"].get_conversation_history))
+    tests.append(test("shared_memory.get_user_preferences", agents["shared_memory"].get_user_preferences))
+
+    # ── Transcription ──────────────────────────
+    tests.append(test("transcription.transcribe_text", agents["transcription"].transcribe_text,
+                     "Hello world"))
+
+    # ── Memory (session) ────────────────────────
+    tests.append(test("memory.store", agents["memory"].store_session,
+                     "pytest_session", {"test": True}))
+    tests.append(test("memory.get_session", agents["memory"].get_session,
+                     "pytest_session"))
+    tests.append(test("memory.persist_session", agents["memory"].persist_session,
+                     "pytest_session"))
+
+    # ── Search ────────────────────────────────
+    tests.append(test("search.search", agents["search"].search,
+                     "What is AMD ROCm", 2))
+    tests.append(test("search.search", agents["search"].search,
+                     "latest AI news", 1))
+
+    # ── Recordings ─────────────────────────────
+    tests.append(test("recordings.start", agents["recording"].start_recording,
+                     "pytest_session"))
+    tests.append(test("recordings.stop", agents["recording"].stop_recording,
+                     "pytest_session"))
+    tests.append(test("recordings.list", agents["recording"].list_recordings))
+    tests.append(test("recordings.get", agents["recording"].get_recording,
+                     "pytest_session"))
+
+    # ── Analytics ──────────────────────────────
+    tests.append(test("analytics.analyze_session", agents["analytics"].analyze_session,
+                     {"chunks": [{"text": "Hello world", "score": 80}]}))
+    tests.append(test("analytics.get_user_improvement", agents["analytics"].get_user_improvement,
+                     "pytest_user"))
+    tests.append(test("analytics.get_top_weak_words", agents["analytics"].get_top_weak_words,
+                     "pytest_user", 5))
+
+    # ── Document ───────────────────────────────
+    tests.append(test("document.list_documents", agents["document"].list_documents))
+    tests.append(test("document.search", agents["document"].search_documents,
+                     "test query"))
+
+    # ── Notification ───────────────────────────
+    tests.append(test("notification.send", agents["notification"].send_notification,
+                     "Test notification", "pytest_user"))
+    tests.append(test("notification.get_history", agents["notification"].get_notification_history,
+                     "pytest_user"))
+
+    # ── Raso ──────────────────────────────────
+    tests.append(test("raso.greet", agents["raso"].greet))
+    tests.append(test("raso.think", agents["raso"].think))
+    tests.append(test("raso.remember", agents["raso"].remember, "Test content"))
+    tests.append(test("raso.start_continuous", agents["raso"].start_continuous_mode,
+                     "pytest_session"))
+    tests.append(test("raso.stop_continuous", agents["raso"].stop_continuous_mode))
+    tests.append(test("raso.query_past", agents["raso"].query_past,
+                     "hello"))
+    tests.append(test("raso.is_continuous", agents["raso"].is_continuous_mode))
+
+    # ── Wake Word ──────────────────────────────
+    from agents.wake_word_agent import check_for_wake_word, extract_command_after_wake
+    tests.append(test("wake_word.check", check_for_wake_word, "Hey Raso what is that"))
+    tests.append(test("wake_word.extract", extract_command_after_wake, "Hey Raso tell me about AMD"))
+
+    # ── Scoring ────────────────────────────────
+    tests.append(test("scoring.score_chunk", agents["scoring"].score_chunk,
+                     "Hello everyone", "Hello everyone", "presentation"))
+    tests.append(test("scoring.score_transcript", agents["scoring"].score_transcript,
+                     "Hello world this is a test", ["Hello world", "this is a test"]))
+
+    # ── Coaching ───────────────────────────────
+    tests.append(test("coaching.get_feedback", agents["coaching"].get_feedback,
+                     "Hello world", "Hello world", {"accuracy": 90}))
+    tests.append(test("coaching.generate_session_insights", agents["coaching"].generate_session_insights,
+                     {"chunks": [{"text": "test"}]}))
+
+    # ── QA ───────────────────────────────────
+    tests.append(test("qa.answer", agents["qa"].answer,
+                     "What is RasoSpeak", None))
+
+    # ── Segmentation ────────────────────────────
+    tests.append(test("segmentation.segment", agents["segmentation"].segment,
+                     "Hello world this is a test presentation about AI and machine learning",
+                     8, "presentation"))
+
+    # Run all tests concurrently
+    t0 = time.time()
+    results = await asyncio.gather(*tests)
+    total_dur = round((time.time() - t0) * 1000, 1)
+
+    passed = sum(1 for r in results if r.status == "pass")
+    failed = sum(1 for r in results if r.status == "fail")
+
+    return SystemTestResult(
+        total=len(results),
+        passed=passed,
+        failed=failed,
+        duration_ms=total_dur,
+        agents=results,
+    )
+
+
 # ── ENTRY POINT ────────────────────────────────────────
 if __name__ == "__main__":
     uvicorn.run(
