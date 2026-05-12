@@ -1126,11 +1126,11 @@ async def websocket_session(websocket: WebSocket, session_id: str):
                 question = msg.data.get("question", "")
                 provider = msg.data.get("provider")
                 context = msg.data.get("context")
-                session = await agents["memory"].get_session(session_id)
+                session_data = await agents["memory"].get_session(session_id)
                 script_context = None
-                if session:
+                if session_data:
                     # Include current script chunks as context
-                    chunks = session.get("chunk_records", {})
+                    chunks = session_data.get("chunk_records", {})
                     if chunks:
                         script_context = " ".join([
                             r.get("expected", "") for r in chunks.values()
