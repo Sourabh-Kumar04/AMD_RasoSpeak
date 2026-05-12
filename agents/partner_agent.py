@@ -361,7 +361,7 @@ class RasoAgent(BaseAgent):
 
     async def _generate_response(self, question: str, context: str, provider: str = None) -> str:
         """Generate response using available AI."""
-        provider = provider or "qwen_local"
+        provider = provider or "nvidia"
 
         # Build prompt with context
         prompt = f"""You are a helpful AI partner/assistant. The user is talking to their personal AI companion.
@@ -370,10 +370,55 @@ User's question: {question}
 
 {context}
 
-Answer naturally and helpfully as a partner would. If the context contains relevant past conversations, use that information to provide personalized answers."""
+Answer naturally and helpfully as a partner would. If the context contains relevant past conversations, use that information to give personalized answers."""
 
-        try:
-            if provider == "qwen_local" and self._client:
+        # Try NVIDIA NIM (default)
+        if provider == "nvidia" and settings.nvidia_api_key:
+            try:
+                client = httpx.AsyncClient(timeout=60.0)
+                resp = await client.post(
+                    f"{settings.nvidia_api_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {settings.nvidia_api_key}"},
+                    json={
+                        "model": settings.nvidia_model,
+                        "messages": [
+                            {"role": "system", "content": "You are a helpful, personalized AI companion. Keep responses conversational and friendly."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": 512,
+                    }
+                )
+                await client.aclose()
+                if resp.status_code == 200:
+                    return resp.json()["choices"][0]["message"]["content"]
+                else:
+                    log.warning(f"NVIDIA NIM returned status: {resp.status_code}, body: {resp.text[:200]}")
+            except Exception as e:
+                log.warning(f"NVIDIA NIM error: {e}")
+
+        # Try OpenAI if available
+        if provider == "openai" and settings.openai_api_key:
+            try:
+                client = httpx.AsyncClient(timeout=30)
+                resp = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {settings.openai_api_key}"},
+                    json={
+                        "model": "gpt-4o",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.7,
+                    }
+                )
+                await client.aclose()
+                if resp.status_code == 200:
+                    return resp.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                log.warning(f"OpenAI fallback error: {e}")
+
+        # Try vLLM local if configured
+        if self._client:
+            try:
                 resp = await self._client.post(
                     "/chat/completions",
                     json={
@@ -390,27 +435,8 @@ Answer naturally and helpfully as a partner would. If the context contains relev
                     return resp.json()["choices"][0]["message"]["content"]
                 else:
                     log.warning(f"vLLM returned status: {resp.status_code}")
-        except Exception as e:
-            log.warning(f"Partner LLM error: {e}")
-
-        # Fallback: try OpenAI if available
-        if provider == "openai" and settings.openai_api_key:
-            try:
-                import httpx
-                client = httpx.AsyncClient(timeout=30)
-                resp = await client.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {settings.openai_api_key}"},
-                    json={
-                        "model": "gpt-4o",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "temperature": 0.7,
-                    }
-                )
-                if resp.status_code == 200:
-                    return resp.json()["choices"][0]["message"]["content"]
             except Exception as e:
-                log.warning(f"OpenAI fallback error: {e}")
+                log.warning(f"vLLM error: {e}")
 
         return "I'm here to help! Currently, I'm having trouble connecting to the AI. Please try again in a moment."
 
