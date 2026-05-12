@@ -30,8 +30,9 @@ import logging
 import os
 import pickle
 import re
+import shutil
+import tempfile
 import time
-import uuid
 import zipfile
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
@@ -1357,7 +1358,7 @@ class SecondBrainAgent(BaseAgent):
             skill.last_practiced = datetime.utcnow().isoformat()
         else:
             skill = Skill(
-                id=f"skill_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
+                id=f"skill_{hashlib.sha256(name.encode()).hexdigest()[:16]}",
                 name=name,
                 category=category,
                 level=level,
@@ -1367,14 +1368,6 @@ class SecondBrainAgent(BaseAgent):
             self._skills[skill.id] = skill
 
         await self._save_skill(skill)
-
-        # Store in memory
-        await self.store(
-            content={"skill_name": name, "category": category, "level": level.value},
-            memory_type=MemoryType.SKILL,
-            importance=Importance.MEDIUM,
-            tags=["skill", category],
-        )
 
         log.info(f"Skill added/updated: {name} ({level.name})")
 
@@ -1488,7 +1481,7 @@ class SecondBrainAgent(BaseAgent):
                     data = json.loads(json_match.group())
 
                     summary = MemorySummary(
-                        id=f"summary_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
+                        id=f"summary_{hashlib.sha256(summary_text.encode()).hexdigest()[:16]}",
                         original_ids=[n.id for n in batch],
                         summary_text=data.get("summary", ""),
                         key_entities=data.get("key_entities", []),
@@ -1689,7 +1682,7 @@ class SecondBrainAgent(BaseAgent):
             return
 
         version = MemoryVersion(
-            id=f"ver_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
+            id=f"ver_{hashlib.sha256(f'{node_id}{node.content}'.encode()).hexdigest()[:16]}",
             node_id=node_id,
             version=node.version,
             old_content=old_content,
@@ -2000,7 +1993,7 @@ class SecondBrainAgent(BaseAgent):
         metadata: dict = None,
     ) -> AudioMemory:
         """Store audio conversation with full processing."""
-        audio_id = f"audio_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
+        audio_id = f"audio_{hashlib.sha256(transcription.encode()).hexdigest()[:16]}"
 
         extracted = await self._extract_entities(transcription)
         summary = await self._summarize(transcription)
@@ -2059,7 +2052,7 @@ class SecondBrainAgent(BaseAgent):
         metadata: dict = None,
     ) -> MemoryEdge:
         """Add relationship between nodes."""
-        edge_id = f"edge_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
+        edge_id = f"edge_{int(time.time() * 1000)}_{hashlib.sha256(f'{source_id}{target_id}{relation_type}'.encode()).hexdigest()[:8]}"
 
         edge = MemoryEdge(
             id=edge_id,
@@ -2708,6 +2701,12 @@ Return ONLY JSON."""
         )
         self._patterns[pattern.id] = pattern
 
+        # Cap patterns at 500 to prevent unbounded growth
+        if len(self._patterns) > 500:
+            oldest = sorted(self._patterns.values(), key=lambda p: p.last_seen)[:100]
+            for pat in oldest:
+                del self._patterns[pat.id]
+
     # ══════════════════════════════════════════════════════
     # PHASE 6: PROACTIVE SURFACING
     # ══════════════════════════════════════════════════════
@@ -2930,6 +2929,11 @@ Return ONLY JSON."""
         await self._track_version(node_id, old_content, new_content, "revised")
         await self._save_node(node)
 
+        # Update content index if new content is a string
+        if isinstance(new_content, str):
+            normalized = " ".join(str(new_content).split())
+            self._content_index[normalized] = node_id
+
         return node
 
     async def forget(self, node_id: str, reason: str = "user_request") -> dict:
@@ -2977,6 +2981,7 @@ Return ONLY JSON."""
         self._short_term.clear()
         self._entity_index.clear()
         self._topic_index.clear()
+        self._content_index.clear()
         self._goals.clear()
         self._skills.clear()
         self._summaries.clear()
@@ -3010,7 +3015,7 @@ Return ONLY JSON."""
 
     async def create_backup(self, description: str = "", tags: list = None) -> dict:
         """Create a full backup snapshot."""
-        snapshot_id = f"backup_{int(time.time())}"
+        snapshot_id = f"backup_{int(time.time() * 1000)}"
         backup_dir = self._brain_path / "backups" / snapshot_id
         backup_dir.mkdir(parents=True, exist_ok=True)
 
@@ -3030,7 +3035,7 @@ Return ONLY JSON."""
             "privacy_overrides": {k: v.value for k, v in self._privacy_overrides.items()},
         }
 
-        (backup_dir / "export.json").write_text(json.dumps(export, indent=2))
+        await asyncio.to_thread((backup_dir / "export.json").write_text, json.dumps(export, indent=2))
 
         # Save compressed backup
         zip_path = self._brain_path / "backups" / f"{snapshot_id}.zip"
@@ -3038,7 +3043,6 @@ Return ONLY JSON."""
             zf.write(backup_dir / "export.json", "data/export.json")
 
         # Create snapshot record
-        import os
         size_mb = sum(f.stat().st_size for f in backup_dir.rglob("*") if f.is_file()) / (1024 * 1024)
         snapshot = MemorySnapshot(
             id=snapshot_id,
@@ -3069,7 +3073,6 @@ Return ONLY JSON."""
         if not backup_file.exists():
             return {"error": f"Backup not found: {backup_id}"}
 
-        import tempfile
         with tempfile.TemporaryDirectory() as tmpdir:
             with zipfile.ZipFile(backup_file, "r") as zf:
                 zf.extractall(tmpdir)
@@ -3087,6 +3090,9 @@ Return ONLY JSON."""
             self._nodes.clear()
             self._edges.clear()
             self._audio_memories.clear()
+            self._entity_index.clear()
+            self._topic_index.clear()
+            self._content_index.clear()
             self._patterns.clear()
 
             # Restore nodes
@@ -3122,11 +3128,15 @@ Return ONLY JSON."""
             for k, v in data.get("privacy_overrides", {}).items():
                 self._privacy_overrides[k] = PrivacyLevel(v)
 
-            # Rebuild indexes
+            # Rebuild indexes and content index
             self._entity_index.clear()
             self._topic_index.clear()
+            self._content_index.clear()
             for node in self._nodes.values():
                 self._update_indexes(node)
+                if isinstance(node.content, str):
+                    normalized = " ".join(node.content.split())
+                    self._content_index[normalized] = node.id
 
             # Rebuild embeddings
             await self._rebuild_embeddings()
@@ -3150,7 +3160,6 @@ Return ONLY JSON."""
         if zip_file.exists():
             zip_file.unlink()
         if folder.exists():
-            import shutil
             shutil.rmtree(folder)
         self._snapshots = [s for s in self._snapshots if s.id != backup_id]
         self._save_snapshots()
@@ -3208,7 +3217,7 @@ Return ONLY JSON."""
                 safe_title = re.sub(r'[<>:"/\\|?*]', '_', str(node_id))
                 tags_str = " ".join([f"#{t}" for t in node.get("tags", [])])
                 md_content = f"---\nid: {node_id}\ntype: {node['type']}\ncreated: {node['created_at']}\ntags: [{', '.join(node.get('tags', []))}]\n---\n\n# {safe_title}\n\n{content}\n\n{tags_str}\n"
-                (vault_dir / f"{safe_title}.md").write_text(md_content)
+                await asyncio.to_thread((vault_dir / f"{safe_title}.md").write_text, md_content)
 
             return {
                 "format": "obsidian",
@@ -3234,9 +3243,13 @@ Return ONLY JSON."""
                 node_data_copy["tier"] = MemoryTier(node_data["tier"])
                 node_data_copy["importance"] = Importance(node_data["importance"])
                 node = MemoryNode(**node_data_copy)
-                self._nodes[node_id] = node
+                async with self._node_lock:
+                    self._nodes[node_id] = node
                 self._update_indexes(node)
                 await self._embed_node(node)
+                if isinstance(node.content, str):
+                    normalized = " ".join(node.content.split())
+                    self._content_index[normalized] = node_id
                 imported_nodes += 1
             except Exception as e:
                 log.warning(f"Failed to import node {node_id}: {e}")
@@ -3254,6 +3267,9 @@ Return ONLY JSON."""
     # ══════════════════════════════════════════════════════
     # PHASE 6: ENCRYPTED STORAGE
     # ══════════════════════════════════════════════════════
+
+    # Phase 6: AESGCM encryption
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
     def set_encryption_key(self, key: str) -> dict:
         """Set encryption key for sensitive memories."""
@@ -3277,7 +3293,6 @@ Return ONLY JSON."""
             try:
                 content = json.dumps(node.content).encode()
                 nonce = os.urandom(12)
-                from cryptography.hazmat.primitives.ciphers.aead import AESGCM
                 aesgcm = AESGCM(self._encryption_key)
                 encrypted = aesgcm.encrypt(nonce, content, None)
                 node.content = base64.b64encode(nonce + encrypted).decode()
@@ -3307,7 +3322,6 @@ Return ONLY JSON."""
             return {"error": "Encryption key required"}
 
         try:
-            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
             data = base64.b64decode(node.content)
             nonce, ciphertext = data[:12], data[12:]
             aesgcm = AESGCM(self._encryption_key)
