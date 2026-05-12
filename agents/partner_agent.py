@@ -612,7 +612,7 @@ Answer naturally and helpfully as a partner would. If the context contains relev
             if temp.get("preferred_ai_provider"):
                 return temp["preferred_ai_provider"]
 
-        return "qwen_local"  # Default
+        return settings.default_provider  # Default
 
     async def clear_temporary_provider(self):
         """Clear temporary provider so it reverts to default."""
