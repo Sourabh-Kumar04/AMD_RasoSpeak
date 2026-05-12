@@ -413,11 +413,19 @@ function togglePractice() {
 // Start recording
 function startRecording() {
   showToast('Recording... Speak the current chunk');
-  // In a real implementation, this would use Web Speech API or WebSocket
+  // Use speech.js startRec function for Web Speech API
+  if (typeof startRec === 'function') {
+    startRec();
+  } else {
+    showToast('Speech API not available - use Chrome/Edge');
+  }
 }
 
-// Stop recording and evaluate
+// Stop recording
 async function stopRecording() {
+  if (typeof stopRec === 'function') {
+    stopRec();
+  }
   practiceRunning = false;
   const btn = document.getElementById('practice-btn');
   btn.innerHTML = '<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
