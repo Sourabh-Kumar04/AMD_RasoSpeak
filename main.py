@@ -33,7 +33,7 @@ from agents.recording_agent import RecordingAgent
 from agents.analytics_agent import AnalyticsAgent
 from agents.shared_memory_agent import SharedMemoryAgent
 from agents.partner_agent import RasoAgent
-from agents.rag_agent import RAGAgent
+from agents.rag_agent import LightweightRAGAgent as RAGAgent
 from agents.wake_word_agent import WakeWordAgent
 from agents.document_agent import DocumentAgent
 from agents.notification_agent import NotificationAgent
@@ -88,7 +88,7 @@ async def lifespan(app: FastAPI):
         ("document", DocumentAgent, "PDF/URL import"),
         ("notification", NotificationAgent, "Phone notifications"),
         ("segmentation", SegmentationAgent, "Script chunking"),
-        ("rag", RAGAgent, "Advanced RAG with LangChain"),
+        ("rag", RAGAgent, "Lightweight RAG (BM25 + LLM)"),
     ]
 
     agent_health: dict[str, str] = {}

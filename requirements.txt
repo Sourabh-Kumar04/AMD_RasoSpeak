@@ -31,29 +31,21 @@ slowapi==0.1.9
 pypdf==4.0.0
 markdown==3.5.2
 
-# ── LANGCHAIN & RAG ──────────────────────────────────
-langchain>=0.3.0
-langchain-community>=0.3.0
-langchain-huggingface>=0.1.0
+# ── LIGHTWEIGHT RAG (VECTORLESS + LLM) ───────────────
+# BM25-based retrieval - no embeddings, no vectors needed
+rank-bm25>=0.2.0
 
-# ── VECTOR STORES ──────────────────────────────────
-faiss-cpu>=1.8.0
-chromadb>=0.5.0
+# LLM integration (uses NVIDIA NIM or OpenAI)
+httpx>=0.27.0
 
-# ── VECTORLESS (KEYWORD) RAG ────────────────────────
-rank-bm25>=0.2.0  # BM25 for keyword-based retrieval without vectors
-
-# ── EMBEDDINGS ──────────────────────────────────────
-sentence-transformers>=2.7.0
-
-# ── WIKIPEDIA ───────────────────────────────────────
-wikipedia-api>=0.6.0
+# ── WIKIPEDIA (LLM Kiwi style) ───────────────────────
 wikipedia>=1.4.0
-minichain>=0.0.1  # Karpathy's minichain for wiki-llm style Q&A
 
-# ── DOCUMENT LOADERS ───────────────────────────────
+# ── DOCUMENT LOADERS ─────────────────────────────────
 beautifulsoup4>=4.12.0
-html2text>=2020.1.16
 
-# ── TEXT SPLITTING ──────────────────────────────────
-unstructured>=0.14.0
+# ── OPTIONAL: Semantic Search (uncomment if needed) ────
+# faiss-cpu>=1.8.0
+# sentence-transformers>=2.7.0
+# langchain>=0.3.0
+# langchain-community>=0.3.0
