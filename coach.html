@@ -559,10 +559,12 @@ async function stopRecording() {
         renderChunks();
         updateProgress();
         showToast(`Chunk ${currentChunkIndex + 1} of ${chunks.length}`);
+        // Auto-play next chunk after short delay
+        setTimeout(() => startRecording(), 1500);
       } else {
         showToast('🎉 Practice complete!');
       }
-    }, 1500);
+    }, 500);
   } else {
     showToast(`Need ${threshold}% - keep practicing`);
   }
