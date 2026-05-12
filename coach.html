@@ -237,18 +237,16 @@ function loadSample() {
 // Process script and start practice
 async function processAndGo() {
   const script = document.getElementById('script-ta').value.trim();
-  const chunkSize = parseInt(document.getElementById('chunk-size-select').value);
+  const chunkSize = parseInt(document.getElementById('chunk-size-select').value) || 8;
 
   if (!script) {
     showToast('Please enter a script');
     return;
   }
 
-  const sessionBtn = document.getElementById('practice-session');
-  const progress = document.getElementById('chunk-progress');
+  showToast('Processing script...');
 
   try {
-    // Call backend to segment script
     const resp = await fetch('/segment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -260,80 +258,43 @@ async function processAndGo() {
     });
 
     const data = await resp.json();
+    console.log('Segment response:', data);
 
-    if (resp.ok) {
-      chunks = data.chunks || [];
-      currentChunkIndex = 0;
-      currentSessionId = data.session_id || `session_${Date.now()}`;
-
-      sessionStats = {
-        chunks_done: 0,
-        total_chunks: chunks.length,
-        accuracy_sum: 0,
-        wpm_sum: 0
-      };
-
-      if (chunks.length === 0) {
-        // Fallback: split manually
-        const words = script.split(/\s+/);
-        chunks = [];
-        for (let i = 0; i < words.length; i += chunkSize) {
-          chunks.push(words.slice(i, i + chunkSize).join(' '));
-        }
-      }
-
-      sessionBtn.classList.remove('hidden');
-      document.getElementById('session-id').textContent = `Session: ${currentSessionId}`;
-      renderChunks();
-      updateProgress();
-      showToast(`Script split into ${chunks.length} chunks`);
+    if (resp.ok && data.chunks && data.chunks.length > 0) {
+      chunks = data.chunks.map(c => typeof c === 'string' ? c : (c.text || '')).filter(c => c);
     } else {
-      // Fallback: split manually
-      const words = script.split(/\s+/);
-      chunks = [];
-      for (let i = 0; i < words.length; i += chunkSize) {
-        chunks.push(words.slice(i, i + chunkSize).join(' '));
-      }
-      currentChunkIndex = 0;
-      currentSessionId = `session_${Date.now()}`;
-
-      sessionStats = {
-        chunks_done: 0,
-        total_chunks: chunks.length,
-        accuracy_sum: 0,
-        wpm_sum: 0
-      };
-
-      sessionBtn.classList.remove('hidden');
-      document.getElementById('session-id').textContent = `Session: ${currentSessionId}`;
-      renderChunks();
-      updateProgress();
-      showToast(`Script split into ${chunks.length} chunks (manual)`);
+      throw new Error('Invalid response');
     }
   } catch (err) {
-    // Fallback on error
+    console.log('Using simple split fallback:', err);
+    // Simple word-based split
     const words = script.split(/\s+/);
     chunks = [];
     for (let i = 0; i < words.length; i += chunkSize) {
       chunks.push(words.slice(i, i + chunkSize).join(' '));
     }
-    currentChunkIndex = 0;
-    currentSessionId = `session_${Date.now()}`;
-
-    sessionStats = {
-      chunks_done: 0,
-      total_chunks: chunks.length,
-      accuracy_sum: 0,
-      wpm_sum: 0
-    };
-
-    sessionBtn.classList.remove('hidden');
-    document.getElementById('session-id').textContent = `Session: ${currentSessionId}`;
-    renderChunks();
-    updateProgress();
-    showToast(`Script split into ${chunks.length} chunks`);
-    console.error(err);
   }
+
+  if (chunks.length === 0) {
+    showToast('Failed to create chunks - try again');
+    return;
+  }
+
+  currentChunkIndex = 0;
+  currentSessionId = `session_${Date.now()}`;
+  sessionStats = {
+    chunks_done: 0,
+    total_chunks: chunks.length,
+    accuracy_sum: 0,
+    wpm_sum: 0
+  };
+
+  document.getElementById('practice-session').classList.remove('hidden');
+  document.getElementById('session-id').textContent = `Session: ${currentSessionId}`;
+  renderChunks();
+  updateCurrentChunk();
+  updateProgress();
+  showToast(`Ready! ${chunks.length} chunks to practice`);
 }
 
 // Render chunk navigation
