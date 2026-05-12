@@ -6,47 +6,81 @@
   <title>RasoSpeak — Memory</title>
   <link rel="icon" type="image/png" href="logo.png"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
   <style>
-    * { font-family: 'Inter', system-ui, sans-serif; }
-    body { background: #FAFAFA; }
-    .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
-    .nav-link:hover { @apply bg-gray-100; }
-    .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
-    .tab-btn { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors border-b-2 border-transparent; }
-    .tab-btn.active { @apply border-emerald-500 text-emerald-700 bg-emerald-50; }
+    :root {
+      --bg: #F6F3EE; --bg-card: #FFFEFA;
+      --forest: #1B4332; --forest-light: #2D6A4F;
+      --sage: #52796F; --sage-light: #84A98C;
+      --amber: #D97706; --cream: #F6F3EE;
+      --border: #E7E3DB; --text: #1C1917; --text-muted: #78716C;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    h1,h2,h3 { font-family: 'Lora', Georgia, serif; }
+    .nav-link { padding: 0.5rem 1rem; border-radius: 0.625rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; color: var(--text-muted); }
+    .nav-link:hover { background: rgba(27,67,50,0.06); color: var(--forest); }
+    .nav-link.active { background: rgba(27,67,50,0.1); color: var(--forest); font-weight: 600; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 1.25rem; transition: all 0.25s; }
+    .card:hover { border-color: var(--sage-light); box-shadow: 0 4px 24px rgba(27,67,50,0.08); transform: translateY(-1px); }
+    .tab-btn { padding: 0.5rem 1.25rem; border-radius: 9999px; font-size: 0.8125rem; font-weight: 600; border: 1.5px solid var(--border); color: var(--text-muted); cursor: pointer; transition: all 0.2s; background: white; }
+    .tab-btn:hover { border-color: var(--sage); color: var(--forest); }
+    .tab-btn.active { background: var(--forest); border-color: var(--forest); color: white; }
+    .tag { display: inline-flex; align-items: center; padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.6875rem; font-weight: 600; }
+    .tag-sage { background: rgba(82,121,111,0.1); color: var(--sage); }
+    .tag-forest { background: rgba(27,67,50,0.1); color: var(--forest); }
+    .tag-amber { background: rgba(217,119,6,0.1); color: var(--amber); }
+    .tag-purple { background: rgba(109,76,65,0.1); color: #6D4C41; }
+    .tag-blue { background: rgba(30,58,95,0.1); color: #1E3A5F; }
+    .tag-red { background: rgba(185,28,28,0.1); color: #B91C1C; }
+    .btn-primary { background: var(--forest); color: white; padding: 0.625rem 1.5rem; border-radius: 0.875rem; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary:hover { background: var(--forest-light); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(27,67,50,0.25); }
+    .btn-secondary { background: white; color: var(--text); padding: 0.625rem 1.5rem; border-radius: 0.875rem; font-weight: 600; font-size: 0.875rem; border: 1.5px solid var(--border); cursor: pointer; transition: all 0.2s; }
+    .btn-secondary:hover { border-color: var(--sage); }
+    .stat-num { font-family: 'Lora', serif; font-weight: 600; line-height: 1; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .animate-fu { animation: fadeUp 0.4s ease forwards; }
+    .stagger-1 { animation-delay: 0.05s; opacity: 0; }
+    .stagger-2 { animation-delay: 0.1s; opacity: 0; }
+    .stagger-3 { animation-delay: 0.15s; opacity: 0; }
+    .stagger-4 { animation-delay: 0.2s; opacity: 0; }
+    .modal-overlay { background: rgba(28,25,23,0.5); backdrop-filter: blur(8px); }
+    @keyframes scaleIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+    .animate-si { animation: scaleIn 0.25s ease forwards; }
   </style>
 </head>
 <body class="min-h-screen">
 
-<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
-
-<nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
-  <div class="max-w-5xl mx-auto px-6">
+<nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200/80">
+  <div class="max-w-6xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
       <a href="index.html" class="flex items-center gap-3">
-        <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
-        <span class="font-bold text-lg">RasoSpeak</span>
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:var(--forest);">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        </div>
+        <span class="font-bold text-lg" style="font-family:'Lora',serif;color:var(--forest);">RasoSpeak</span>
       </a>
       <div class="flex items-center gap-1">
-        <a href="index.html" class="nav-link" aria-label="Home">Home</a>
-        <a href="chat.html" class="nav-link" aria-label="Chat">Chat</a>
-        <a href="memory.html" class="nav-link active" aria-label="Memory">Memory</a>
-        <a href="coach.html" class="nav-link" aria-label="Coach">Coach</a>
-        <a href="docs.html" class="nav-link" aria-label="Docs">Docs</a>
-        <a href="settings.html" class="nav-link" aria-label="Settings">Settings</a>
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="chat.html" class="nav-link">Chat</a>
+        <a href="memory.html" class="nav-link active">Memory</a>
+        <a href="coach.html" class="nav-link">Coach</a>
+        <a href="docs.html" class="nav-link">Docs</a>
+        <a href="settings.html" class="nav-link">Settings</a>
       </div>
     </div>
   </div>
 </nav>
 
-<main id="main-content" class="max-w-5xl mx-auto px-6 py-8">
+<main class="max-w-6xl mx-auto px-6 py-8">
 
-  <!-- Header with tabs -->
-  <div class="flex items-center justify-between mb-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6 animate-fu">
     <div>
-      <h1 class="text-2xl font-bold">Memory Hub</h1>
-      <p class="text-gray-500 text-sm">Your Second Brain at a glance</p>
+      <h1 class="text-2xl font-bold" style="font-family:'Lora',serif;">Memory Hub</h1>
+      <p class="text-sm mt-1" style="color:var(--text-muted);">Your Second Brain at a glance</p>
     </div>
     <div class="flex gap-2">
       <button onclick="showTab('search')" id="tab-search" class="tab-btn active">Search</button>
@@ -56,150 +90,176 @@
     </div>
   </div>
 
-  <!-- Stats Row -->
-  <div class="grid grid-cols-5 gap-4 mb-6">
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="stat-total" class="text-2xl font-bold text-emerald-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Total Nodes</div>
+  <!-- Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div class="card p-5 text-center cursor-pointer animate-fu stagger-1" onclick="showTab('search')">
+      <div class="stat-num text-3xl" style="color:var(--forest);" id="stat-total">—</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Total Nodes</div>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="stat-conversations" class="text-2xl font-bold text-blue-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Conversations</div>
+    <div class="card p-5 text-center cursor-pointer animate-fu stagger-1">
+      <div class="stat-num text-3xl" style="color:#1E3A5F;" id="stat-conversations">—</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Conversations</div>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="stat-facts" class="text-2xl font-bold text-purple-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Facts</div>
+    <div class="card p-5 text-center cursor-pointer animate-fu stagger-2">
+      <div class="stat-num text-3xl" style="color:var(--sage);" id="stat-facts">—</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Facts</div>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="stat-patterns" class="text-2xl font-bold text-orange-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Patterns</div>
+    <div class="card p-5 text-center cursor-pointer animate-fu stagger-3">
+      <div class="stat-num text-3xl" style="color:var(--amber);" id="stat-patterns">—</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Patterns</div>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="stat-goals" class="text-2xl font-bold text-teal-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Active Goals</div>
+    <div class="card p-5 text-center cursor-pointer animate-fu stagger-4" onclick="showTab('goals')">
+      <div class="stat-num text-3xl" style="color:#B91C1C;" id="stat-goals">—</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Active Goals</div>
     </div>
   </div>
 
-  <!-- Search Tab -->
-  <div id="panel-search" class="space-y-4">
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
-      <h2 class="font-semibold mb-2">Query Your Memory</h2>
+  <!-- Tab Panels -->
+  <div id="panel-search" class="space-y-5">
+    <!-- Search Card -->
+    <div class="card p-6 animate-fu stagger-2">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(27,67,50,0.1);">
+          <svg class="w-5 h-5" style="color:var(--forest);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <h2 class="font-semibold text-lg" style="font-family:'Lora',serif;">Query Your Memory</h2>
+      </div>
       <div class="flex gap-3">
         <input type="text" id="memory-search" placeholder="What are you looking for?"
-          class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          onkeydown="if(event.key==='Enter')searchMemory()">
-        <button onclick="searchMemory()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Search</button>
+          class="flex-1 px-4 py-3 border-2 rounded-xl text-base" style="border-color:var(--border);background:var(--bg-card);outline:none;"
+          onkeydown="if(event.key==='Enter')searchMemory()"
+          onfocus="this.style.borderColor='var(--forest)'"
+          onblur="this.style.borderColor='var(--border)'">
+        <button onclick="searchMemory()" class="btn-primary">Search</button>
       </div>
       <div class="mt-3 flex flex-wrap gap-2">
-        <span class="text-xs text-gray-400">Quick:</span>
-        <button onclick="quickSearch('What did I say about AI?')" class="text-xs text-emerald-600 hover:underline">AI questions</button>
-        <button onclick="quickSearch('personal facts about me')" class="text-xs text-emerald-600 hover:underline">personal facts</button>
-        <button onclick="quickSearch('goals')" class="text-xs text-emerald-600 hover:underline">my goals</button>
-        <button onclick="quickSearch('patterns')" class="text-xs text-emerald-600 hover:underline">patterns</button>
+        <span class="text-xs" style="color:var(--text-muted);">Quick:</span>
+        <button onclick="quickSearch('What did I say about AI?')" class="text-xs font-medium px-3 py-1 rounded-full" style="background:rgba(27,67,50,0.07);color:var(--forest);">AI questions</button>
+        <button onclick="quickSearch('personal facts about me')" class="text-xs font-medium px-3 py-1 rounded-full" style="background:rgba(27,67,50,0.07);color:var(--forest);">personal facts</button>
+        <button onclick="quickSearch('my goals')" class="text-xs font-medium px-3 py-1 rounded-full" style="background:rgba(27,67,50,0.07);color:var(--forest);">my goals</button>
+        <button onclick="quickSearch('patterns')" class="text-xs font-medium px-3 py-1 rounded-full" style="background:rgba(27,67,50,0.07);color:var(--forest);">patterns</button>
       </div>
     </div>
 
-    <!-- Results -->
-    <div id="memory-results" class="bg-white rounded-lg border border-gray-200 p-6">
-      <div id="results-content" class="text-center text-gray-400 py-8">
-        <p>Your memories will appear here</p>
-        <p class="text-sm mt-1">Search for conversations, facts, or patterns</p>
+    <!-- Results Card -->
+    <div class="card p-6">
+      <div id="results-content" class="text-center" style="padding:2rem 0;color:var(--text-muted);">
+        <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style="background:rgba(82,121,111,0.1);">
+          <svg class="w-6 h-6" style="color:var(--sage);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        </div>
+        <p class="text-sm font-medium">Your memories will appear here</p>
+        <p class="text-xs mt-1" style="color:var(--text-muted);">Search for conversations, facts, or patterns</p>
       </div>
     </div>
   </div>
 
-  <!-- Goals Tab -->
+  <!-- Goals Panel -->
   <div id="panel-goals" class="space-y-4 hidden">
-    <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold">Active Goals</h2>
-      <button onclick="showAddGoal()" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600">+ Add Goal</button>
+    <div class="flex items-center justify-between animate-fu">
+      <h2 class="font-semibold text-lg" style="font-family:'Lora',serif;">Active Goals</h2>
+      <button onclick="showAddGoal()" class="btn-primary text-sm">+ Add Goal</button>
     </div>
-
-    <!-- Goals List -->
-    <div id="goals-list" class="space-y-3">
-      <div class="text-center text-gray-400 py-8">Loading goals...</div>
-    </div>
-
-    <!-- Completed Goals -->
-    <details class="bg-white rounded-lg border border-gray-200">
-      <summary class="p-4 cursor-pointer font-medium text-gray-600 hover:bg-gray-50">Completed Goals</summary>
+    <div id="goals-list" class="space-y-3 animate-fu stagger-1"></div>
+    <details class="card">
+      <summary class="p-4 cursor-pointer font-semibold text-sm" style="color:var(--text-muted);">Completed Goals</summary>
       <div id="completed-goals" class="px-4 pb-4 space-y-2">
-        <p class="text-gray-400 text-sm text-center py-2">No completed goals yet</p>
+        <p class="text-sm text-center py-3" style="color:var(--text-muted);">No completed goals yet</p>
       </div>
     </details>
   </div>
 
-  <!-- Proactive Tab -->
+  <!-- Proactive Panel -->
   <div id="panel-proactive" class="space-y-4 hidden">
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
-      <h2 class="font-semibold mb-1">Proactive Memories</h2>
-      <p class="text-sm text-gray-500 mb-4">AI-generated insights and reminders based on your patterns</p>
-      <div id="proactive-list" class="space-y-3">
-        <div class="text-center text-gray-400 py-6">Loading insights...</div>
+    <div class="card p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(27,67,50,0.1);">
+          <span class="text-lg">💡</span>
+        </div>
+        <div>
+          <h2 class="font-semibold" style="font-family:'Lora',serif;">Proactive Memories</h2>
+          <p class="text-xs" style="color:var(--text-muted);">AI-generated insights based on your patterns</p>
+        </div>
       </div>
+      <div id="proactive-list" class="space-y-3"></div>
     </div>
   </div>
 
-  <!-- Graph Tab -->
+  <!-- Graph Panel -->
   <div id="panel-graph" class="hidden">
-    <div class="bg-white rounded-lg border border-gray-200 p-6 mb-4">
-      <h2 class="font-semibold mb-1">Memory Graph</h2>
-      <p class="text-sm text-gray-500">Entity relationships in your memory</p>
-    </div>
-    <div id="graph-container" class="bg-white rounded-lg border border-gray-200" style="height: 500px; position: relative;">
-      <svg id="memory-graph" width="100%" height="500"></svg>
-      <div id="graph-loading" class="absolute inset-0 flex items-center justify-center text-gray-400">
-        Loading graph...
+    <div class="card p-6 mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(27,67,50,0.1);">
+          <svg class="w-5 h-5" style="color:var(--forest);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        </div>
+        <div>
+          <h2 class="font-semibold" style="font-family:'Lora',serif;">Memory Graph</h2>
+          <p class="text-xs" style="color:var(--text-muted);">Entity relationships in your memory</p>
+        </div>
       </div>
+    </div>
+    <div class="card" style="height:480px;position:relative;overflow:hidden;">
+      <svg id="memory-graph" width="100%" height="480"></svg>
+      <div id="graph-loading" class="absolute inset-0 flex items-center justify-center text-sm" style="color:var(--text-muted);">Loading graph...</div>
     </div>
   </div>
 
   <!-- Quick Add -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mt-4">
-    <h3 class="font-semibold mb-3">Quick Add to Memory</h3>
+  <div class="card p-6 mt-6 animate-fu">
+    <h3 class="font-semibold mb-3" style="font-family:'Lora',serif;">Quick Add to Memory</h3>
     <textarea id="quick-fact-input" placeholder="Type a fact, note, or idea to remember..."
-      class="w-full h-20 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
-    <div class="flex gap-3">
-      <select id="fact-tier" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+      class="w-full h-20 px-4 py-3 border-2 rounded-xl resize-none text-base" style="border-color:var(--border);background:var(--bg-card);outline:none;"
+      onfocus="this.style.borderColor='var(--forest)'"
+      onblur="this.style.borderColor='var(--border)'"></textarea>
+    <div class="flex gap-3 mt-3">
+      <select id="fact-tier" class="px-3 py-2 border-2 rounded-xl text-sm" style="border-color:var(--border);background:var(--bg-card);">
         <option value="working">Working Memory</option>
         <option value="long_term" selected>Long-term Memory</option>
         <option value="archived">Archive</option>
       </select>
-      <select id="fact-importance" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+      <select id="fact-importance" class="px-3 py-2 border-2 rounded-xl text-sm" style="border-color:var(--border);background:var(--bg-card);">
         <option value="1">Low Importance</option>
         <option value="3" selected>Medium Importance</option>
         <option value="5">High Importance</option>
       </select>
-      <button onclick="addFactToMemory()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Save to Memory</button>
+      <button onclick="addFactToMemory()" class="btn-primary flex-1">Save to Memory</button>
     </div>
   </div>
 
 </main>
 
-<!-- Add Goal Modal -->
-<div id="goal-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center" role="dialog" aria-modal="true">
-  <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
-    <h3 class="text-lg font-semibold mb-4">Add New Goal</h3>
+<!-- Goal Modal -->
+<div id="goal-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay" role="dialog">
+  <div class="card p-6 w-full max-w-md mx-4 animate-si">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-semibold text-lg" style="font-family:'Lora',serif;">Add New Goal</h3>
+      <button onclick="closeGoalModal()" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
     <div class="space-y-4">
       <div>
-        <label class="block text-sm font-medium mb-1">Goal Title</label>
+        <label class="block text-sm font-medium mb-2">Goal Title</label>
         <input type="text" id="goal-title" placeholder="e.g., Learn Spanish basics"
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          class="w-full px-4 py-3 border-2 rounded-xl" style="border-color:var(--border);background:var(--bg-card);outline:none;"
+          onfocus="this.style.borderColor='var(--forest)'"
+          onblur="this.style.borderColor='var(--border)'"
+          onkeydown="if(event.key==='Enter')saveGoal()">
       </div>
       <div>
-        <label class="block text-sm font-medium mb-1">Description</label>
+        <label class="block text-sm font-medium mb-2">Description <span class="font-normal" style="color:var(--text-muted);">(optional)</span></label>
         <textarea id="goal-desc" placeholder="What do you want to achieve?"
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg resize-none h-20 focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+          class="w-full px-4 py-2 border-2 rounded-xl resize-none" style="border-color:var(--border);background:var(--bg-card);outline:none;" rows="2"
+          onfocus="this.style.borderColor='var(--forest)'"
+          onblur="this.style.borderColor='var(--border)'"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-sm font-medium mb-1">Deadline</label>
-          <input type="date" id="goal-deadline"
-            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <label class="block text-sm font-medium mb-2">Deadline</label>
+          <input type="date" id="goal-deadline" class="w-full px-3 py-2 border-2 rounded-xl" style="border-color:var(--border);background:var(--bg-card);">
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Priority</label>
-          <select id="goal-priority" class="w-full px-3 py-2 border border-gray-200 rounded-lg">
+          <label class="block text-sm font-medium mb-2">Priority</label>
+          <select id="goal-priority" class="w-full px-3 py-2 border-2 rounded-xl" style="border-color:var(--border);background:var(--bg-card);">
             <option value="low">Low</option>
             <option value="medium" selected>Medium</option>
             <option value="high">High</option>
@@ -208,258 +268,92 @@
       </div>
     </div>
     <div class="flex gap-3 mt-6">
-      <button onclick="closeGoalModal()" class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">Cancel</button>
-      <button onclick="saveGoal()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Save Goal</button>
+      <button onclick="closeGoalModal()" class="btn-secondary flex-1">Cancel</button>
+      <button onclick="saveGoal()" class="btn-primary flex-1">Save Goal</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite"></div>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-semibold shadow-xl transition-all duration-300 opacity-0 pointer-events-none -translate-y-4 z-50" style="background:var(--text);color:white;" role="status"></div>
 
 <script>
 let activeTab = 'search';
-
 function showTab(tab) {
   activeTab = tab;
   ['search','goals','proactive','graph'].forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
     document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
   });
+  if (tab === 'goals') loadGoals();
+  if (tab === 'proactive') loadProactive();
+  if (tab === 'graph') loadGraph();
 }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.classList.remove('opacity-0','translate-y-4','pointer-events-none');
-  setTimeout(() => t.classList.add('opacity-0','translate-y-4','pointer-events-none'), 3000);
+  t.classList.remove('opacity-0','-translate-y-4','pointer-events-none');
+  setTimeout(()=>t.classList.add('opacity-0','-translate-y-4','pointer-events-none'),3000);
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function escHtml(text) {
+  const d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
 }
 
-// Load stats
 async function loadMemoryStats() {
   try {
     const resp = await fetch('/brain/stats');
-    if (!resp.ok) throw new Error('Stats endpoint unavailable');
+    if (!resp.ok) return;
     const data = await resp.json();
     document.getElementById('stat-total').textContent = data.total_nodes || 0;
     document.getElementById('stat-conversations').textContent = data.type_counts?.conversation || 0;
     document.getElementById('stat-facts').textContent = data.type_counts?.semantic || 0;
     document.getElementById('stat-patterns').textContent = data.pattern_count || 0;
     document.getElementById('stat-goals').textContent = data.active_goals || 0;
-  } catch (err) {
-    console.warn('Stats unavailable:', err.message);
-  }
+  } catch(e) {}
 }
 
-// Search memory
 async function searchMemory() {
-  const query = document.getElementById('memory-search').value.trim();
-  const resultsContent = document.getElementById('results-content');
-  if (!query) { showToast('Enter a search query'); return; }
-
-  resultsContent.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Searching...</p></div>';
-
+  const q = document.getElementById('memory-search').value.trim();
+  const el = document.getElementById('results-content');
+  if (!q) { showToast('Enter a search query'); return; }
+  el.innerHTML = '<div class="text-center py-8" style="color:var(--text-muted);">Searching...</div>';
   try {
-    const resp = await fetch('/brain/recall', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, limit: 10, time_range: 'all' })
-    });
-    if (!resp.ok) throw new Error('Recall failed');
+    const resp = await fetch('/brain/recall', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,limit:10,time_range:'all'})});
+    if (!resp.ok) throw new Error();
     const data = await resp.json();
-    const memories = data.results || [];
-
-    if (memories.length === 0) {
-      resultsContent.innerHTML = `<p class="text-gray-400 text-center py-6">No results for "${escapeHtml(query)}"</p>`;
-      return;
-    }
-
-    resultsContent.innerHTML = `
-      <div class="space-y-3">
-        <p class="text-sm text-gray-500 mb-3">${memories.length} results for "${escapeHtml(query)}"</p>
-        ${memories.map(m => {
-          const node = m.node || m;
-          const content = typeof node.content === 'object' ? JSON.stringify(node.content) : node.content;
-          return `
-          <div class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100">
-            <p class="text-gray-800">${escapeHtml(String(content || '').substring(0, 400))}</p>
-            <div class="flex flex-wrap gap-2 mt-2">
-              ${node.memory_type ? `<span class="px-2 py-0.5 bg-emerald-100 rounded text-xs text-emerald-700">${node.memory_type}</span>` : ''}
-              ${node.tier ? `<span class="px-2 py-0.5 bg-purple-100 rounded text-xs text-purple-700">${node.tier}</span>` : ''}
-              ${m.score ? `<span class="px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">${(m.score * 100).toFixed(0)}% match</span>` : ''}
-              ${node.created_at ? `<span class="text-xs text-gray-400">${new Date(node.created_at).toLocaleDateString()}</span>` : ''}
-            </div>
-          </div>`;
-        }).join('')}
-      </div>`;
-  } catch (err) {
-    resultsContent.innerHTML = `<p class="text-red-400 text-center py-6">Search unavailable: ${escapeHtml(err.message)}</p>`;
-  }
+    const mems = data.results || [];
+    if (!mems.length) { el.innerHTML = `<div class="text-center py-8" style="color:var(--text-muted);">No results for "${escHtml(q)}"</div>`; return; }
+    el.innerHTML = `<div class="space-y-3"><p class="text-sm mb-3" style="color:var(--text-muted);">${mems.length} results for "${escHtml(q)}"</p>${mems.map(m=>{const node=m.node||m;const c=typeof node.content==='object'?JSON.stringify(node.content):node.content;return`<div class="p-4 rounded-xl cursor-pointer transition-colors" style="background:var(--bg);" onclick="window.location.href='memory.html?node=${escHtml(node.id||'')}'"><p class="text-sm" style="color:var(--text);">${escHtml(String(c||'').substring(0,300))}</p><div class="flex flex-wrap gap-2 mt-2">${node.memory_type?`<span class="tag tag-forest">${escHtml(node.memory_type)}</span>`:''}${node.tier?`<span class="tag tag-sage">${escHtml(node.tier)}</span>`:''}${m.score?`<span class="tag tag-blue">${(m.score*100).toFixed(0)}% match</span>`:''}</div></div>`;}).join('')}</div>`;
+  } catch(e) { el.innerHTML = `<div class="text-center py-8 text-red-500">Search unavailable</div>`; }
 }
 
-function quickSearch(q) {
-  document.getElementById('memory-search').value = q;
-  searchMemory();
-}
+function quickSearch(q) { document.getElementById('memory-search').value=q; searchMemory(); }
 
-// Load goals
 async function loadGoals() {
-  const container = document.getElementById('goals-list');
+  const c = document.getElementById('goals-list');
   try {
     const resp = await fetch('/brain/goals');
     if (!resp.ok) throw new Error();
-    const data = await resp.json();
-    const goals = data.goals || [];
-
-    if (goals.length === 0) {
-      container.innerHTML = '<p class="text-center text-gray-400 py-8">No active goals. Add one!</p>';
-      return;
-    }
-
-    container.innerHTML = goals.map(g => `
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <h4 class="font-medium">${escapeHtml(g.title)}</h4>
-              <span class="px-2 py-0.5 text-xs rounded ${g.priority === 'high' ? 'bg-red-100 text-red-700' : g.priority === 'medium' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'}">${g.priority}</span>
-            </div>
-            ${g.description ? `<p class="text-sm text-gray-600 mb-2">${escapeHtml(g.description)}</p>` : ''}
-            <div class="flex items-center gap-4 text-xs text-gray-400">
-              ${g.deadline ? `<span>Due: ${g.deadline}</span>` : ''}
-              ${g.progress !== undefined ? `<span>${g.progress}% complete</span>` : ''}
-            </div>
-            ${g.progress !== undefined ? `
-            <div class="mt-2 h-2 bg-gray-100 rounded-full">
-              <div class="h-2 bg-emerald-500 rounded-full" style="width:${g.progress}%"></div>
-            </div>` : ''}
-          </div>
-          <div class="flex gap-2 ml-4">
-            <button onclick="markGoalDone('${g.id}')" class="px-3 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200">Done</button>
-            <button onclick="deleteGoal('${g.id}')" class="px-3 py-1 text-xs text-red-500 hover:underline">Delete</button>
-          </div>
-        </div>
-      </div>`).join('');
-  } catch (err) {
-    container.innerHTML = '<p class="text-center text-gray-400 py-8">Could not load goals</p>';
-  }
+    const goals = (await resp.json()).goals || [];
+    if (!goals.length) { c.innerHTML='<div class="card p-6 text-center" style="color:var(--text-muted);"><p class="text-sm">No active goals. Add one!</p></div>';return; }
+    c.innerHTML = goals.map(g=>`<div class="card p-5"><div class="flex items-start justify-between gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="font-semibold text-sm">${escHtml(g.title)}</span><span class="tag ${g.priority==='high'?'tag-red':g.priority==='medium'?'tag-amber':'tag-sage'}">${g.priority}</span></div>${g.description?`<p class="text-sm mt-1" style="color:var(--text-muted);">${escHtml(g.description)}</p>`:''}<div class="flex items-center gap-3 mt-2 text-xs" style="color:var(--text-muted);">${g.deadline?`<span>Due: ${g.deadline}</span>`:''}${g.progress!==undefined?`<span>${Math.round(g.progress*100)}% complete</span>`:''}</div>${g.progress!==undefined?`<div class="mt-2 h-1.5 rounded-full overflow-hidden" style="background:var(--border);"><div class="h-full rounded-full transition-all" style="width:${g.progress*100}%;background:var(--forest);"></div></div>`:''}</div><div class="flex gap-2"><button onclick="markGoalDone('${g.id}')" class="px-3 py-1 text-xs rounded-xl font-medium" style="background:rgba(27,67,50,0.1);color:var(--forest);">Done</button><button onclick="deleteGoal('${g.id}')" class="px-3 py-1 text-xs" style="color:#B91C1C;">Delete</button></div></div></div>`).join('');
+  } catch(e) { c.innerHTML='<div class="card p-6 text-center text-red-500"><p class="text-sm">Could not load goals</p></div>'; }
 }
 
-// Add fact
-async function addFactToMemory() {
-  const input = document.getElementById('quick-fact-input');
-  const fact = input.value.trim();
-  if (!fact) { showToast('Enter something to remember'); return; }
-
-  try {
-    const resp = await fetch('/brain/memory', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: fact,
-        memory_type: 'semantic',
-        tier: document.getElementById('fact-tier').value,
-        importance: parseInt(document.getElementById('fact-importance').value)
-      })
-    });
-    if (resp.ok) {
-      showToast('Saved to memory!');
-      input.value = '';
-      loadMemoryStats();
-    } else {
-      throw new Error(resp.status);
-    }
-  } catch (err) {
-    showToast('Could not save');
-  }
-}
-
-// Goal modal
-function showAddGoal() { document.getElementById('goal-modal').classList.remove('hidden'); }
-function closeGoalModal() { document.getElementById('goal-modal').classList.add('hidden'); }
-
-async function saveGoal() {
-  const title = document.getElementById('goal-title').value.trim();
-  const description = document.getElementById('goal-desc').value.trim();
-  const deadline = document.getElementById('goal-deadline').value;
-  const priority = document.getElementById('goal-priority').value;
-
-  if (!title) { showToast('Enter a goal title'); return; }
-
-  try {
-    const resp = await fetch('/brain/goals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, deadline, priority })
-    });
-    if (resp.ok) {
-      showToast('Goal added!');
-      closeGoalModal();
-      document.getElementById('goal-title').value = '';
-      document.getElementById('goal-desc').value = '';
-      loadGoals();
-      loadMemoryStats();
-    } else { throw new Error(resp.status); }
-  } catch (err) { showToast('Could not save goal'); }
-}
-
-async function markGoalDone(goalId) {
-  try {
-    await fetch(`/brain/goals/${encodeURIComponent(goalId)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed: true })
-    });
-    loadGoals();
-    loadMemoryStats();
-  } catch (err) { showToast('Could not update goal'); }
-}
-
-async function deleteGoal(goalId) {
-  if (!confirm('Delete this goal?')) return;
-  try {
-    await fetch(`/brain/goals/${encodeURIComponent(goalId)}`, { method: 'DELETE' });
-    loadGoals();
-    loadMemoryStats();
-  } catch (err) { showToast('Could not delete goal'); }
-}
-
-// Proactive memories
 async function loadProactive() {
-  const container = document.getElementById('proactive-list');
+  const c = document.getElementById('proactive-list');
   try {
     const resp = await fetch('/brain/proactive');
     if (!resp.ok) throw new Error();
-    const data = await resp.json();
-    const mems = data.memories || [];
-
-    if (mems.length === 0) {
-      container.innerHTML = '<p class="text-center text-gray-400 py-6">No proactive memories yet</p>';
-      return;
-    }
-
-    container.innerHTML = mems.map(m => `
-      <div class="p-4 bg-gray-50 rounded-lg">
-        <div class="flex items-start gap-3">
-          <span class="mt-1 text-lg">${m.type === 'suggestion' ? '💡' : m.type === 'reminder' ? '⏰' : m.type === 'insight' ? '🧠' : '📝'}</span>
-          <div class="flex-1">
-            <p class="text-gray-800">${escapeHtml(m.content || m.message || '')}</p>
-            <p class="text-xs text-gray-400 mt-1">${m.reason || ''}</p>
-          </div>
-        </div>
-      </div>`).join('');
-  } catch (err) {
-    container.innerHTML = '<p class="text-center text-gray-400 py-6">Could not load insights</p>';
-  }
+    const mems = (await resp.json()).memories || [];
+    if (!mems.length) { c.innerHTML='<div class="text-center py-6" style="color:var(--text-muted);"><p class="text-sm">No proactive memories yet</p></div>';return; }
+    c.innerHTML = mems.map(m=>`<div class="flex items-start gap-3 p-4 rounded-xl" style="background:var(--bg);"><div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(27,67,50,0.08);"><span>${m.type==='suggestion'?'💡':m.type==='reminder'?'⏰':m.type==='insight'?'🧠':'📝'}</span></div><div class="flex-1"><p class="text-sm">${escHtml(m.content||m.message||'')}</p><p class="text-xs mt-1" style="color:var(--text-muted);">${escHtml(m.reason||'')}</p></div></div>`).join('');
+  } catch(e) { c.innerHTML='<div class="text-center py-6 text-red-500"><p class="text-sm">Could not load insights</p></div>'; }
 }
 
-// Memory graph
 async function loadGraph() {
   try {
     const resp = await fetch('/brain/graph');
@@ -467,83 +361,57 @@ async function loadGraph() {
     const data = await resp.json();
     drawGraph(data);
     document.getElementById('graph-loading').classList.add('hidden');
-  } catch (err) {
-    document.getElementById('graph-loading').textContent = 'Graph unavailable';
-  }
+  } catch(e) { document.getElementById('graph-loading').textContent='Graph unavailable'; }
 }
 
 function drawGraph(data) {
   const svg = document.getElementById('memory-graph');
-  const width = svg.clientWidth || 800;
-  const height = 500;
+  const W = svg.clientWidth || 900, H = 480;
   svg.innerHTML = '';
-
-  const nodes = data.nodes || [];
-  const edges = data.edges || [];
-
-  if (nodes.length === 0) {
-    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#9CA3AF" font-size="14">No graph data yet</text>';
-    return;
-  }
-
-  const nodePositions = {};
-  nodes.forEach((n, i) => {
-    const angle = (2 * Math.PI * i) / nodes.length;
-    const r = Math.min(width, height) / 3;
-    nodePositions[n.id] = {
-      x: width / 2 + r * Math.cos(angle) + (Math.random() - 0.5) * 50,
-      y: height / 2 + r * Math.sin(angle) + (Math.random() - 0.5) * 50,
-      ...n
-    };
-  });
-
-  const nodeColors = {
-    semantic: '#10B981', conversation: '#3B82F6',
-    episodic: '#F59E0B', procedural: '#8B5CF6',
-    document: '#EF4444', goal: '#06B6D4', default: '#6B7280'
-  };
-
-  edges.forEach(e => {
-    const s = nodePositions[e.source];
-    const t = nodePositions[e.target];
-    if (!s || !t) return;
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', s.x); line.setAttribute('y1', s.y);
-    line.setAttribute('x2', t.x); line.setAttribute('y2', t.y);
-    line.setAttribute('stroke', '#D1D5DB'); line.setAttribute('stroke-width', '1.5');
-    svg.appendChild(line);
-  });
-
-  nodes.forEach(n => {
-    const pos = nodePositions[n.id];
-    const color = nodeColors[n.type] || nodeColors.default;
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('cx', pos.x); circle.setAttribute('cy', pos.y);
-    circle.setAttribute('r', n.type === 'goal' ? 12 : 8);
-    circle.setAttribute('fill', color);
-    circle.setAttribute('opacity', '0.85');
-    g.appendChild(circle);
-
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('x', pos.x); label.setAttribute('y', pos.y + 20);
-    label.setAttribute('text-anchor', 'middle');
-    label.setAttribute('font-size', '10');
-    label.setAttribute('fill', '#374151');
-    label.textContent = (n.label || n.id || '').substring(0, 20);
-    g.appendChild(label);
-
-    svg.appendChild(g);
-  });
+  const nodes = data.nodes||[], edges = data.edges||[];
+  if (!nodes.length) { svg.innerHTML='<text x="50%" y="50%" text-anchor="middle" fill="#78716C" font-size="13">No graph data yet — add memories to see connections</text>'; return; }
+  const pos = {};
+  nodes.forEach((n,i)=>{const a=(2*Math.PI*i)/nodes.length,r=Math.min(W,H)/2.8;pos[n.id]={x:W/2+r*Math.cos(a)+(Math.random()-.5)*60,y:H/2+r*Math.sin(a)+(Math.random()-.5)*60,...n};});
+  const colors={semantic:'#52796F',conversation:'#1E3A5F',episodic:'#D97706',procedural:'#8B5CF6',document:'#B91C1C',goal:'#0E728C',default:'#78716C'};
+  edges.forEach(e=>{const s=pos[e.source],t=pos[e.target];if(!s||!t)return;const l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',s.x);l.setAttribute('y1',s.y);l.setAttribute('x2',t.x);l.setAttribute('y2',t.y);l.setAttribute('stroke','#D1D5DB');l.setAttribute('stroke-width','1.5');svg.appendChild(l);});
+  nodes.forEach(n=>{const p=pos[n.id],color=colors[n.type]||colors.default,g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',n.type==='goal'?12:8);c.setAttribute('fill',color);c.setAttribute('opacity','0.85');g.appendChild(c);
+    const l=document.createElementNS('http://www.w3.org/2000/svg','text');l.setAttribute('x',p.x);l.setAttribute('y',p.y+20);l.setAttribute('text-anchor','middle');l.setAttribute('font-size','10');l.setAttribute('fill','#374151');l.textContent=(n.label||n.id||'').substring(0,16);g.appendChild(l);
+    svg.appendChild(g);});
 }
 
-window.addEventListener('load', () => {
-  loadMemoryStats();
-  loadGoals();
-  loadProactive();
-});
-</script>
+async function addFactToMemory() {
+  const input = document.getElementById('quick-fact-input');
+  const fact = input.value.trim();
+  if (!fact) { showToast('Enter something to remember'); return; }
+  try {
+    const resp = await fetch('/brain/memory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:fact,memory_type:'semantic',tier:document.getElementById('fact-tier').value,importance:parseInt(document.getElementById('fact-importance').value)})});
+    if (resp.ok) { showToast('Saved to memory!'); input.value=''; loadMemoryStats(); } else throw new Error();
+  } catch(e) { showToast('Could not save'); }
+}
 
+function showAddGoal() { document.getElementById('goal-modal').classList.remove('hidden'); document.getElementById('goal-title').focus(); }
+function closeGoalModal() { document.getElementById('goal-modal').classList.add('hidden'); document.getElementById('goal-title').value=''; document.getElementById('goal-desc').value=''; document.getElementById('goal-deadline').value=''; }
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeGoalModal();});
+
+async function saveGoal() {
+  const title=document.getElementById('goal-title').value.trim(),desc=document.getElementById('goal-desc').value.trim(),deadline=document.getElementById('goal-deadline').value,priority=document.getElementById('goal-priority').value;
+  if (!title) { showToast('Enter a goal title'); return; }
+  try {
+    const resp = await fetch('/brain/goals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,description:desc,deadline,priority})});
+    if (resp.ok) { showToast('Goal added!'); closeGoalModal(); loadGoals(); loadMemoryStats(); } else throw new Error();
+  } catch(e) { showToast('Could not save goal'); }
+}
+
+async function markGoalDone(goalId) {
+  try { await fetch(`/brain/goals/${encodeURIComponent(goalId)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({completed:true})}); loadGoals(); loadMemoryStats(); } catch(e) { showToast('Could not update goal'); }
+}
+async function deleteGoal(goalId) {
+  if (!confirm('Delete this goal?')) return;
+  try { await fetch(`/brain/goals/${encodeURIComponent(goalId)}`,{method:'DELETE'}); loadGoals(); loadMemoryStats(); } catch(e) { showToast('Could not delete goal'); }
+}
+
+window.addEventListener('load',()=>{loadMemoryStats();loadGoals();});
+</script>
 </body>
 </html>

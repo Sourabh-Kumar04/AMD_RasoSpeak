@@ -6,427 +6,226 @@
   <title>RasoSpeak — Speech Coach</title>
   <link rel="icon" type="image/png" href="logo.png"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
   <style>
-    * { font-family: 'Inter', system-ui, sans-serif; }
-    body { background: #FAFAFA; }
-    .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
-    .nav-link:hover { @apply bg-gray-100; }
-    .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
-    .chunk-complete { @apply bg-emerald-100 border-emerald-300; }
-    .chunk-fail { @apply bg-red-100 border-red-300; }
+    :root { --bg:#F6F3EE; --bg-card:#FFFEFA; --forest:#1B4332; --forest-light:#2D6A4F; --sage:#52796F; --sage-light:#84A98C; --amber:#D97706; --border:#E7E3DB; --text:#1C1917; --text-muted:#78716C; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    h1,h2,h3 { font-family: 'Lora', Georgia, serif; }
+    .nav-link { padding: 0.5rem 1rem; border-radius: 0.625rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; color: var(--text-muted); }
+    .nav-link:hover { background: rgba(27,67,50,0.06); color: var(--forest); }
+    .nav-link.active { background: rgba(27,67,50,0.1); color: var(--forest); font-weight: 600; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 1.25rem; transition: all 0.25s; }
+    .btn-primary { background: var(--forest); color: white; padding: 0.625rem 1.5rem; border-radius: 0.875rem; font-weight: 600; font-size: 0.875rem; border: none; cursor: pointer; transition: all 0.2s; }
+    .btn-primary:hover { background: var(--forest-light); transform: translateY(-1px); }
+    .btn-secondary { background: white; border: 1.5px solid var(--border); padding: 0.625rem 1.5rem; border-radius: 0.875rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; }
+    .btn-secondary:hover { border-color: var(--sage); }
+    .tag { display: inline-flex; align-items: center; padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.6875rem; font-weight: 600; }
+    .tag-sage { background: rgba(82,121,111,0.1); color: var(--sage); }
+    .tag-forest { background: rgba(27,67,50,0.1); color: var(--forest); }
+    .tag-amber { background: rgba(217,119,6,0.1); color: var(--amber); }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes pulse-rec { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.4);} 50%{box-shadow:0 0 0 8px rgba(220,38,38,0);} }
+    .animate-fu { animation: fadeUp 0.4s ease forwards; }
+    .recording { background: #DC2626 !important; border-color: #DC2626 !important; color: white !important; animation: pulse-rec 1.5s infinite; }
+    .chunk-done { background: rgba(27,67,50,0.1); border-color: var(--forest); color: var(--forest); }
+    .chunk-skip { background: rgba(217,119,6,0.1); border-color: var(--amber); color: var(--amber); }
+    .chunk-cur { background: var(--forest); color: white; }
   </style>
 </head>
 <body class="min-h-screen">
 
-<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
-
-<nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
-  <div class="max-w-5xl mx-auto px-6">
+<nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200/80">
+  <div class="max-w-4xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
       <a href="index.html" class="flex items-center gap-3">
-        <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
-        <span class="font-bold text-lg">RasoSpeak</span>
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:var(--forest);"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
+        <span class="font-bold text-lg" style="font-family:'Lora',serif;color:var(--forest);">RasoSpeak</span>
       </a>
       <div class="flex items-center gap-1">
-        <a href="index.html" class="nav-link" aria-label="Home">Home</a>
-        <a href="chat.html" class="nav-link" aria-label="Chat">Chat</a>
-        <a href="memory.html" class="nav-link" aria-label="Memory">Memory</a>
-        <a href="coach.html" class="nav-link active" aria-label="Coach">Coach</a>
-        <a href="docs.html" class="nav-link" aria-label="Docs">Docs</a>
-        <a href="settings.html" class="nav-link" aria-label="Settings">Settings</a>
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="chat.html" class="nav-link">Chat</a>
+        <a href="memory.html" class="nav-link">Memory</a>
+        <a href="coach.html" class="nav-link active">Coach</a>
+        <a href="docs.html" class="nav-link">Docs</a>
+        <a href="settings.html" class="nav-link">Settings</a>
       </div>
     </div>
   </div>
 </nav>
 
-<main id="main-content" class="max-w-4xl mx-auto px-6 py-8">
+<main class="max-w-4xl mx-auto px-6 py-8">
 
-  <!-- Header -->
-  <div class="mb-8">
-    <h1 class="text-2xl font-bold mb-2">Speech Coach</h1>
-    <p class="text-gray-600">Practice your presentations with real-time AI feedback</p>
+  <div class="animate-fu mb-8">
+    <h1 class="text-3xl font-bold" style="font-family:'Lora',serif;">Speech Coach</h1>
+    <p class="mt-1" style="color:var(--text-muted);">Practice presentations with real-time AI feedback</p>
   </div>
 
-  <!-- Quick Memory Context -->
-  <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200 p-4 mb-6">
-    <div class="flex items-center gap-2 mb-2">
-      <span class="text-emerald-600 font-semibold text-sm">Your Speaking Patterns</span>
-      <button onclick="loadPersonaPatterns()" class="text-xs text-emerald-600 hover:underline">Refresh</button>
+  <!-- Persona Banner -->
+  <div class="card p-5 mb-6 animate-fu stagger-1 flex items-start gap-4">
+    <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(217,119,6,0.1);">
+      <svg class="w-5 h-5" style="color:var(--amber);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
     </div>
-    <div id="persona-patterns" class="text-sm text-gray-600">
-      Loading patterns from your Second Brain...
+    <div class="flex-1">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="font-semibold text-sm">Your Speaking Patterns</span>
+        <button onclick="loadPersonaPatterns()" class="text-xs font-medium px-2 py-0.5 rounded-full" style="background:rgba(27,67,50,0.07);color:var(--forest);">Refresh</button>
+      </div>
+      <div id="persona-patterns" class="text-sm" style="color:var(--text-muted);">Loading patterns from your Second Brain...</div>
     </div>
   </div>
 
   <!-- Script Input -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-    <h2 class="font-semibold mb-4">Your Script</h2>
+  <div class="card p-6 mb-6 animate-fu stagger-2">
+    <h2 class="font-semibold text-lg mb-4" style="font-family:'Lora',serif;">Your Script</h2>
     <textarea id="script-ta" placeholder="Paste your presentation script here..."
-      class="w-full h-40 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4"></textarea>
+      class="w-full h-40 px-4 py-3 border-2 rounded-xl resize-none text-base mb-4" style="border-color:var(--border);background:var(--bg-card);outline:none;"
+      onfocus="this.style.borderColor='var(--forest)'"
+      onblur="this.style.borderColor='var(--border)'"></textarea>
     <div class="flex gap-3">
-      <button onclick="loadSample()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">Load Sample</button>
-      <select id="chunk-size-select" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+      <button onclick="loadSample()" class="btn-secondary text-sm">Load Sample</button>
+      <select id="chunk-size-select" class="px-3 py-2 border-2 rounded-xl text-sm" style="border-color:var(--border);background:var(--bg-card);">
         <option value="5">5 words/chunk</option>
         <option value="8" selected>8 words/chunk</option>
         <option value="12">12 words/chunk</option>
         <option value="15">15 words/chunk</option>
       </select>
-      <button onclick="processAndGo()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Start Practice</button>
+      <button onclick="processAndGo()" class="btn-primary flex-1 text-sm">Start Practice</button>
     </div>
   </div>
 
   <!-- Practice Session -->
-  <div id="practice-session" class="bg-white rounded-lg border border-gray-200 p-6 mb-6 hidden">
-    <div class="flex items-center justify-between mb-4">
+  <div id="practice-session" class="card p-6 mb-6 hidden">
+    <div class="flex items-center justify-between mb-5">
       <div>
-        <h3 class="font-semibold">Practice Session</h3>
-        <p id="session-id" class="text-sm text-gray-500"></p>
+        <h3 class="font-semibold" style="font-family:'Lora',serif;">Practice Session</h3>
+        <p id="session-id" class="text-xs mt-0.5" style="color:var(--text-muted);"></p>
       </div>
       <div class="flex items-center gap-4">
-        <span id="chunk-progress" class="text-sm text-gray-500">Chunk 0 of 0</span>
-        <button id="end-session-btn" onclick="endSession()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">End Session</button>
+        <span id="chunk-progress" class="text-sm" style="color:var(--text-muted);">Chunk 0 of 0</span>
+        <button onclick="endSession()" class="btn-secondary text-sm">End Session</button>
       </div>
     </div>
 
-    <div id="chunk-nav" class="flex items-center gap-2 mb-4 overflow-x-auto pb-2"></div>
+    <!-- Chunk Navigator -->
+    <div id="chunk-nav" class="flex items-center gap-2 mb-5 overflow-x-auto pb-2"></div>
 
-    <div id="current-chunk" class="bg-emerald-50 rounded-lg p-6 mb-4 text-lg leading-relaxed text-center">
+    <!-- Current Chunk Display -->
+    <div id="current-chunk" class="rounded-xl p-8 mb-5 text-center text-xl leading-relaxed" style="background:rgba(27,67,50,0.06);border:1.5px solid rgba(27,67,50,0.12);">
       Your script chunk will appear here...
     </div>
 
-    <div class="flex items-center justify-center gap-4 mb-4">
-      <button id="prev-btn" onclick="prevChunk()" class="p-3 bg-gray-100 rounded-full hover:bg-gray-200 disabled:opacity-50" disabled aria-label="Previous chunk">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    <!-- Playback Controls -->
+    <div class="flex items-center justify-center gap-5 mb-5">
+      <button id="prev-btn" onclick="prevChunk()" class="w-12 h-12 rounded-full flex items-center justify-center transition-all" style="background:var(--bg);border:1.5px solid var(--border);" disabled aria-label="Previous">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       </button>
-      <button id="practice-btn" onclick="togglePractice()" class="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center hover:bg-emerald-600 shadow-lg" aria-label="Start or stop practice">
-        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <button id="practice-btn" onclick="togglePractice()" class="w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all" style="background:var(--forest);" aria-label="Play">
+        <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </button>
-      <button id="next-btn" onclick="nextChunk()" class="p-3 bg-gray-100 rounded-full hover:bg-gray-200 disabled:opacity-50" aria-label="Next chunk">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      <button id="next-btn" onclick="nextChunk()" class="w-12 h-12 rounded-full flex items-center justify-center transition-all" style="background:var(--bg);border:1.5px solid var(--border);" aria-label="Next">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
       </button>
     </div>
 
-    <div class="text-center mb-4">
-      <button id="skip-btn" onclick="skipChunk()" class="px-6 py-2 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-200">Skip this chunk</button>
+    <div class="flex justify-center mb-5">
+      <button onclick="skipChunk()" class="px-5 py-2 rounded-full text-sm font-medium" style="background:rgba(217,119,6,0.1);color:var(--amber);">Skip this chunk</button>
     </div>
 
-    <div id="feedback-area" class="bg-gray-50 rounded-lg p-4 min-h-[100px]">
-      <div id="feedback-content" class="text-center text-gray-500">
-        <p class="mb-2">Feedback will appear here after you speak</p>
-        <p class="text-sm text-gray-400">Click the play button to start practicing</p>
+    <!-- Feedback -->
+    <div id="feedback-area" class="rounded-xl p-5" style="background:var(--bg);">
+      <div id="feedback-content" class="text-center" style="color:var(--text-muted);">
+        <p class="text-sm mb-1">Feedback will appear after you speak</p>
+        <p class="text-xs">Click play to start practicing</p>
       </div>
     </div>
   </div>
 
   <!-- Analytics -->
-  <div class="grid grid-cols-4 gap-4 mb-6">
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="anal-sessions" class="text-2xl font-bold text-emerald-600">0</div>
-      <div class="text-xs text-gray-500 mt-1">Sessions</div>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="card p-5 text-center animate-fu stagger-3">
+      <div class="stat-num text-2xl" style="color:var(--forest);" id="anal-sessions">0</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Sessions</div>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="anal-accuracy" class="text-2xl font-bold text-gray-700">0%</div>
-      <div class="text-xs text-gray-500 mt-1">Avg Accuracy</div>
+    <div class="card p-5 text-center animate-fu stagger-3">
+      <div class="stat-num text-2xl" id="anal-accuracy">0%</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Avg Accuracy</div>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="anal-wpm" class="text-2xl font-bold text-gray-700">0</div>
-      <div class="text-xs text-gray-500 mt-1">Avg WPM</div>
+    <div class="card p-5 text-center animate-fu stagger-4">
+      <div class="stat-num text-2xl" id="anal-wpm">0</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Avg WPM</div>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="anal-chunks" class="text-2xl font-bold text-gray-700">0</div>
-      <div class="text-xs text-gray-500 mt-1">Chunks Done</div>
+    <div class="card p-5 text-center animate-fu stagger-4">
+      <div class="stat-num text-2xl" style="color:var(--amber);" id="anal-chunks">0</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Chunks Done</div>
     </div>
   </div>
 
   <!-- Session History -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+  <div class="card p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="font-semibold">Recent Sessions</h3>
-      <button onclick="loadSessionHistory()" class="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Refresh</button>
+      <h3 class="font-semibold" style="font-family:'Lora',serif;">Recent Sessions</h3>
+      <button onclick="loadSessionHistory()" class="btn-secondary text-sm">Refresh</button>
     </div>
-    <div id="session-list" class="space-y-3">
-      <p class="text-gray-400 text-center py-4">No sessions yet</p>
-    </div>
+    <div id="session-list" class="space-y-3"></div>
   </div>
 
   <!-- Tips -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
-    <h3 class="font-semibold mb-4">Tips for Better Practice</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-      <div class="flex items-start gap-3"><span class="text-emerald-500 font-bold">1.</span><p>Speak clearly and at a natural pace</p></div>
-      <div class="flex items-start gap-3"><span class="text-emerald-500 font-bold">2.</span><p>Practice in a quiet environment</p></div>
-      <div class="flex items-start gap-3"><span class="text-emerald-500 font-bold">3.</span><p>Focus on one chunk at a time</p></div>
-      <div class="flex items-start gap-3"><span class="text-emerald-500 font-bold">4.</span><p>Review feedback after each practice</p></div>
+  <div class="card p-6 animate-fu">
+    <h3 class="font-semibold mb-4" style="font-family:'Lora',serif;">Tips for Better Practice</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style="color:var(--text-muted);">
+      <div class="flex items-start gap-3"><span class="font-bold" style="color:var(--forest);">1.</span><p>Speak clearly and at a natural pace</p></div>
+      <div class="flex items-start gap-3"><span class="font-bold" style="color:var(--forest);">2.</span><p>Practice in a quiet environment</p></div>
+      <div class="flex items-start gap-3"><span class="font-bold" style="color:var(--forest);">3.</span><p>Focus on one chunk at a time</p></div>
+      <div class="flex items-start gap-3"><span class="font-bold" style="color:var(--forest);">4.</span><p>Review feedback after each practice</p></div>
     </div>
   </div>
 
 </main>
 
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite"></div>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-semibold shadow-xl transition-all duration-300 opacity-0 pointer-events-none -translate-y-4 z-50" style="background:var(--text);color:white;" role="status"></div>
 
 <script>
-let practiceRunning = false;
-let currentSessionId = null;
-let chunks = [];
-let currentChunkIndex = 0;
-let sessionStats = { chunks_done: 0, total_chunks: 0, accuracy_sum: 0, wpm_sum: 0 };
+let practiceRunning=false,currentSessionId=null,chunks=[],currentChunkIndex=0,userTranscript='',silenceTimer=null;
+let sessionStats={chunks_done:0,total_chunks:0,accuracy_sum:0,wpm_sum:0};
+function stat_n(){return document.querySelector('#anal-sessions').style.fontFamily="'Lora',serif";}
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.remove('opacity-0','translate-y-4','pointer-events-none');
-  setTimeout(() => t.classList.add('opacity-0','translate-y-4','pointer-events-none'), 3000);
-}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.remove('opacity-0','-translate-y-4','pointer-events-none');setTimeout(()=>t.classList.add('opacity-0','-translate-y-4','pointer-events-none'),3000);}
 
-function loadSample() {
-  document.getElementById('script-ta').value = `Welcome to our presentation on artificial intelligence. Today we will discuss the fundamentals of machine learning. Neural networks are inspired by the human brain. Deep learning has revolutionized computer vision. Natural language processing enables machines to understand text. Reinforcement learning trains agents through rewards. AI is transforming healthcare and finance. Ethics in AI ensures responsible development. The future of AI holds infinite possibilities.`;
-  showToast('Sample script loaded');
-}
+function loadSample(){document.getElementById('script-ta').value='Welcome to our presentation on artificial intelligence. Today we will discuss the fundamentals of machine learning. Neural networks are inspired by the human brain. Deep learning has revolutionized computer vision. Natural language processing enables machines to understand text. Reinforcement learning trains agents through rewards. AI is transforming healthcare and finance. Ethics in AI ensures responsible development. The future of AI holds infinite possibilities.';showToast('Sample script loaded');}
 
-async function loadPersonaPatterns() {
-  const container = document.getElementById('persona-patterns');
-  try {
-    const resp = await fetch('/brain/persona');
-    if (!resp.ok) throw new Error();
-    const data = await resp.json();
-    const traits = data.traits || [];
-    const strengths = data.strengths || [];
-    const weaknesses = data.weaknesses || [];
+async function loadPersonaPatterns(){const c=document.getElementById('persona-patterns');try{const r=await fetch('/brain/persona');if(!r.ok)throw new Error();const d=await r.json();const t=d.traits||[],s=d.strengths||[],w=d.weaknesses||[];let html='';if(t.length)html+=`<span class="font-medium">Traits:</span> ${t.slice(0,3).join(', ')}`;if(s.length)html+=html?`<br><span class="font-medium">Strengths:</span> ${s.slice(0,2).join(', ')}`:`<span class="font-medium">Strengths:</span> ${s.slice(0,2).join(', ')}`;if(w.length)html+=html?`<br><span class="font-medium">Areas to improve:</span> ${w.slice(0,2).join(', ')}`:`<span class="font-medium">Areas to improve:</span> ${w.slice(0,2).join(', ')}`;c.innerHTML=html||'Build your persona by having more conversations with Raso!';}catch(e){c.innerHTML='Practice more to build your speaking profile...';}}
 
-    let html = '';
-    if (traits.length) html += `<span class="font-medium">Traits:</span> ${traits.slice(0,3).join(', ')}`;
-    if (strengths.length) html += html ? `<br><span class="font-medium">Strengths:</span> ${strengths.slice(0,2).join(', ')}` : `<span class="font-medium">Strengths:</span> ${strengths.slice(0,2).join(', ')}`;
-    if (weaknesses.length) html += html ? `<br><span class="font-medium">Areas to improve:</span> ${weaknesses.slice(0,2).join(', ')}` : `<span class="font-medium">Areas to improve:</span> ${weaknesses.slice(0,2).join(', ')}`;
+async function processAndGo(){const script=document.getElementById('script-ta').value.trim(),chunkSize=parseInt(document.getElementById('chunk-size-select').value)||8;if(!script){showToast('Please enter a script');return;}showToast('Processing script...');try{const r=await fetch('/segment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({script,target_chunk_size:chunkSize,style:'speech'})});const d=await r.json();if(r.ok&&d.chunks&&d.chunks.length>0)chunks=d.chunks.map(c=>typeof c==='string'?c:(c.text||'')).filter(c=>c);else throw new Error();}catch(e){const words=script.split(/\s+/);chunks=[];for(let i=0;i<words.length;i+=chunkSize)chunks.push(words.slice(i,i+chunkSize).join(' '));}if(!chunks.length){showToast('Failed to create chunks');return;}currentChunkIndex=0;currentSessionId=`session_${Date.now()}`;sessionStats={chunks_done:0,total_chunks:chunks.length,accuracy_sum:0,wpm_sum:0};document.getElementById('practice-session').classList.remove('hidden');document.getElementById('session-id').textContent=`Session: ${currentSessionId}`;renderChunks();updateCurrentChunk();updateProgress();showToast(`Ready! ${chunks.length} chunks`);}
 
-    container.innerHTML = html || 'Build your persona by having more conversations with Raso!';
-  } catch (err) {
-    container.innerHTML = 'Practice more to build your speaking profile...';
-  }
-}
+function renderChunks(){const nav=document.getElementById('chunk-nav');nav.innerHTML=chunks.map((c,idx)=>{const isCur=idx===currentChunkIndex,status=localStorage.getItem(`chunk_${currentSessionId}_${idx}`)||'pending';let cls='px-4 py-2 rounded-xl text-sm font-medium transition-all flex-shrink-0 border-2';if(isCur)cls+=' chunk-cur';else if(status==='complete')cls+=' chunk-done';else if(status==='skip')cls+=' chunk-skip';else cls+=' bg-white border-gray-200 hover:border-gray-400';return`<button onclick="goToChunk(${idx})" class="${cls}" title="${c}">${idx+1}</button>`;}).join('');}
+function goToChunk(idx){currentChunkIndex=idx;updateCurrentChunk();updateProgress();renderChunks();}
 
-async function processAndGo() {
-  const script = document.getElementById('script-ta').value.trim();
-  const chunkSize = parseInt(document.getElementById('chunk-size-select').value) || 8;
-  if (!script) { showToast('Please enter a script'); return; }
+function updateCurrentChunk(){document.getElementById('current-chunk').textContent=chunks[currentChunkIndex]||'';document.getElementById('prev-btn').disabled=currentChunkIndex===0;document.getElementById('next-btn').disabled=currentChunkIndex===chunks.length-1;}
+function updateProgress(){document.getElementById('chunk-progress').textContent=`Chunk ${currentChunkIndex+1} of ${chunks.length}`;document.getElementById('anal-sessions').textContent=localStorage.getItem('rs_total_sessions')||'0';document.getElementById('anal-chunks').textContent=sessionStats.chunks_done;if(sessionStats.chunks_done>0){document.getElementById('anal-accuracy').textContent=`${Math.round(sessionStats.accuracy_sum/sessionStats.chunks_done)}%`;document.getElementById('anal-wpm').textContent=Math.round(sessionStats.wpm_sum/sessionStats.chunks_done);}}
 
-  showToast('Processing script...');
+function togglePractice(){practiceRunning=!practiceRunning;const btn=document.getElementById('practice-btn');if(practiceRunning){btn.innerHTML='<svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';startRecording();}else{btn.innerHTML='<svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';stopRecording();}}
 
-  try {
-    const resp = await fetch('/segment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ script, target_chunk_size: chunkSize, style: 'speech' })
-    });
-    const data = await resp.json();
-    if (resp.ok && data.chunks && data.chunks.length > 0) {
-      chunks = data.chunks.map(c => typeof c === 'string' ? c : (c.text || '')).filter(c => c);
-    } else { throw new Error('Invalid response'); }
-  } catch (err) {
-    const words = script.split(/\s+/);
-    chunks = [];
-    for (let i = 0; i < words.length; i += chunkSize) chunks.push(words.slice(i, i + chunkSize).join(' '));
-  }
+function startRecording(){showToast('Listen first, then speak...');practiceRunning=true;navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{s.getTracks().forEach(t=>t.stop());startCoachSession();}).catch(e=>{showToast('Microphone permission denied');practiceRunning=false;});}
 
-  if (chunks.length === 0) { showToast('Failed to create chunks'); return; }
+function startCoachSession(){const c=chunks[currentChunkIndex];if(!c){showToast('No chunk to practice');return;}const btn=document.getElementById('practice-btn');btn.innerHTML='&#128266;';btn.disabled=true;if('speechSynthesis' in window){const u=new SpeechSynthesisUtterance(c);u.rate=0.85;u.onend=()=>{showToast('Now speak the same text...');setTimeout(()=>startUserRecording(),500);};u.onerror=()=>{showToast('TTS failed - start speaking now');startUserRecording();};speechSynthesis.cancel();speechSynthesis.speak(u);}else{showToast('TTS not available');startUserRecording();}}
 
-  currentChunkIndex = 0;
-  currentSessionId = `session_${Date.now()}`;
-  sessionStats = { chunks_done: 0, total_chunks: chunks.length, accuracy_sum: 0, wpm_sum: 0 };
+function startUserRecording(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){showToast('Speech not supported');return;}userTranscript='';window.coachRecognition=new SR();window.coachRecognition.continuous=true;window.coachRecognition.interimResults=true;window.coachRecognition.lang='en-US';const btn=document.getElementById('practice-btn');btn.innerHTML='&#127908;';btn.disabled=false;btn.onclick=stopRecording;window.coachRecognition.onresult=e=>{let ft='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal){ft+=e.results[i][0].transcript+' ';userTranscript+=e.results[i][0].transcript+' ';}}document.getElementById('feedback-content').innerHTML=`<p class="text-sm" style="color:var(--text);">You said: <strong>${userTranscript.trim()}</strong></p><p class="text-xs mt-1" style="color:var(--text-muted);">Stop talking to check...</p>`;if(silenceTimer)clearTimeout(silenceTimer);silenceTimer=setTimeout(()=>{if(practiceRunning&&userTranscript.trim())stopRecording();},2000);};window.coachRecognition.onerror=e=>{if(!['no-speech','aborted','network'].includes(e.error))showToast('Speech error: '+e.error);if(practiceRunning&&e.error!=='network')setTimeout(()=>{try{window.coachRecognition.start();}catch(er){}},1000);};window.coachRecognition.onend=()=>{if(practiceRunning)setTimeout(()=>{try{window.coachRecognition.start();}catch(er){}},500);};window.coachRecognition.start();showToast('Speak the text you heard!');}
 
-  document.getElementById('practice-session').classList.remove('hidden');
-  document.getElementById('session-id').textContent = `Session: ${currentSessionId}`;
-  renderChunks();
-  updateCurrentChunk();
-  updateProgress();
-  showToast(`Ready! ${chunks.length} chunks`);
-}
+async function stopRecording(){if(silenceTimer)clearTimeout(silenceTimer);practiceRunning=false;if(window.coachRecognition){try{window.coachRecognition.stop();}catch(e){}window.coachRecognition=null;}speechSynthesis.cancel();const btn=document.getElementById('practice-btn');btn.innerHTML='<svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';btn.onclick=togglePractice;const chunk=chunks[currentChunkIndex],spoken=userTranscript.trim(),chunkWords=chunk.toLowerCase().replace(/[^\w\s]/g,'').split(/\s+/),spokenWords=spoken.toLowerCase().replace(/[^\w\s]/g,'').split(/\s+/);let matches=0;chunkWords.forEach(w=>{if(spokenWords.includes(w))matches++;});const accuracy=chunkWords.length>0?Math.round((matches/chunkWords.length)*100):0,wpm=Math.round(spokenWords.length*2),threshold=75;document.getElementById('feedback-content').innerHTML=`<div class="text-left"><p class="font-medium mb-3 ${accuracy>=threshold?'style="color:var(--forest);"':'style="color:var(--amber);"'}>${accuracy>=threshold?'✓ Great job!':'↻ Try again'}</p><div class="grid grid-cols-3 gap-3 mb-3"><div class="text-center p-3 rounded-xl" style="background:rgba(30,58,95,0.08);"><div class="text-2xl font-bold" style="color:#1E3A5F;">${accuracy}%</div><div class="text-xs" style="color:var(--text-muted);">Accuracy</div></div><div class="text-center p-3 rounded-xl" style="background:rgba(109,76,65,0.08);"><div class="text-2xl font-bold" style="color:#6D4C41;">${wpm}</div><div class="text-xs" style="color:var(--text-muted);">WPM</div></div><div class="text-center p-3 rounded-xl" style="background:rgba(27,67,50,0.08);"><div class="text-2xl font-bold" style="color:var(--forest);">${threshold}%</div><div class="text-xs" style="color:var(--text-muted);">Need</div></div></div><p class="text-sm" style="color:var(--text-muted);">Expected: ${chunk}</p><p class="text-sm" style="color:var(--text-muted);">You said: ${spoken||'(nothing)'}</p></div>`;updateProgress();renderChunks();if(accuracy>=threshold){sessionStats.chunks_done++;sessionStats.accuracy_sum+=accuracy;sessionStats.wpm_sum+=wpm;localStorage.setItem(`chunk_${currentSessionId}_${currentChunkIndex}`,'complete');showToast('✓ Correct!');setTimeout(()=>{if(currentChunkIndex<chunks.length-1){currentChunkIndex++;updateCurrentChunk();renderChunks();updateProgress();setTimeout(()=>startRecording(),1500);}else showToast('🎉 Practice complete!');},500);}else showToast(`Need ${threshold}% - keep practicing`);}
 
-function renderChunks() {
-  const nav = document.getElementById('chunk-nav');
-  nav.innerHTML = chunks.map((chunk, idx) => {
-    const isCurrent = idx === currentChunkIndex;
-    const status = localStorage.getItem(`chunk_${currentSessionId}_${idx}`) || 'pending';
-    return `<button onclick="goToChunk(${idx})" class="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isCurrent ? 'bg-emerald-500 text-white ring-2 ring-emerald-300' : status === 'complete' ? 'bg-emerald-100' : status === 'skip' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" title="${chunk}">${idx + 1}</button>`;
-  }).join('');
-}
+function prevChunk(){if(currentChunkIndex>0){currentChunkIndex--;updateCurrentChunk();updateProgress();renderChunks();resetFeedback();}}
+function nextChunk(){if(currentChunkIndex<chunks.length-1){currentChunkIndex++;updateCurrentChunk();updateProgress();renderChunks();resetFeedback();}}
+function skipChunk(){localStorage.setItem(`chunk_${currentSessionId}_${currentChunkIndex}`,'skip');document.getElementById('feedback-content').innerHTML='<div class="text-center" style="color:var(--text-muted);"><p class="text-sm mb-1">Chunk skipped</p><p class="text-xs">Move to next when ready</p></div>';if(currentChunkIndex<chunks.length-1){currentChunkIndex++;updateCurrentChunk();updateProgress();renderChunks();}}
+function resetFeedback(){document.getElementById('feedback-content').innerHTML='<div class="text-center" style="color:var(--text-muted);"><p class="text-sm mb-1">Feedback will appear after you speak</p><p class="text-xs">Click play to start practicing</p></div>';}
 
-function goToChunk(idx) { currentChunkIndex = idx; updateCurrentChunk(); updateProgress(); renderChunks(); }
+function endSession(){if(!confirm('End this practice session?'))return;const t=parseInt(localStorage.getItem('rs_total_sessions')||'0')+1;localStorage.setItem('rs_total_sessions',t.toString());document.getElementById('practice-session').classList.add('hidden');showToast(`Session complete! ${sessionStats.chunks_done} chunks practiced.`);loadSessionHistory();}
 
-function updateCurrentChunk() {
-  const display = document.getElementById('current-chunk');
-  display.textContent = chunks[currentChunkIndex] || '';
-  display.classList.remove('chunk-complete', 'chunk-fail');
-  document.getElementById('prev-btn').disabled = currentChunkIndex === 0;
-  document.getElementById('next-btn').disabled = currentChunkIndex === chunks.length - 1;
-}
+async function loadSessionHistory(){const c=document.getElementById('session-list');const sessions=JSON.parse(localStorage.getItem('rs_sessions')||'[]');if(!sessions.length){c.innerHTML='<p class="text-sm text-center py-4" style="color:var(--text-muted);">No sessions yet</p>';return;}c.innerHTML=sessions.map(s=>`<div class="flex items-center justify-between p-4 rounded-xl" style="background:var(--bg);"><div><p class="font-medium text-sm">${s.id}</p><p class="text-xs mt-0.5" style="color:var(--text-muted);">${new Date(s.date).toLocaleDateString()}</p></div><span class="text-sm" style="color:var(--text-muted);">${s.chunks} chunks</span></div>`).join('');}
 
-function updateProgress() {
-  document.getElementById('chunk-progress').textContent = `Chunk ${currentChunkIndex + 1} of ${chunks.length}`;
-  document.getElementById('anal-sessions').textContent = localStorage.getItem('rs_total_sessions') || '0';
-  document.getElementById('anal-chunks').textContent = sessionStats.chunks_done;
-  if (sessionStats.chunks_done > 0) {
-    document.getElementById('anal-accuracy').textContent = `${Math.round(sessionStats.accuracy_sum / sessionStats.chunks_done)}%`;
-    document.getElementById('anal-wpm').textContent = Math.round(sessionStats.wpm_sum / sessionStats.chunks_done);
-  }
-}
-
-function togglePractice() {
-  practiceRunning = !practiceRunning;
-  const btn = document.getElementById('practice-btn');
-  if (practiceRunning) {
-    btn.innerHTML = '<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
-    startRecording();
-  } else {
-    btn.innerHTML = '<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-    stopRecording();
-  }
-}
-
-function startRecording() {
-  showToast('Listen first, then speak...');
-  practiceRunning = true;
-  navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => { stream.getTracks().forEach(track => track.stop()); startCoachSession(); })
-    .catch(err => { showToast('Microphone permission denied'); practiceRunning = false; });
-}
-
-function startCoachSession() {
-  const currentChunk = chunks[currentChunkIndex];
-  if (!currentChunk) { showToast('No chunk to practice'); return; }
-
-  const btn = document.getElementById('practice-btn');
-  btn.innerHTML = '&#128266; Listen...';
-  btn.disabled = true;
-
-  if ('speechSynthesis' in window) {
-    const utterance = new SpeechSynthesisUtterance(currentChunk);
-    utterance.rate = 0.85;
-    utterance.onend = () => { showToast('Now speak the same text...'); setTimeout(() => startUserRecording(), 500); };
-    utterance.onerror = () => { showToast('TTS failed - start speaking now'); startUserRecording(); };
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
-  } else {
-    showToast('TTS not available - start speaking now');
-    startUserRecording();
-  }
-}
-
-let userTranscript = '';
-let silenceTimer = null;
-
-function startUserRecording() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { showToast('Speech not supported'); return; }
-
-  userTranscript = '';
-  window.coachRecognition = new SR();
-  window.coachRecognition.continuous = true;
-  window.coachRecognition.interimResults = true;
-  window.coachRecognition.lang = 'en-US';
-
-  const btn = document.getElementById('practice-btn');
-  btn.innerHTML = '&#127908; Recording...';
-  btn.disabled = false;
-  btn.onclick = stopRecording;
-
-  window.coachRecognition.onresult = (event) => {
-    let finalText = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (event.results[i].isFinal) { finalText += event.results[i][0].transcript + ' '; userTranscript += event.results[i][0].transcript + ' '; }
-    }
-    document.getElementById('feedback-content').innerHTML = `<p class="text-sm text-gray-600">You said: <strong>${userTranscript.trim()}</strong></p><p class="text-xs text-gray-400 mt-1">Stop talking to check...</p>`;
-    if (silenceTimer) clearTimeout(silenceTimer);
-    silenceTimer = setTimeout(() => { if (practiceRunning && userTranscript.trim()) stopRecording(); }, 2000);
-  };
-
-  window.coachRecognition.onerror = (event) => { if (event.error !== 'no-speech' && event.error !== 'aborted') showToast('Speech error: ' + event.error); };
-  window.coachRecognition.onend = () => { if (practiceRunning) setTimeout(() => { try { window.coachRecognition.start(); } catch(e) {} }, 500); };
-  window.coachRecognition.start();
-  showToast('Speak the text you heard!');
-}
-
-async function stopRecording() {
-  if (silenceTimer) clearTimeout(silenceTimer);
-  practiceRunning = false;
-
-  if (window.coachRecognition) { try { window.coachRecognition.stop(); } catch(e) {} window.coachRecognition = null; }
-  speechSynthesis.cancel();
-
-  const btn = document.getElementById('practice-btn');
-  btn.innerHTML = '<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-  btn.onclick = togglePractice;
-
-  const currentChunk = chunks[currentChunkIndex];
-  const spoken = userTranscript.trim();
-
-  const chunkWords = currentChunk.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
-  const spokenWords = spoken.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
-  let matches = 0;
-  chunkWords.forEach(word => { if (spokenWords.includes(word)) matches++; });
-  const accuracy = chunkWords.length > 0 ? Math.round((matches / chunkWords.length) * 100) : 0;
-  const wpm = Math.round(spokenWords.length * 2);
-  const threshold = 75;
-
-  document.getElementById('feedback-content').innerHTML = `
-    <div class="text-left">
-      <p class="font-medium ${accuracy >= threshold ? 'text-emerald-600' : 'text-orange-600'} mb-2">${accuracy >= threshold ? '&#10003; Great job!' : '&#8634; Try again'}</p>
-      <div class="grid grid-cols-3 gap-4 mb-4">
-        <div class="text-center p-3 bg-blue-50 rounded-lg"><div class="text-2xl font-bold text-blue-600">${accuracy}%</div><div class="text-xs text-gray-500">Accuracy</div></div>
-        <div class="text-center p-3 bg-purple-50 rounded-lg"><div class="text-2xl font-bold text-purple-600">${wpm}</div><div class="text-xs text-gray-500">WPM</div></div>
-        <div class="text-center p-3 bg-emerald-50 rounded-lg"><div class="text-2xl font-bold text-emerald-600">${threshold}%</div><div class="text-xs text-gray-500">Need</div></div>
-      </div>
-      <p class="text-sm text-gray-500">Expected: ${currentChunk}</p>
-      <p class="text-sm text-gray-500">You said: ${spoken || '(nothing)'}</p>
-    </div>`;
-
-  updateProgress();
-  renderChunks();
-
-  if (accuracy >= threshold) {
-    sessionStats.chunks_done++;
-    sessionStats.accuracy_sum += accuracy;
-    sessionStats.wpm_sum += wpm;
-    localStorage.setItem(`chunk_${currentSessionId}_${currentChunkIndex}`, 'complete');
-    showToast('&#10003; Correct!');
-    setTimeout(() => {
-      if (currentChunkIndex < chunks.length - 1) { currentChunkIndex++; updateCurrentChunk(); renderChunks(); updateProgress(); setTimeout(() => startRecording(), 1500); }
-      else showToast('&#127882; Practice complete!');
-    }, 500);
-  } else { showToast(`Need ${threshold}% - keep practicing`); }
-}
-
-function prevChunk() { if (currentChunkIndex > 0) { currentChunkIndex--; updateCurrentChunk(); updateProgress(); renderChunks(); resetFeedback(); } }
-function nextChunk() { if (currentChunkIndex < chunks.length - 1) { currentChunkIndex++; updateCurrentChunk(); updateProgress(); renderChunks(); resetFeedback(); } }
-
-function skipChunk() {
-  localStorage.setItem(`chunk_${currentSessionId}_${currentChunkIndex}`, 'skip');
-  document.getElementById('feedback-content').innerHTML = `<div class="text-center text-gray-500"><p class="mb-2">Chunk skipped</p><p class="text-sm">Move to the next chunk when ready</p></div>`;
-  if (currentChunkIndex < chunks.length - 1) { currentChunkIndex++; updateCurrentChunk(); updateProgress(); renderChunks(); }
-}
-
-function resetFeedback() {
-  document.getElementById('feedback-content').innerHTML = `<p class="mb-2">Feedback will appear here after you speak</p><p class="text-sm text-gray-400">Click the play button to start practicing</p>`;
-}
-
-function endSession() {
-  if (!confirm('End this practice session?')) return;
-  const totalSessions = parseInt(localStorage.getItem('rs_total_sessions') || '0') + 1;
-  localStorage.setItem('rs_total_sessions', totalSessions.toString());
-  document.getElementById('practice-session').classList.add('hidden');
-  showToast(`Session complete! ${sessionStats.chunks_done} chunks practiced.`);
-  loadSessionHistory();
-}
-
-async function loadSessionHistory() {
-  const container = document.getElementById('session-list');
-  const sessions = JSON.parse(localStorage.getItem('rs_sessions') || '[]');
-  if (sessions.length === 0) { container.innerHTML = '<p class="text-gray-400 text-center py-4">No sessions yet</p>'; return; }
-  container.innerHTML = sessions.map(s => `<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"><div><p class="font-medium">${s.id}</p><p class="text-sm text-gray-500">${new Date(s.date).toLocaleDateString()}</p></div><div class="text-right"><p class="text-sm">${s.chunks} chunks</p></div></div>`).join('');
-}
-
-window.addEventListener('load', () => { loadPersonaPatterns(); loadSessionHistory(); });
+window.addEventListener('load',()=>{loadPersonaPatterns();loadSessionHistory();});
 </script>
-
 </body>
 </html>

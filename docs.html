@@ -3,366 +3,212 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>RasoSpeak — Documents</title>
+  <title>RasoSpeak — Knowledge Base</title>
   <link rel="icon" type="image/png" href="logo.png"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
   <style>
-    * { font-family: 'Inter', system-ui, sans-serif; }
-    body { background: #FAFAFA; }
-    .nav-link { @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors; }
-    .nav-link:hover { @apply bg-gray-100; }
-    .nav-link.active { @apply bg-emerald-50 text-emerald-700; }
+    :root { --bg:#F6F3EE; --bg-card:#FFFEFA; --forest:#1B4332; --forest-light:#2D6A4F; --sage:#52796F; --sage-light:#84A98C; --amber:#D97706; --border:#E7E3DB; --text:#1C1917; --text-muted:#78716C; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    h1,h2,h3 { font-family: 'Lora', Georgia, serif; }
+    .nav-link { padding: 0.5rem 1rem; border-radius: 0.625rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; color: var(--text-muted); }
+    .nav-link:hover { background: rgba(27,67,50,0.06); color: var(--forest); }
+    .nav-link.active { background: rgba(27,67,50,0.1); color: var(--forest); font-weight: 600; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 1.25rem; transition: all 0.25s; }
+    .card:hover { border-color: var(--sage-light); box-shadow: 0 4px 24px rgba(27,67,50,0.08); }
+    .btn-primary { background: var(--forest); color: white; padding: 0.625rem 1.5rem; border-radius: 0.875rem; font-weight: 600; font-size: 0.875rem; border: none; cursor: pointer; transition: all 0.2s; }
+    .btn-primary:hover { background: var(--forest-light); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(27,67,50,0.25); }
+    .btn-secondary { background: white; border: 1.5px solid var(--border); padding: 0.5rem 1.25rem; border-radius: 0.875rem; font-weight: 600; font-size: 0.8125rem; cursor: pointer; transition: all 0.2s; }
+    .btn-secondary:hover { border-color: var(--sage); }
+    .tag { display: inline-flex; align-items: center; padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.6875rem; font-weight: 600; }
+    .tag-sage { background: rgba(82,121,111,0.1); color: var(--sage); }
+    .tag-forest { background: rgba(27,67,50,0.1); color: var(--forest); }
+    .tag-blue { background: rgba(30,58,95,0.1); color: #1E3A5F; }
+    .tag-purple { background: rgba(109,76,65,0.1); color: #6D4C41; }
+    .tag-amber { background: rgba(217,119,6,0.1); color: var(--amber); }
+    .stat-num { font-family: 'Lora', serif; font-weight: 600; line-height: 1; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .animate-fu { animation: fadeUp 0.4s ease forwards; }
+    .stagger-1 { animation-delay: 0.05s; opacity: 0; }
+    .stagger-2 { animation-delay: 0.1s; opacity: 0; }
+    .stagger-3 { animation-delay: 0.15s; opacity: 0; }
+    .drop-zone { border: 2px dashed var(--border); transition: all 0.2s; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--forest); background: rgba(27,67,50,0.03); }
   </style>
 </head>
 <body class="min-h-screen">
 
-<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-emerald-500 focus:text-white focus:rounded-lg focus:font-medium">Skip to main content</a>
-
-<nav class="bg-white border-b border-gray-200 sticky top-0 z-50" aria-label="Main navigation">
-  <div class="max-w-5xl mx-auto px-6">
+<nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200/80">
+  <div class="max-w-4xl mx-auto px-6">
     <div class="flex items-center justify-between h-16">
       <a href="index.html" class="flex items-center gap-3">
-        <img src="logo.png" alt="RasoSpeak" class="w-8 h-8">
-        <span class="font-bold text-lg">RasoSpeak</span>
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:var(--forest);"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
+        <span class="font-bold text-lg" style="font-family:'Lora',serif;color:var(--forest);">RasoSpeak</span>
       </a>
       <div class="flex items-center gap-1">
-        <a href="index.html" class="nav-link" aria-label="Home">Home</a>
-        <a href="chat.html" class="nav-link" aria-label="Chat">Chat</a>
-        <a href="memory.html" class="nav-link" aria-label="Memory">Memory</a>
-        <a href="coach.html" class="nav-link" aria-label="Coach">Coach</a>
-        <a href="docs.html" class="nav-link active" aria-label="Docs">Docs</a>
-        <a href="settings.html" class="nav-link" aria-label="Settings">Settings</a>
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="chat.html" class="nav-link">Chat</a>
+        <a href="memory.html" class="nav-link">Memory</a>
+        <a href="coach.html" class="nav-link">Coach</a>
+        <a href="docs.html" class="nav-link active">Docs</a>
+        <a href="settings.html" class="nav-link">Settings</a>
       </div>
     </div>
   </div>
 </nav>
 
-<main id="main-content" class="max-w-4xl mx-auto px-6 py-8">
+<main class="max-w-4xl mx-auto px-6 py-8">
 
-  <!-- Header -->
-  <div class="mb-8">
-    <h1 class="text-2xl font-bold mb-2">Knowledge Base</h1>
-    <p class="text-gray-600">Import documents, URLs, and notes to expand your Second Brain</p>
+  <div class="mb-6 animate-fu">
+    <h1 class="text-3xl font-bold" style="font-family:'Lora',serif;">Knowledge Base</h1>
+    <p class="mt-1" style="color:var(--text-muted);">Import documents, URLs, and notes to expand your Second Brain</p>
   </div>
 
-  <!-- Document count from Second Brain -->
+  <!-- Stats -->
   <div class="grid grid-cols-3 gap-4 mb-6">
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="doc-total" class="text-2xl font-bold text-emerald-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Total Documents</div>
+    <div class="card p-5 text-center animate-fu stagger-1">
+      <div class="stat-num text-3xl" style="color:var(--forest);" id="doc-total">—</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Total Documents</div>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="doc-urls" class="text-2xl font-bold text-blue-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">URLs Imported</div>
+    <div class="card p-5 text-center animate-fu stagger-2">
+      <div class="stat-num text-3xl" style="color:#1E3A5F;" id="doc-urls">—</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">URLs Imported</div>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div id="doc-texts" class="text-2xl font-bold text-purple-600">—</div>
-      <div class="text-xs text-gray-500 mt-1">Text Notes</div>
+    <div class="card p-5 text-center animate-fu stagger-3">
+      <div class="stat-num text-3xl" style="color:var(--sage);" id="doc-texts">—</div>
+      <div class="text-sm mt-1" style="color:var(--text-muted);">Text Notes</div>
     </div>
   </div>
 
   <!-- Import URL -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-4">
-    <h2 class="font-semibold mb-4">Import from URL</h2>
+  <div class="card p-6 mb-4 animate-fu stagger-2">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(30,58,95,0.08);">
+        <svg class="w-5 h-5" style="color:#1E3A5F;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+      </div>
+      <h2 class="font-semibold text-lg" style="font-family:'Lora',serif;">Import from URL</h2>
+    </div>
     <div class="flex gap-3">
       <input type="text" id="doc-url" placeholder="Paste URL to import (article, blog, etc.)"
-        class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
-      <button onclick="importUrl()" class="px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Import</button>
+        class="flex-1 px-4 py-3 border-2 rounded-xl text-base" style="border-color:var(--border);background:var(--bg-card);outline:none;"
+        onfocus="this.style.borderColor='var(--forest)'"
+        onblur="this.style.borderColor='var(--border)'">
+      <button onclick="importUrl()" class="btn-primary">Import</button>
     </div>
-    <p id="url-status" class="text-xs text-gray-400 mt-2"></p>
+    <p id="url-status" class="text-xs mt-2" style="color:var(--text-muted);"></p>
   </div>
 
   <!-- Import Text -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-4">
-    <h2 class="font-semibold mb-4">Import Text / Note</h2>
+  <div class="card p-6 mb-4 animate-fu stagger-3">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(82,121,111,0.08);">
+        <svg class="w-5 h-5" style="color:var(--sage);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      </div>
+      <h2 class="font-semibold text-lg" style="font-family:'Lora',serif;">Import Text / Note</h2>
+    </div>
     <textarea id="doc-text" placeholder="Paste text, notes, or any content to add to your memory..."
-      class="w-full h-32 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-3"></textarea>
+      class="w-full h-32 px-4 py-3 border-2 rounded-xl resize-none text-base mb-3" style="border-color:var(--border);background:var(--bg-card);outline:none;"
+      onfocus="this.style.borderColor='var(--forest)'"
+      onblur="this.style.borderColor='var(--border)'"></textarea>
     <div class="flex gap-3">
-      <input type="text" id="doc-title" placeholder="Title (optional)" class="flex-1 px-3 py-2 border border-gray-200 rounded-lg">
-      <select id="doc-category" class="px-3 py-2 border border-gray-200 rounded-lg text-sm">
+      <input type="text" id="doc-title" placeholder="Title (optional)" class="flex-1 px-3 py-2 border-2 rounded-xl text-sm" style="border-color:var(--border);background:var(--bg-card);outline:none;" onfocus="this.style.borderColor='var(--forest)'" onblur="this.style.borderColor='var(--border)'">
+      <select id="doc-category" class="px-3 py-2 border-2 rounded-xl text-sm" style="border-color:var(--border);background:var(--bg-card);">
         <option value="note">Note</option>
         <option value="article">Article</option>
         <option value="book">Book</option>
         <option value="research">Research</option>
         <option value="other">Other</option>
       </select>
-      <button onclick="importText()" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600">Add to Memory</button>
+      <button onclick="importText()" class="btn-primary flex-1">Add to Memory</button>
     </div>
   </div>
 
-  <!-- Upload File -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-    <h2 class="font-semibold mb-4">Upload Document</h2>
-    <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors cursor-pointer" onclick="document.getElementById('doc-upload').click()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('doc-upload').click()}">
-      <input type="file" id="doc-upload" accept=".pdf,.txt,.md,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
-      <div class="text-gray-400 mb-2">
-        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+  <!-- Upload -->
+  <div class="card p-6 mb-6 animate-fu">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(217,119,6,0.08);">
+        <svg class="w-5 h-5" style="color:var(--amber);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
       </div>
-      <p class="text-gray-600 font-medium">Click to upload or drag and drop</p>
-      <p class="text-sm text-gray-400 mt-1">PDF, TXT, MD, DOC, DOCX</p>
+      <h2 class="font-semibold text-lg" style="font-family:'Lora',serif;">Upload Document</h2>
+    </div>
+    <div id="upload-area" class="drop-zone rounded-xl p-8 text-center cursor-pointer"
+      onclick="document.getElementById('doc-upload').click()"
+      ondragover="this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="this.classList.remove('drag-over')"
+      role="button" tabindex="0">
+      <input type="file" id="doc-upload" accept=".pdf,.txt,.md,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
+      <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style="background:var(--bg);">
+        <svg class="w-6 h-6" style="color:var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+      </div>
+      <p class="font-medium">Click to upload or drag and drop</p>
+      <p class="text-sm mt-1" style="color:var(--text-muted);">PDF, TXT, MD, DOC, DOCX</p>
     </div>
     <div id="upload-progress" class="hidden mt-4">
       <div class="flex items-center gap-3">
-        <div class="flex-1 bg-gray-200 rounded-full h-2"><div id="progress-bar" class="bg-emerald-500 h-2 rounded-full transition-all" style="width:0%"></div></div>
-        <span id="progress-text" class="text-sm text-gray-500">0%</span>
+        <div class="flex-1 h-2 rounded-full overflow-hidden" style="background:var(--border);"><div id="progress-bar" class="h-full rounded-full transition-all" style="width:0%;background:var(--forest);"></div></div>
+        <span id="progress-text" class="text-sm" style="color:var(--text-muted);">0%</span>
       </div>
     </div>
   </div>
 
   <!-- Search -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+  <div class="card p-6 mb-6 animate-fu">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="font-semibold">Search Knowledge</h2>
+      <h2 class="font-semibold" style="font-family:'Lora',serif;">Search Knowledge</h2>
       <div class="flex gap-2">
-        <button onclick="searchDocs('rag')" class="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200">&#129504; RAG Search</button>
-        <button onclick="searchDocs('docs')" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200">&#128196; Docs</button>
-        <button onclick="loadDocuments()" class="px-3 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200">Refresh</button>
+        <button onclick="searchDocs('rag')" class="btn-secondary">&#129504; RAG Search</button>
+        <button onclick="searchDocs('docs')" class="btn-secondary">&#128196; Docs</button>
+        <button onclick="loadDocuments()" class="btn-secondary">Refresh</button>
       </div>
     </div>
     <div class="flex gap-3">
       <input type="text" id="doc-search" placeholder="Search your knowledge base..."
-        class="flex-1 pl-4 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        onkeydown="if(event.key==='Enter')searchDocs('rag')">
-      <button onclick="searchDocs('rag')" class="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600">Search</button>
+        class="flex-1 px-4 py-2 border-2 rounded-xl text-sm" style="border-color:var(--border);background:var(--bg-card);outline:none;"
+        onkeydown="if(event.key==='Enter')searchDocs('rag')"
+        onfocus="this.style.borderColor='var(--forest)'"
+        onblur="this.style.borderColor='var(--border)'">
+      <button onclick="searchDocs('rag')" class="btn-primary text-sm">Search</button>
     </div>
     <div id="search-results" class="mt-4 space-y-3"></div>
   </div>
 
   <!-- Document List -->
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
+  <div class="card p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="font-semibold">Your Documents</h2>
-      <p id="docs-count" class="text-sm text-gray-500"></p>
+      <h2 class="font-semibold" style="font-family:'Lora',serif;">Your Documents</h2>
+      <p id="docs-count" class="text-sm" style="color:var(--text-muted);"></p>
     </div>
-    <div id="docs-list" class="space-y-3">
-      <div class="text-center text-gray-400 py-8"><p>Loading...</p></div>
-    </div>
+    <div id="docs-list" class="space-y-3"></div>
   </div>
 
 </main>
 
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" role="status" aria-live="polite"></div>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-semibold shadow-xl transition-all duration-300 opacity-0 pointer-events-none -translate-y-4 z-50" style="background:var(--text);color:white;" role="status"></div>
 
 <script>
-let currentPage = 1;
-const pageSize = 10;
+let currentPage=1,pageSize=10;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.remove('opacity-0','-translate-y-4','pointer-events-none');setTimeout(()=>t.classList.add('opacity-0','-translate-y-4','pointer-events-none'),3000);}
+function escHtml(text){const d=document.createElement('div');d.textContent=text;return d.innerHTML;}
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.remove('opacity-0','translate-y-4','pointer-events-none');
-  setTimeout(() => t.classList.add('opacity-0','translate-y-4','pointer-events-none'), 3000);
-}
+async function loadDocStats(){try{const r=await fetch('/brain/stats');if(!r.ok)return;const d=await r.json();document.getElementById('doc-total').textContent=d.type_counts?.document||0;document.getElementById('doc-urls').textContent=d.type_counts?.url||0;document.getElementById('doc-texts').textContent=d.type_counts?.semantic||0;}catch(e){}}
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
+async function importUrl(){const url=document.getElementById('doc-url').value.trim(),st=document.getElementById('url-status');if(!url||(!url.startsWith('http://')&&!url.startsWith('https://'))){showToast('Please enter a valid URL');return;}st.textContent='Importing...';try{const r=await fetch('/documents/url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});const d=await r.json();if(r.ok){st.textContent=`Imported: ${d.title||'Document'}`;showToast(`Imported: ${d.title||'Document'}`);document.getElementById('doc-url').value='';loadDocuments();loadDocStats();}else{st.textContent='Failed';showToast(d.error||'Import failed');}}catch(e){st.textContent='Error';showToast('Error importing URL');}}
 
-// Load document stats
-async function loadDocStats() {
-  try {
-    const resp = await fetch('/brain/stats');
-    if (!resp.ok) return;
-    const data = await resp.json();
-    document.getElementById('doc-total').textContent = data.type_counts?.document || 0;
-    document.getElementById('doc-urls').textContent = data.type_counts?.url || 0;
-    document.getElementById('doc-texts').textContent = data.type_counts?.semantic || 0;
-  } catch (err) { /* silent */ }
-}
+async function importText(){const text=document.getElementById('doc-text').value.trim(),title=document.getElementById('doc-title').value.trim()||'Untitled Note',cat=document.getElementById('doc-category').value;if(!text){showToast('Please enter some text');return;}try{const r=await fetch('/documents/text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:text,title,category:cat,tags:[]})});if(r.ok){showToast(`Added: ${title}`);document.getElementById('doc-text').value='';document.getElementById('doc-title').value='';loadDocuments();loadDocStats();}else showToast('Failed to add note');}catch(e){showToast('Error adding note');}}
 
-async function importUrl() {
-  const url = document.getElementById('doc-url').value.trim();
-  const status = document.getElementById('url-status');
-  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) { showToast('Please enter a valid URL'); return; }
+async function handleFileUpload(input){const file=input.files?.[0];if(!file)return;const progress=document.getElementById('upload-progress');progress.classList.remove('hidden');try{const fd=new FormData();fd.append('file',file);fd.append('title',file.name.replace(/\.[^/.]+$/,''));fd.append('category','document');let prog=0;const iv=setInterval(()=>{prog=Math.min(prog+10,90);document.getElementById('progress-bar').style.width=`${prog}%`;document.getElementById('progress-text').textContent=`${prog}%`;},100);const r=await fetch('/documents/upload',{method:'POST',body:fd});clearInterval(iv);document.getElementById('progress-bar').style.width='100%';document.getElementById('progress-text').textContent='100%';if(r.ok){const d=await r.json();showToast(`Uploaded: ${d.title||file.name}`);loadDocuments();loadDocStats();}else showToast('Failed to upload file');}catch(e){showToast('Error uploading file');}setTimeout(()=>progress.classList.add('hidden'),2000);}
 
-  status.textContent = 'Importing...';
-  try {
-    const resp = await fetch('/documents/url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
-    });
-    const data = await resp.json();
-    if (resp.ok) {
-      status.textContent = `Imported: ${data.title || 'Document'}`;
-      showToast(`Imported: ${data.title || 'Document'}`);
-      document.getElementById('doc-url').value = '';
-      loadDocuments();
-      loadDocStats();
-    } else { status.textContent = 'Failed'; showToast(data.error || 'Import failed'); }
-  } catch (err) { status.textContent = 'Error'; showToast('Error importing URL'); }
-}
+async function loadDocuments(page=1){const c=document.getElementById('docs-list'),ce=document.getElementById('docs-count');c.innerHTML='<div class="text-center py-8" style="color:var(--text-muted);"><p>Loading...</p></div>';try{const r=await fetch('/documents'),d=await r.json(),docs=d.documents||[];currentPage=page;ce.textContent=`${docs.length} documents`;if(!docs.length){c.innerHTML='<div class="text-center py-8" style="color:var(--text-muted);"><p>No documents yet</p><p class="text-sm mt-1">Import URLs, text, or upload files above</p></div>';return;}const start=(page-1)*pageSize,pageDocs=docs.slice(start,start+pageSize);c.innerHTML=pageDocs.map(doc=>`<div class="flex items-start justify-between p-4 rounded-xl transition-colors hover:bg-gray-50 cursor-pointer"><div class="flex-1 min-w-0"><h3 class="font-medium">${escHtml(doc.title||'Untitled')}</h3><p class="text-sm mt-1 line-clamp-2" style="color:var(--text-muted);">${escHtml(doc.content||doc.snippet||'').substring(0,150)}</p><div class="flex items-center gap-2 mt-2"><span class="tag tag-sage">${doc.category||'other'}</span>${doc.created_at?`<span class="text-xs" style="color:var(--text-muted);">${new Date(doc.created_at).toLocaleDateString()}</span>`:''}</div></div><button onclick="event.stopPropagation();deleteDocument('${doc.id}')" class="p-2 rounded-lg transition-colors hover:bg-red-50 hover:text-red-500 flex-shrink-0" aria-label="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div>`).join('');}catch(e){c.innerHTML='<div class="text-center py-8 text-red-500"><p>Failed to load documents</p></div>';}}
 
-async function importText() {
-  const text = document.getElementById('doc-text').value.trim();
-  const title = document.getElementById('doc-title').value.trim() || 'Untitled Note';
-  const category = document.getElementById('doc-category').value;
-  if (!text) { showToast('Please enter some text'); return; }
+async function searchDocs(type='docs'){const q=document.getElementById('doc-search').value.trim(),c=document.getElementById('search-results');if(!q&&type==='rag'){showToast('Enter a search term');return;}c.innerHTML='<div class="text-center py-4" style="color:var(--text-muted);"><p>Searching...</p></div>';if(type==='rag'){try{const r=await fetch('/brain/rag',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,limit:10})});const d=await r.json(),rs=d.results||[];if(!rs.length){c.innerHTML='<div class="text-center py-4" style="color:var(--text-muted);"><p>No results found</p></div>';return;}c.innerHTML=rs.map(r=>{const n=r.node||r,c=typeof n.content==='object'?JSON.stringify(n.content):n.content;return`<div class="p-4 rounded-xl" style="background:var(--bg);"><p class="text-sm">${escHtml(String(c||'').substring(0,250))}</p><div class="flex gap-2 mt-2">${n.memory_type?`<span class="tag tag-forest">${escHtml(n.memory_type)}</span>`:''}${r.score?`<span class="tag tag-blue">${(r.score*100).toFixed(0)}% match</span>`:''}</div></div>`;}).join('');}catch(e){c.innerHTML='<div class="text-center py-4 text-red-500"><p>RAG search failed</p></div>';}}else{try{const r=await fetch(`/documents/search?query=${encodeURIComponent(q)}`);const d=await r.json(),rs=d.results||[];if(!rs.length){c.innerHTML='<div class="text-center py-4" style="color:var(--text-muted);"><p>No matches in your documents</p></div>';return;}c.innerHTML=rs.map(doc=>`<div class="p-4 rounded-xl" style="background:var(--bg);"><p class="font-medium text-sm">${escHtml(doc.title||'Untitled')}</p><p class="text-sm mt-1" style="color:var(--text-muted);">${escHtml(doc.snippet||doc.content||'').substring(0,200)}</p></div>`).join('');}catch(e){c.innerHTML='<div class="text-center py-4 text-red-500"><p>Search failed</p></div>';}}}
 
-  try {
-    const resp = await fetch('/documents/text', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: text, title, category, tags: [] })
-    });
-    if (resp.ok) {
-      showToast(`Added: ${title}`);
-      document.getElementById('doc-text').value = '';
-      document.getElementById('doc-title').value = '';
-      loadDocuments();
-      loadDocStats();
-    } else { showToast('Failed to add note'); }
-  } catch (err) { showToast('Error adding note'); }
-}
+async function deleteDocument(id){if(!confirm('Delete this document?'))return;try{await fetch(`/documents/${id}`,{method:'DELETE'});showToast('Document deleted');loadDocuments(currentPage);loadDocStats();}catch(e){showToast('Failed to delete');}}
 
-async function handleFileUpload(input) {
-  const file = input.files?.[0];
-  if (!file) return;
-
-  const progress = document.getElementById('upload-progress');
-  progress.classList.remove('hidden');
-
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', file.name.replace(/\.[^/.]+$/, ''));
-    formData.append('category', 'document');
-
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog = Math.min(prog + 10, 90);
-      document.getElementById('progress-bar').style.width = `${prog}%`;
-      document.getElementById('progress-text').textContent = `${prog}%`;
-    }, 100);
-
-    const resp = await fetch('/documents/upload', { method: 'POST', body: formData });
-    clearInterval(interval);
-    document.getElementById('progress-bar').style.width = '100%';
-    document.getElementById('progress-text').textContent = '100%';
-
-    if (resp.ok) {
-      const data = await resp.json();
-      showToast(`Uploaded: ${data.title || file.name}`);
-      loadDocuments();
-      loadDocStats();
-    } else { showToast('Failed to upload file'); }
-  } catch (err) { showToast('Error uploading file'); }
-
-  setTimeout(() => progress.classList.add('hidden'), 2000);
-}
-
-async function loadDocuments(page = 1) {
-  const container = document.getElementById('docs-list');
-  const countEl = document.getElementById('docs-count');
-  container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>Loading...</p></div>';
-
-  try {
-    const resp = await fetch('/documents');
-    const data = await resp.json();
-    const docs = data.documents || [];
-    const totalDocs = docs.length;
-    currentPage = page;
-
-    countEl.textContent = `${totalDocs} documents`;
-
-    if (docs.length === 0) {
-      container.innerHTML = '<div class="text-center text-gray-400 py-8"><p>No documents yet</p><p class="text-sm mt-1">Import URLs, text, or upload files above</p></div>';
-      return;
-    }
-
-    const start = (page - 1) * pageSize;
-    const pageDocs = docs.slice(start, start + pageSize);
-
-    container.innerHTML = pageDocs.map(doc => `
-      <div class="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-        <div class="flex-1">
-          <h3 class="font-medium text-gray-900">${escapeHtml(doc.title || 'Untitled')}</h3>
-          <p class="text-sm text-gray-500 mt-1 line-clamp-2">${escapeHtml(doc.content || doc.snippet || '').substring(0, 200)}</p>
-          <div class="flex items-center gap-2 mt-2">
-            <span class="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">${doc.category || 'other'}</span>
-            ${doc.created_at ? `<span class="text-xs text-gray-400">${new Date(doc.created_at).toLocaleDateString()}</span>` : ''}
-          </div>
-        </div>
-        <button onclick="deleteDocument('${doc.id}')" class="p-2 text-gray-400 hover:text-red-500" aria-label="Delete document">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-      </div>`).join('');
-  } catch (err) {
-    container.innerHTML = '<div class="text-center text-red-400 py-8"><p>Failed to load documents</p></div>';
-  }
-}
-
-async function searchDocs(type = 'docs') {
-  const query = document.getElementById('doc-search').value.trim();
-  const container = document.getElementById('search-results');
-
-  if (!query && type === 'rag') { showToast('Enter a search term'); return; }
-
-  container.innerHTML = '<div class="text-center text-gray-400 py-4"><p>Searching...</p></div>';
-
-  if (type === 'rag') {
-    try {
-      const resp = await fetch('/brain/rag', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, limit: 10 })
-      });
-      const data = await resp.json();
-      const results = data.results || [];
-
-      if (results.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-center py-4">No results found</p>';
-        return;
-      }
-
-      container.innerHTML = results.map(r => {
-        const node = r.node || r;
-        const content = typeof node.content === 'object' ? JSON.stringify(node.content) : node.content;
-        return `
-        <div class="p-4 bg-gray-50 rounded-lg">
-          <p class="text-gray-800">${escapeHtml(String(content || '').substring(0, 300))}</p>
-          <div class="flex gap-2 mt-2">
-            ${node.memory_type ? `<span class="px-2 py-0.5 bg-purple-100 rounded text-xs text-purple-700">${node.memory_type}</span>` : ''}
-            ${r.score ? `<span class="px-2 py-0.5 bg-blue-100 rounded text-xs text-blue-600">${(r.score * 100).toFixed(0)}% match</span>` : ''}
-          </div>
-        </div>`;
-      }).join('');
-    } catch (err) { container.innerHTML = '<p class="text-red-400 text-center py-4">RAG search failed</p>'; }
-  } else {
-    try {
-      const resp = await fetch(`/documents/search?query=${encodeURIComponent(query)}`);
-      const data = await resp.json();
-      const results = data.results || [];
-
-      if (results.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-center py-4">No matches in your documents</p>';
-        return;
-      }
-
-      container.innerHTML = results.map(doc => `
-        <div class="p-4 bg-gray-50 rounded-lg">
-          <p class="font-medium">${escapeHtml(doc.title || 'Untitled')}</p>
-          <p class="text-sm text-gray-600 mt-1">${escapeHtml(doc.snippet || doc.content || '').substring(0, 200)}</p>
-        </div>`).join('');
-    } catch (err) { container.innerHTML = '<p class="text-red-400 text-center py-4">Search failed</p>'; }
-  }
-}
-
-async function deleteDocument(docId) {
-  if (!confirm('Delete this document?')) return;
-  try {
-    await fetch(`/documents/${docId}`, { method: 'DELETE' });
-    showToast('Document deleted');
-    loadDocuments(currentPage);
-    loadDocStats();
-  } catch (err) { showToast('Failed to delete'); }
-}
-
-window.addEventListener('load', () => { loadDocuments(); loadDocStats(); });
+window.addEventListener('load',()=>{loadDocuments();loadDocStats();});
 </script>
-
 </body>
 </html>
