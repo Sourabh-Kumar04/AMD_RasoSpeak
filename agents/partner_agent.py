@@ -138,7 +138,15 @@ class RasoAgent(BaseAgent):
 
         log.info(f"🎧 Raso mode STARTED: {self._current_session_id}")
 
-        # Store in memory
+        # Store in Second Brain (primary)
+        if self._second_brain:
+            await self._second_brain.store(
+                content={"started_at": datetime.utcnow().isoformat(), "mode": "continuous", "agent": "Raso"},
+                memory_type="event",
+                source="raso",
+            )
+
+        # Store in shared memory (backward compatibility)
         if self._shared_memory:
             await self._shared_memory.store(
                 f"continuous_session_{self._current_session_id}",
@@ -185,7 +193,6 @@ class RasoAgent(BaseAgent):
         """
         ts = timestamp or datetime.utcnow().isoformat()
 
-        # Store in memory
         memory_entry = {
             "content": user_input,
             "timestamp": ts,
@@ -193,6 +200,15 @@ class RasoAgent(BaseAgent):
             "type": "user_input",
         }
 
+        # Store in Second Brain (primary - with entity extraction, graph relationships)
+        if self._second_brain:
+            await self._second_brain.store(
+                content=memory_entry,
+                memory_type="conversation",
+                source="raso_continuous",
+            )
+
+        # Store in shared memory (backward compatibility)
         if self._shared_memory:
             await self._shared_memory.store(
                 f"memory_{int(time.time() * 1000)}",
@@ -214,7 +230,7 @@ class RasoAgent(BaseAgent):
         search_type: str = "all",  # all | conversations | facts | sessions
     ) -> dict:
         """
-        Query past conversations and memories.
+        Query past conversations and memories using Second Brain as primary.
 
         Examples:
         - "What did I say about AI?"
@@ -226,33 +242,61 @@ class RasoAgent(BaseAgent):
 
         results = []
 
+        # Try Second Brain first (advanced graph-based search with entity extraction)
+        if self._second_brain:
+            try:
+                # Get persona context for better understanding
+                persona = await self._second_brain.get_persona()
+
+                # Search by conversation topic
+                brain_results = await self._second_brain.recall_conversation(query=query, limit=15)
+                for r in brain_results:
+                    results.append({
+                        "key": r.get("node", {}).get("id", ""),
+                        "value": r.get("node", {}).get("content", {}),
+                        "source": "second_brain"
+                    })
+
+                # Also search by entity name
+                for word in query.split()[:3]:  # Try first 3 words as potential entities
+                    entity_results = await self._second_brain.recall_entity(word, limit=5)
+                    for r in entity_results:
+                        results.append({
+                            "key": r.get("node", {}).get("id", ""),
+                            "value": r.get("node", {}).get("content", {}),
+                            "source": "second_brain_entity"
+                        })
+            except Exception as e:
+                log.warning(f"Second Brain query failed: {e}")
+
+        # Fallback to shared memory
         if self._shared_memory:
-            # Search memory
             memory_results = await self._shared_memory.recall(
                 query=query,
                 category=None if search_type == "all" else search_type,
                 limit=20
             )
-            results.extend(memory_results.get("results", []))
+            for r in memory_results.get("results", []):
+                r["source"] = "shared_memory"
+                results.append(r)
 
-            # Also search conversation history directly
-            if search_type in ["all", "conversations"]:
-                # Query all AIs' conversation history
-                all_convos = await self._shared_memory.recall(
-                    query=query,
-                    category="conversation",
-                    limit=10
-                )
-                results.extend(all_convos.get("results", []))
+        # Deduplicate results
+        seen = set()
+        unique_results = []
+        for r in results:
+            key = r.get("key", str(r))
+            if key not in seen:
+                seen.add(key)
+                unique_results.append(r)
 
         # Generate a summary of findings
-        if results:
-            summary = self._format_query_results(results, query)
+        if unique_results:
+            summary = self._format_query_results(unique_results, query)
             return {
                 "query": query,
                 "summary": summary,
-                "results_count": len(results),
-                "top_results": results[:5],
+                "results_count": len(unique_results),
+                "top_results": unique_results[:5],
             }
         else:
             return {

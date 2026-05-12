@@ -39,6 +39,7 @@ class QAAgent(BaseAgent):
         self._llm_client: Optional[LLMClient] = None
         self._default_provider = settings.default_provider
         self._shared_memory = None
+        self._second_brain = None  # Second Brain for enhanced memory context
 
     async def initialize(self):
         """Initialize LLM client."""
@@ -59,6 +60,11 @@ class QAAgent(BaseAgent):
         """Cleanup resources."""
         if self._llm_client:
             await self._llm_client.close()
+
+    def set_second_brain(self, second_brain):
+        """Connect to Second Brain for enhanced memory context."""
+        self._second_brain = second_brain
+        log.info("QAAgent connected to SecondBrainAgent")
 
     def set_shared_memory(self, shared_memory):
         """Connect to shared memory for context."""
@@ -96,8 +102,17 @@ class QAAgent(BaseAgent):
         # Build messages with context
         messages = [{"role": "system", "content": "You are RasoSpeak, a helpful AI assistant with perfect memory. Be concise and friendly."}]
 
-        # Add memory context if available
-        if self._shared_memory and session_id:
+        # Add memory context if available (Second Brain primary)
+        if self._second_brain and session_id:
+            try:
+                brain_context = await self._second_brain.get_context_for_ai("qa", max_tokens=3000)
+                if brain_context:
+                    messages.append({"role": "system", "content": f"User context: {brain_context}"})
+            except Exception as e:
+                log.warning(f"Failed to get Second Brain context: {e}")
+
+        # Fallback to shared memory
+        if self._shared_memory and session_id and len([m for m in messages if "User context" in str(m)]) == 0:
             try:
                 memory_context = await self._shared_memory.get_context_for_ai("qa")
                 if memory_context:

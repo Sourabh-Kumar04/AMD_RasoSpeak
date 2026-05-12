@@ -45,6 +45,8 @@ class RecordingAgent(BaseAgent):
         self._current_session: Optional[str] = None
         self._session_records: dict = {}
         self._audio_lock = asyncio.Lock()  # Prevent race conditions in audio recording
+        self._shared_memory = None
+        self._second_brain = None  # Second Brain for enhanced audio memory
         self._ensure_storage()
 
     def _ensure_storage(self):
@@ -60,6 +62,11 @@ class RecordingAgent(BaseAgent):
         log.info("✅ RecordingAgent initialized")
         log.info(f"   Storage: {self._storage_path}")
         self._shared_memory = None
+
+    def set_second_brain(self, second_brain):
+        """Connect to Second Brain for enhanced audio memory storage."""
+        self._second_brain = second_brain
+        log.info("RecordingAgent connected to SecondBrainAgent")
 
     def set_shared_memory(self, shared_memory):
         """Connect to shared memory."""
@@ -83,7 +90,7 @@ class RecordingAgent(BaseAgent):
         return {"session_id": session_id, "status": "recording"}
 
     async def stop_session_recording(self, session_id: str) -> dict:
-        """Stop recording and save session data."""
+        """Stop recording and save session data to both memory systems."""
         if session_id in self._session_records:
             record = self._session_records[session_id]
             record["ended_at"] = datetime.utcnow().isoformat()
@@ -91,6 +98,34 @@ class RecordingAgent(BaseAgent):
 
             # Save to disk
             await self._save_session_record(session_id, record)
+
+            # Store in Second Brain (primary - with semantic search, entity extraction)
+            if self._second_brain:
+                # Store audio conversation transcript
+                if record.get("transcripts"):
+                    await self._second_brain.store_audio_conversation(
+                        session_id=session_id,
+                        transcription="\n".join(record["transcripts"]),
+                        speakers=["user", "coach"],
+                        duration=record["duration_seconds"],
+                    )
+
+                # Store Q&A interactions as conversations
+                for qa in record.get("qa_interactions", []):
+                    await self._second_brain.add_conversation(
+                        user_input=qa.get("question", ""),
+                        ai_response=qa.get("answer", ""),
+                        ai_provider="recording_agent",
+                        context=f"session:{session_id}",
+                    )
+
+            # Store in shared memory (backward compatibility)
+            if self._shared_memory:
+                await self._shared_memory.store(
+                    f"session_{session_id}",
+                    record,
+                    category="session"
+                )
 
             log.info(f"📹 Recording stopped: {session_id}, duration={record['duration_seconds']}s")
             del self._session_records[session_id]

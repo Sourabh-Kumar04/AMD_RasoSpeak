@@ -52,6 +52,12 @@ class AnalyticsAgent(BaseAgent):
             )
         log.info("✅ AnalyticsAgent initialized")
         self._shared_memory = None
+        self._second_brain = None  # Second Brain for enhanced memory analytics
+
+    def set_second_brain(self, second_brain):
+        """Connect to Second Brain for enhanced memory analytics."""
+        self._second_brain = second_brain
+        log.info("AnalyticsAgent connected to SecondBrainAgent")
 
     def set_shared_memory(self, shared_memory):
         """Connect to shared memory."""

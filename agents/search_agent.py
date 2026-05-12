@@ -47,6 +47,12 @@ class SearchAgent(BaseAgent):
             log.info("✅ SearchAgent initialized with DuckDuckGo (free)")
 
         self._shared_memory = None
+        self._second_brain = None  # Second Brain for memory context
+
+    def set_second_brain(self, second_brain):
+        """Connect to Second Brain for memory context."""
+        self._second_brain = second_brain
+        log.info("SearchAgent connected to SecondBrainAgent")
 
     def set_shared_memory(self, shared_memory):
         """Connect to shared memory for context."""

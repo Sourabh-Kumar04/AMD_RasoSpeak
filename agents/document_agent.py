@@ -46,6 +46,7 @@ class DocumentAgent(BaseAgent):
     def __init__(self):
         self._storage_path = Path(settings.documents_path or "./memory/documents")
         self._shared_memory: Optional[SharedMemoryAgent] = None
+        self._second_brain = None  # Second Brain for enhanced memory storage
         self._ensure_storage()
 
     def _ensure_storage(self):
@@ -56,6 +57,11 @@ class DocumentAgent(BaseAgent):
     async def initialize(self):
         """Initialize document agent."""
         log.info("✅ DocumentAgent initialized")
+
+    def set_second_brain(self, second_brain):
+        """Connect to Second Brain for enhanced memory storage."""
+        self._second_brain = second_brain
+        log.info("DocumentAgent connected to SecondBrainAgent")
 
     def set_shared_memory(self, shared_memory: SharedMemoryAgent):
         """Connect to shared memory."""
@@ -101,7 +107,16 @@ class DocumentAgent(BaseAgent):
         # Save to disk
         await self._save_document(doc_id, document)
 
-        # Also store in shared memory for easy recall
+        # Store in Second Brain (primary - with semantic search, entity extraction)
+        if self._second_brain:
+            await self._second_brain.add_document(
+                content=content,
+                title=title,
+                doc_type=category,
+                tags=tags,
+            )
+
+        # Also store in shared memory for easy recall (backward compatibility)
         if self._shared_memory:
             await self._shared_memory.store(
                 f"doc_{doc_id}",
@@ -109,14 +124,13 @@ class DocumentAgent(BaseAgent):
                 category="document"
             )
 
-        # Extract and store key points
-        if self._shared_memory:
+        # Extract and store key points in Second Brain
+        if self._second_brain:
             key_points = self._extract_key_points(content)
             for point in key_points:
-                await self._shared_memory.store(
-                    f"point_{doc_id}_{int(time.time() * 1000)}",
-                    {"point": point, "document_id": doc_id, "title": title},
-                    category="fact"
+                await self._second_brain.add_user_fact(
+                    fact=point,
+                    category="document_key_point",
                 )
 
         log.info(f"📄 Imported document: {title} ({document['word_count']} words)")
