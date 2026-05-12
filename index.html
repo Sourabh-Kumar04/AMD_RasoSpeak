@@ -54,7 +54,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
           </svg>
         </button>
-        <div id="wake-pulse" class="absolute inset-0 w-20 h-20 rounded-full bg-emerald-500/20 -z-10 hidden"></div>
+        <div id="wake-pulse" class="absolute inset-0 w-20 h-20 rounded-full bg-emerald-500/40 animate-ping -z-10 hidden"></div>
       </div>
       <p id="wake-status" class="mt-4 text-sm text-gray-500">Click to start listening</p>
     </div>
@@ -184,10 +184,12 @@ function toggleWakeMode() {
 function startWakeDetection() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) {
-    toast('Voice not supported in this browser');
+    toast('Voice not supported in this browser - use Chrome or Edge');
     wakeModeActive = false;
     return;
   }
+
+  console.log('Starting wake detection...');
 
   wakeRecognition = new SR();
   wakeRecognition.continuous = true;
@@ -196,40 +198,58 @@ function startWakeDetection() {
   wakeRecognition.onresult = (event) => {
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript.toLowerCase().trim();
+      console.log('Heard:', transcript);
       if (transcript.includes('hey raso') || transcript.includes('hey')) {
         // Wake word detected
         const status = document.getElementById('wake-status');
-        status.textContent = '👋 Hey Raso activated!';
+        status.textContent = '👋 "Hey Raso" activated!';
         toast('Hey Raso activated!');
+
+        // Visual feedback
+        const btn = document.getElementById('wake-btn');
+        btn.classList.add('bg-yellow-500');
+        btn.classList.remove('bg-emerald-500');
 
         // Auto-redirect to chat
         setTimeout(() => {
           window.location.href = 'chat.html';
-        }, 1500);
+        }, 2000);
       }
     }
   };
 
   wakeRecognition.onerror = (event) => {
+    console.error('Wake detection error:', event.error);
     if (event.error !== 'no-speech' && event.error !== 'aborted') {
-      console.error('Wake detection error:', event.error);
+      toast('Voice error: ' + event.error);
     }
     if (wakeModeActive && event.error !== 'aborted') {
       setTimeout(() => {
-        try { wakeRecognition.start(); } catch(e) {}
+        try { wakeRecognition.start(); } catch(e) {
+          console.error('Failed to restart:', e);
+        }
       }, 2000);
     }
   };
 
   wakeRecognition.onend = () => {
+    console.log('Recognition ended');
     if (wakeModeActive) {
       setTimeout(() => {
-        try { wakeRecognition.start(); } catch(e) {}
+        try { wakeRecognition.start(); } catch(e) {
+          console.error('Failed to restart after end:', e);
+        }
       }, 500);
     }
   };
 
-  wakeRecognition.start();
+  try {
+    wakeRecognition.start();
+    console.log('Wake detection started successfully');
+  } catch(e) {
+    console.error('Failed to start recognition:', e);
+    toast('Failed to start voice - check microphone permission');
+  }
 }
 
 function stopWakeDetection() {
