@@ -198,24 +198,16 @@ function startWakeDetection() {
   const braveHelp = document.getElementById('brave-help');
   if (isBrave) {
     braveHelp.classList.remove('hidden');
+    toast('Starting wake detection in Brave...');
   }
 
-  // Check browser support
-  const isBrave = navigator.userAgent.includes('Braves');
-  const isChrome = navigator.userAgent.includes('Chrome') && !isBrave;
-  const isEdge = navigator.userAgent.includes('Edg');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SR) {
-    if (isBrave) {
-      toast('Brave: Enable speech in settings → Shields → Global defaults');
-    } else {
-      toast('Voice not supported - use Chrome or Edge');
-    }
+    toast('Voice not supported in this browser - use Chrome');
     wakeModeActive = false;
     return;
   }
-
-  // Check microphone permission explicitly
   navigator.permissions.query({ name: 'microphone' }).then(result => {
     if (result.state === 'denied') {
       toast('Microphone blocked - click lock icon in address bar to allow');
