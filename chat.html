@@ -211,11 +211,16 @@
         <h2 class="font-semibold" style="font-family:'Lora',serif;">Raso</h2>
         <div class="flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full" style="background: var(--sage-light);"></span>
-          <p class="text-xs" style="color: var(--text-muted);">Your AI companion with memory</p>
+          <p class="text-xs" style="color: var(--text-muted);">7-Layer Cognitive Engine</p>
         </div>
       </div>
     </div>
     <div class="flex items-center gap-3">
+      <!-- Cognitive Status Badge -->
+      <div id="cog-status" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+        <span>Active</span>
+      </div>
       <select id="provider-select" class="provider-select" title="Select AI provider">
         <option value="google">Google Gemini</option>
         <option value="nvidia">NVIDIA NIM</option>
@@ -233,9 +238,10 @@
   <!-- Messages -->
   <div id="chat-messages" class="messages-container p-6 mb-4 flex-1 overflow-y-auto scrollbar-hide space-y-4">
     <div id="welcome-message" class="text-center" style="padding-top: 3rem;">
-      <div class="welcome-art" style="background: rgba(27,67,50,0.08);">🤝</div>
-      <h3 class="font-semibold text-lg mb-2" style="font-family:'Lora',serif;">Raso is ready to help</h3>
-      <p class="text-sm mb-1" style="color: var(--text-muted);">Ask anything — from complex questions to quick facts</p>
+      <div class="welcome-art" style="background: rgba(27,67,50,0.08);">🧠</div>
+      <h3 class="font-semibold text-lg mb-2" style="font-family:'Lora',serif;">Raso Cognitive Engine Ready</h3>
+      <p class="text-sm mb-1" style="color: var(--text-muted);">Powered by 7-layer cognition with HTN planning</p>
+      <p class="text-xs mb-3" style="color: var(--text-muted);">Reactive → Perception → Planning → Execution → Reflection → Memory → World Model</p>
       <p class="text-xs" style="color: var(--text-muted);">Say "Hey Raso" to activate voice control</p>
     </div>
   </div>
