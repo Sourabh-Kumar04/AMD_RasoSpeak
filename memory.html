@@ -62,13 +62,20 @@
         </div>
         <span class="font-bold text-lg" style="font-family:'Lora',serif;color:var(--forest);">RasoSpeak</span>
       </a>
-      <div class="flex items-center gap-1">
-        <a href="index.html" class="nav-link">Home</a>
-        <a href="chat.html" class="nav-link">Chat</a>
-        <a href="memory.html" class="nav-link active">Memory</a>
-        <a href="coach.html" class="nav-link">Coach</a>
-        <a href="docs.html" class="nav-link">Docs</a>
-        <a href="settings.html" class="nav-link">Settings</a>
+      <div class="flex items-center gap-3">
+        <!-- Cognitive Status -->
+        <div id="cog-status-memory" class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+          <span>7-Layer</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <a href="index.html" class="nav-link">Home</a>
+          <a href="chat.html" class="nav-link">Chat</a>
+          <a href="memory.html" class="nav-link active">Memory</a>
+          <a href="coach.html" class="nav-link">Coach</a>
+          <a href="docs.html" class="nav-link">Docs</a>
+          <a href="settings.html" class="nav-link">Settings</a>
+        </div>
       </div>
     </div>
   </div>
@@ -79,8 +86,11 @@
   <!-- Header -->
   <div class="flex items-center justify-between mb-6 animate-fu">
     <div>
-      <h1 class="text-2xl font-bold" style="font-family:'Lora',serif;">Memory Hub</h1>
-      <p class="text-sm mt-1" style="color:var(--text-muted);">Your Second Brain at a glance</p>
+      <div class="flex items-center gap-2 mb-1">
+        <h1 class="text-2xl font-bold" style="font-family:'Lora',serif;">Memory Hub</h1>
+        <span class="tag tag-forest text-xs">Memory Layer</span>
+      </div>
+      <p class="text-sm mt-1" style="color:var(--text-muted);">Powered by 7-layer cognitive engine with semantic embeddings</p>
     </div>
     <div class="flex gap-2">
       <button onclick="showTab('search')" id="tab-search" class="tab-btn active">Search</button>
