@@ -73,40 +73,58 @@
 
 <main class="max-w-3xl mx-auto px-6 py-8">
 
-  <!-- AI Provider -->
+  <!-- AI Provider & Model -->
   <div class="card p-6 mb-6 animate-fu">
     <div class="flex items-center gap-3 mb-5">
       <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(27,67,50,0.1);">
         <svg class="w-5 h-5" style="color:var(--forest);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
       </div>
       <div>
-        <h2 class="font-semibold text-lg" style="font-family:'Lora',serif;">AI Provider</h2>
-        <p class="text-sm" style="color:var(--text-muted);">Choose which AI model to use</p>
+        <h2 class="font-semibold text-lg" style="font-family:'Lora',serif;">AI Provider & Model</h2>
+        <p class="text-sm" style="color:var(--text-muted);">Choose which AI provider and model to use</p>
       </div>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-      <button onclick="setProvider('google')" id="btn-google" class="provider-btn active">
-        <div class="text-2xl mb-1">&#129302;</div><div class="font-semibold text-sm">Google Gemini</div><div class="text-xs mt-0.5" style="color:var(--text-muted);">Free & Fast</div>
-      </button>
-      <button onclick="setProvider('nvidia')" id="btn-nvidia" class="provider-btn">
-        <div class="text-2xl mb-1">&#127918;</div><div class="font-semibold text-sm">NVIDIA NIM</div><div class="text-xs mt-0.5" style="color:var(--text-muted);">High Performance</div>
-      </button>
-      <button onclick="setProvider('openai')" id="btn-openai" class="provider-btn">
-        <div class="text-2xl mb-1">&#128301;</div><div class="font-semibold text-sm">OpenAI GPT</div><div class="text-xs mt-0.5" style="color:var(--text-muted);">ChatGPT</div>
-      </button>
-      <button onclick="setProvider('anthropic')" id="btn-anthropic" class="provider-btn">
-        <div class="text-2xl mb-1">&#128293;</div><div class="font-semibold text-sm">Anthropic</div><div class="text-xs mt-0.5" style="color:var(--text-muted);">Claude</div>
-      </button>
-      <button onclick="setProvider('openrouter')" id="btn-openrouter" class="provider-btn">
-        <div class="text-2xl mb-1">&#127760;</div><div class="font-semibold text-sm">OpenRouter</div><div class="text-xs mt-0.5" style="color:var(--text-muted);">80+ Models</div>
-      </button>
-      <button onclick="setProvider('deepseek')" id="btn-deepseek" class="provider-btn">
-        <div class="text-2xl mb-1">&#128269;</div><div class="font-semibold text-sm">DeepSeek</div><div class="text-xs mt-0.5" style="color:var(--text-muted);">Cost Effective</div>
-      </button>
+
+    <!-- Active Model Display -->
+    <div id="active-model-card" class="mb-4 p-4 rounded-xl border-2" style="border-color:var(--forest);background:rgba(27,67,50,0.04);">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium" style="color:var(--forest);">ACTIVE MODEL</p>
+          <p id="active-model-name" class="font-bold text-lg mt-0.5" style="font-family:'Lora',serif;">Google Gemini — gemini-2.0-flash-exp</p>
+          <p id="active-model-meta" class="text-sm mt-0.5" style="color:var(--text-muted);">Large context · 1M tokens · Streaming</p>
+        </div>
+        <div class="text-right">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--forest);color:white;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="flex items-center gap-2 text-sm" style="color:var(--forest);">
-      <span class="w-2 h-2 rounded-full" style="background:var(--forest);"></span>
-      <span id="provider-name">Using: Google Gemini</span>
+
+    <!-- Provider Tabs -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button onclick="switchProviderTab('google')" id="tab-google" class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all" style="background:var(--forest);color:white;border-color:var(--forest);">Google</button>
+      <button onclick="switchProviderTab('nvidia')" id="tab-nvidia" class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all" style="border-color:var(--border);">NVIDIA</button>
+      <button onclick="switchProviderTab('openai')" id="tab-openai" class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all" style="border-color:var(--border);">OpenAI</button>
+      <button onclick="switchProviderTab('anthropic')" id="tab-anthropic" class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all" style="border-color:var(--border);">Anthropic</button>
+      <button onclick="switchProviderTab('openrouter')" id="tab-openrouter" class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all" style="border-color:var(--border);">OpenRouter</button>
+      <button onclick="switchProviderTab('deepseek')" id="tab-deepseek" class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all" style="border-color:var(--border);">DeepSeek</button>
+    </div>
+
+    <!-- Models Grid for Selected Provider -->
+    <div id="model-selector" class="mb-4">
+      <p class="text-sm font-medium mb-3">Available Models:</p>
+      <div id="model-grid" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <p class="text-sm" style="color:var(--text-muted);">Loading models...</p>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="flex items-center gap-3 pt-3" style="border-top:1px solid var(--border);">
+      <button onclick="loadModelsList()" class="btn-primary text-xs">Refresh Models</button>
+      <button onclick="switchToFastest()" class="px-3 py-1.5 rounded-lg text-xs font-medium border" style="border-color:var(--border);">Fastest</button>
+      <button onclick="switchToCheapest()" class="px-3 py-1.5 rounded-lg text-xs font-medium border" style="border-color:var(--border);">Cheapest</button>
+      <button onclick="switchToReasoning()" class="px-3 py-1.5 rounded-lg text-xs font-medium border" style="border-color:var(--border);">Reasoning</button>
     </div>
   </div>
 
@@ -297,10 +315,108 @@
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-semibold shadow-xl transition-all duration-300 opacity-0 pointer-events-none -translate-y-4 z-50" style="background:var(--text);color:white;" role="status"></div>
 
 <script>
-let currentProvider='google',wakeEnabled=false;
+let currentProvider='google',wakeEnabled=false,currentModel='gemini-2.0-flash-exp',allModels=[];
+const PROVIDER_NAMES={google:'Google Gemini',nvidia:'NVIDIA NIM',openai:'OpenAI GPT',anthropic:'Anthropic Claude',openrouter:'OpenRouter',deepseek:'DeepSeek'};
+
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.remove('opacity-0','-translate-y-4','pointer-events-none');setTimeout(()=>t.classList.add('opacity-0','-translate-y-4','pointer-events-none'),3000);}
 
-async function setProvider(p){try{const r=await fetch('/raso/provider',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:p,temporary:false})});if(r.ok){currentProvider=p;document.querySelectorAll('.provider-btn').forEach(b=>b.classList.remove('active'));document.getElementById(`btn-${p}`).classList.add('active');const n={google:'Google Gemini',nvidia:'NVIDIA NIM',openai:'OpenAI GPT',anthropic:'Anthropic Claude',openrouter:'OpenRouter',deepseek:'DeepSeek'};document.getElementById('provider-name').textContent=`Using: ${n[p]||p}`;showToast(`Switched to ${n[p]||p}`);}}catch(e){showToast('Failed to switch provider');}}
+// Load and display models for a provider tab
+async function switchProviderTab(provider){
+  document.querySelectorAll('[id^="tab-"]').forEach(t=>{t.style.background='white';t.style.color='var(--text-muted)';});
+  document.getElementById(`tab-${provider}`).style.background='var(--forest)';
+  document.getElementById(`tab-${provider}`).style.color='white';
+  currentProvider=provider;
+  const grid=document.getElementById('model-grid');
+  grid.innerHTML='<p style="color:var(--text-muted);">Loading models...</p>';
+  const filtered=allModels.filter(m=>m.provider_type===provider);
+  if(filtered.length===0){grid.innerHTML='<p class="text-sm" style="color:var(--text-muted);">No models available for this provider.</p>';return;}
+  grid.innerHTML=filtered.map(m=>`<div onclick="selectModel('${m.model_id}','${provider}')" id="model-${m.model_id.replace(/\./g,'-')}" class="p-3 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${m.model_id===currentModel?'border-2 border-green-500 bg-green-50':'border-2 border-stone-200 hover:border-green-400'}">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="font-semibold text-sm">${m.name||m.model_id}</p>
+        <p class="text-xs mt-0.5" style="color:var(--text-muted);">${m.context_window?.toLocaleString()||'?'} ctx · ${m.pricing?.input?'$'+m.pricing.input+'/M':'Free'}</p>
+      </div>
+      <div class="flex flex-col items-end gap-1">
+        ${m.capabilities?.fast?'<span class="tag tag-green">Fast</span>':''}
+        ${m.capabilities?.cheap?'<span class="tag tag-amber">Cheap</span>':''}
+        ${m.capabilities?.reasoning?'<span class="tag" style="background:rgba(139,92,246,0.1);color:#7C3AED;">Reasoning</span>':''}
+        ${m.capabilities?.coding?'<span class="tag" style="background:rgba(59,130,246,0.1);color:#2563EB;">Coding</span>':''}
+      </div>
+    </div>
+    ${m.model_id===currentModel?'<div class="flex items-center gap-1 mt-2 text-xs" style="color:var(--forest);"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Active</div>':''}
+  </div>`).join('');
+}
+
+async function selectModel(modelId,provider){
+  try{
+    const r=await fetch('/api/providers/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider_type:provider,model:modelId,session_id:'default'})});
+    if(r.ok){
+      currentModel=modelId;
+      const m=allModels.find(x=>x.model_id===modelId);
+      showToast(`Switched to ${m?.name||modelId}`);
+      updateActiveModelCard(modelId,provider,m);
+      switchProviderTab(provider);
+    }else{showToast('Failed to switch model');}
+  }catch(e){showToast('Error switching model');}
+}
+
+function updateActiveModelCard(modelId,provider,model){
+  const name=document.getElementById('active-model-name');
+  const meta=document.getElementById('active-model-meta');
+  name.textContent=`${PROVIDER_NAMES[provider]||provider} — ${modelId}`;
+  const caps=model?.capabilities||{};
+  const parts=[];
+  if(caps.large_context) parts.push(`${model?.context_window?.toLocaleString()||'?'} tokens`);
+  if(caps.streaming) parts.push('Streaming');
+  if(caps.reasoning) parts.push('Reasoning');
+  if(caps.fast) parts.push('Fast');
+  meta.textContent=parts.length?parts.join(' · '):'Standard model';
+}
+
+async function loadModelsList(){
+  try{
+    const r=await fetch('/api/providers/models');
+    const d=await r.json();
+    allModels=d.models||[];
+    // Update active model from current state
+    const stateR=await fetch('/api/providers/');
+    if(stateR.ok){
+      const s=await stateR.json();
+      if(s.active){currentModel=s.active.model||currentModel;currentProvider=s.active.provider_type||currentProvider;}
+    }
+    switchProviderTab(currentProvider);
+    // Update active card
+    const m=allModels.find(x=>x.model_id===currentModel);
+    updateActiveModelCard(currentModel,currentProvider,m);
+  }catch(e){showToast('Failed to load models');}
+}
+
+async function switchToFastest(){
+  try{
+    const r=await fetch('/api/providers/models/fastest');
+    if(r.ok){
+      const d=await r.json();
+      if(d.model){await selectModel(d.model.model_id,d.model.provider_type);}
+    }
+  }catch(e){showToast('Failed to find fastest model');}
+}
+
+async function switchToCheapest(){
+  try{
+    const r=await fetch('/api/providers/models/cheapest');
+    if(r.ok){
+      const d=await r.json();
+      if(d.model){await selectModel(d.model.model_id,d.model.provider_type);}
+    }
+  }catch(e){showToast('Failed to find cheapest model');}
+}
+
+async function switchToReasoning(){
+  const reasoningModels=allModels.filter(m=>m.capabilities?.reasoning);
+  if(reasoningModels.length>0){
+    await selectModel(reasoningModels[0].model_id,reasoningModels[0].provider_type);
+  }else{showToast('No reasoning model available');}
+}
 
 async function loadBrainStatus(){const c=document.getElementById('brain-status');try{const r=await fetch('/brain/stats');if(!r.ok)throw new Error();const d=await r.json();c.innerHTML=`<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:var(--forest);"></span><span>Second Brain: Active</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:#1E3A5F;"></span><span>Total nodes: ${d.total_nodes||0}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:var(--sage);"></span><span>Conversations: ${d.type_counts?.conversation||0}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:var(--amber);"></span><span>Facts: ${d.type_counts?.semantic||0}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:var(--border);"></span><span>Patterns: ${d.pattern_count||0}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:#0E728C;"></span><span>Goals: ${d.active_goals||0}</span></div>${d.encryption_enabled!==undefined?`<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:${d.encryption_enabled?'var(--forest)':'var(--border)'};"></span><span>Encryption: ${d.encryption_enabled?'Enabled':'Disabled'}</span></div>`:''}`;}catch(e){c.innerHTML='<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span><span>Second Brain unavailable</span></div>';}}
 
@@ -318,7 +434,7 @@ async function saveApiKey(provider){const key=document.getElementById(`api-${pro
 
 async function loadProviderHealth(){const c=document.getElementById('provider-health');try{const r=await fetch('/api/providers/');if(!r.ok)throw new Error();const d=await r.json();const providers=d.providers||[];if(providers.length===0){c.innerHTML='<p class="text-sm" style="color:var(--text-muted);">No providers configured</p>';return;}c.innerHTML=providers.map(p=>`<div class="flex items-center justify-between p-3 rounded-lg" style="background:var(--bg);"><div class="flex items-center gap-3"><span class="font-medium">${p.provider_type}</span><span class="tag ${p.enabled?'tag-green':'tag-amber'}">${p.enabled?'Active':'Disabled'}</span></div><div class="text-xs" style="color:var(--text-muted);">Latency: ${p.health?.latency_ms?.toFixed(0)||'?'}ms</div></div>`).join('');}catch(e){c.innerHTML='<p style="color:var(--text-muted);">Unable to load provider health</p>';}}
 
-window.addEventListener('load',()=>{loadBrainStatus();loadSystemStatus();loadProviderHealth();});
+window.addEventListener('load',()=>{loadBrainStatus();loadSystemStatus();loadProviderHealth();loadModelsList();});
 document.addEventListener('DOMContentLoaded',()=>{
   if(localStorage.getItem('rs_auto-save')==='0')document.getElementById('toggle-auto-save').classList.remove('on');
   if(localStorage.getItem('rs_remember-facts')==='0')document.getElementById('toggle-remember').classList.remove('on');
