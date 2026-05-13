@@ -662,7 +662,7 @@ async function loadCognitiveStatus() {
     const resp = await fetch('/cognitive/status');
     if (resp.ok) {
       const data = await resp.json();
-      console.log('Cognitive engine v4.0:', data);
+      console.log('Cognitive engine v5.0:', data);
     }
   } catch (err) {
     console.log('Cognitive status unavailable, using legacy mode');

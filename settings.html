@@ -110,6 +110,56 @@
     </div>
   </div>
 
+  <!-- API Keys Management -->
+  <div class="card p-6 mb-6 animate-fu stagger-2">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(139,92,246,0.1);">
+        <svg class="w-5 h-5" style="color:#8B5CF6;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+      </div>
+      <div>
+        <h2 class="font-semibold text-lg" style="font-family:'Lora',serif;">API Keys</h2>
+        <p class="text-sm" style="color:var(--text-muted);">Manage your personal API keys</p>
+      </div>
+    </div>
+
+    <div class="space-y-4 mb-4">
+      <div class="flex items-center gap-3">
+        <label class="text-sm font-medium w-24">OpenAI</label>
+        <input type="password" id="api-openai" placeholder="sk-..." class="flex-1 px-3 py-2 border rounded-lg text-sm" style="border-color:var(--border);"/>
+        <button onclick="saveApiKey('openai')" class="btn-primary text-xs">Save</button>
+      </div>
+      <div class="flex items-center gap-3">
+        <label class="text-sm font-medium w-24">Anthropic</label>
+        <input type="password" id="api-anthropic" placeholder="sk-ant-..." class="flex-1 px-3 py-2 border rounded-lg text-sm" style="border-color:var(--border);"/>
+        <button onclick="saveApiKey('anthropic')" class="btn-primary text-xs">Save</button>
+      </div>
+      <div class="flex items-center gap-3">
+        <label class="text-sm font-medium w-24">Google</label>
+        <input type="password" id="api-google" placeholder="AIza..." class="flex-1 px-3 py-2 border rounded-lg text-sm" style="border-color:var(--border);"/>
+        <button onclick="saveApiKey('google')" class="btn-primary text-xs">Save</button>
+      </div>
+    </div>
+
+    <div id="api-key-status" class="text-sm" style="color:var(--text-muted);"></div>
+  </div>
+
+  <!-- Provider Health Status -->
+  <div class="card p-6 mb-6 animate-fu stagger-3">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(34,197,94,0.1);">
+        <svg class="w-5 h-5" style="color:#22C55E;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div>
+        <h2 class="font-semibold text-lg" style="font-family:'Lora',serif;">Provider Health</h2>
+        <p class="text-sm" style="color:var(--text-muted);">Real-time provider status</p>
+      </div>
+    </div>
+    <div id="provider-health" class="space-y-2">
+      <p class="text-sm" style="color:var(--text-muted);">Loading provider status...</p>
+    </div>
+    <button onclick="loadProviderHealth()" class="btn-primary text-sm mt-4">Refresh Status</button>
+  </div>
+
   <!-- Second Brain Status -->
   <div class="card p-6 mb-6 animate-fu stagger-1">
     <div class="flex items-center gap-3 mb-5">
@@ -264,7 +314,11 @@ function toggleSetting(el,key){el.classList.toggle('on');const on=el.classList.c
 
 async function loadSystemStatus(){const c=document.getElementById('system-status');try{const r=await fetch('/health');const d=await r.json();const def=d.default_provider||'unknown',ag=d.agents||{},pr=d.providers||{};c.innerHTML=`<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:${d.status==='ok'?'var(--forest)':'#B91C1C'};"></span><span>Status: ${d.status}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:#1E3A5F;"></span><span>Provider: ${def}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:#1E3A5F;"></span><span>Total Agents: ${d.total_agents||0}</span></div><div class="mt-2 pt-2" style="border-top:1px solid var(--border);"><p class="font-medium text-xs mb-1" style="color:var(--text-muted);">Available Providers:</p>${Object.entries(pr).map(([k,v])=>`<div class="flex items-center gap-2 ml-4"><span class="w-1.5 h-1.5 rounded-full" style="background:${v?'var(--forest)':'var(--border)'};"></span><span>${k.charAt(0).toUpperCase()+k.slice(1)}: ${v?'Configured':'Not configured'}</span></div>`).join('')}</div><div class="mt-2 pt-2" style="border-top:1px solid var(--border);"><p class="font-medium text-xs mb-1" style="color:var(--text-muted);">Agents:</p>${Object.entries(ag).map(([k,v])=>`<div class="flex items-center gap-2 ml-4"><span class="w-1.5 h-1.5 rounded-full" style="background:${v==='ok'||v==='ready'||v==='active'||v==='listening'?'var(--forest)':v==='failed'?'#B91C1C':'var(--amber)'};"></span><span>${k}: ${v}</span></div>`).join('')}</div>`;}catch(e){c.innerHTML='<p style="color:#B91C1C;">Failed to load status</p>';}}
 
-window.addEventListener('load',()=>{loadBrainStatus();loadSystemStatus();});
+async function saveApiKey(provider){const key=document.getElementById(`api-${provider}`).value;if(!key){showToast('Please enter an API key');return;}try{const r=await fetch('/api/providers/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider_type:provider,api_key:key,priority:50})});if(r.ok){document.getElementById(`api-${provider}`).value='';showToast(`${provider} API key saved`);loadProviderHealth();}else{showToast('Failed to save API key');}}catch(e){showToast('Error saving API key');}}
+
+async function loadProviderHealth(){const c=document.getElementById('provider-health');try{const r=await fetch('/api/providers/');if(!r.ok)throw new Error();const d=await r.json();const providers=d.providers||[];if(providers.length===0){c.innerHTML='<p class="text-sm" style="color:var(--text-muted);">No providers configured</p>';return;}c.innerHTML=providers.map(p=>`<div class="flex items-center justify-between p-3 rounded-lg" style="background:var(--bg);"><div class="flex items-center gap-3"><span class="font-medium">${p.provider_type}</span><span class="tag ${p.enabled?'tag-green':'tag-amber'}">${p.enabled?'Active':'Disabled'}</span></div><div class="text-xs" style="color:var(--text-muted);">Latency: ${p.health?.latency_ms?.toFixed(0)||'?'}ms</div></div>`).join('');}catch(e){c.innerHTML='<p style="color:var(--text-muted);">Unable to load provider health</p>';}}
+
+window.addEventListener('load',()=>{loadBrainStatus();loadSystemStatus();loadProviderHealth();});
 document.addEventListener('DOMContentLoaded',()=>{
   if(localStorage.getItem('rs_auto-save')==='0')document.getElementById('toggle-auto-save').classList.remove('on');
   if(localStorage.getItem('rs_remember-facts')==='0')document.getElementById('toggle-remember').classList.remove('on');
