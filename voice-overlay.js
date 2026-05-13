@@ -385,21 +385,24 @@ const RasoVoice = {
     this.synth.speak(utterance);
   },
 
-  // Process voice command through cognitive engine
+  // Process voice command through 7-layer cognitive pipeline
   async processCommand(text) {
     this.setState('processing');
-    this.showAIResponse('Processing your request...', 'Planning');
+    this.showAIResponse('Processing your request...', 'Perception');
 
     try {
-      const resp = await fetch('/brain/chat', {
+      // Use unified cognitive pipeline
+      const resp = await fetch('/api/v1/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, voice_mode: true })
+        body: JSON.stringify({ text, user_id: 'default' })
       });
 
       if (resp.ok) {
         const data = await resp.json();
-        this.showAIResponse(data.response || 'I\'m thinking...', 'Memory');
+        // Show cognitive layer processing state
+        const layer = data.cognitive_layers?.[0] || 'execution';
+        this.showAIResponse(data.response || 'I\'m thinking...', layer.charAt(0).toUpperCase() + layer.slice(1));
 
         // Speak the response
         this.speak(data.response);

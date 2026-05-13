@@ -44,6 +44,11 @@ from config.settings import settings
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from api.state import agents, limiter
+from unified_runtime_adapters import (
+    VoiceServiceAdapter, WorldModelAdapter, MemoryServiceAdapter,
+    CognitiveEngineAdapter, ProactiveServiceAdapter, LLMGatewayAdapter
+)
+from integrated_runtime import create_unified_runtime
 
 # ── LOGGING ───────────────────────────────────────────
 logging.basicConfig(
@@ -125,10 +130,52 @@ async def lifespan(app: FastAPI):
             log.warning(f"⚠️ Raso search agent setup failed: {e}")
 
     app.state.agent_health = agent_health
+
+    # Initialize Unified Runtime (v5.0 - Real 7-layer cognition)
+    try:
+        voice_adapter = VoiceServiceAdapter(
+            wake_word_agent=agents.get("wake_word"),
+            transcription_agent=agents.get("transcription")
+        )
+        world_model_adapter = WorldModelAdapter(agents.get("brain"))
+        memory_adapter = MemoryServiceAdapter(
+            session_memory_agent=agents.get("memory"),
+            shared_memory_agent=agents.get("shared_memory"),
+            second_brain_agent=agents.get("brain")
+        )
+        cognitive_adapter = CognitiveEngineAdapter(agents.get("brain"))
+        proactive_adapter = ProactiveServiceAdapter(agents.get("brain"))
+        llm_adapter = LLMGatewayAdapter()
+
+        unified_runtime = await create_unified_runtime(
+            voice_service=voice_adapter,
+            world_model=world_model_adapter,
+            memory_service=memory_adapter,
+            cognitive_engine=cognitive_adapter,
+            proactive_service=proactive_adapter,
+            llm_gateway=llm_adapter
+        )
+        await unified_runtime.start()
+        app.state.unified_runtime = unified_runtime
+        log.info("✅ Unified Runtime (v5.0) initialized - ALL requests now flow through 7-layer cognition")
+    except Exception as e:
+        log.error(f"❌ Unified Runtime initialization failed: {e}")
+        app.state.unified_runtime = None
+
     log.info(f"🚀 Startup complete. Agent health: {agent_health}")
     yield
 
     log.info("🧹 Shutting down RasoSpeak...")
+
+    # Shutdown unified runtime
+    unified = getattr(app.state, 'unified_runtime', None)
+    if unified:
+        try:
+            await unified.stop()
+            log.info("✅ Unified Runtime stopped")
+        except Exception as e:
+            log.error(f"Error stopping unified runtime: {e}")
+
     for name, agent in agents.items():
         if agent:
             if hasattr(agent, "cleanup"):
@@ -267,7 +314,7 @@ app.include_router(coaching.router)
 app.include_router(system.router)
 
 
-# ── COGNITIVE ENGINE ENDPOINTS (v4.0) ─────────────────
+# ── COGNITIVE ENGINE ENDPOINTS (v5.0 - Unified Pipeline) ─
 
 from fastapi import APIRouter
 
@@ -278,7 +325,8 @@ async def cognitive_status():
     """Get cognitive engine status."""
     return {
         "status": "active",
-        "version": "4.0.0",
+        "version": "5.0.0",
+        "pipeline": "unified",
         "layers": {
             "reactive": "active",
             "perception": "active",
@@ -353,6 +401,54 @@ async def world_model_summary():
     }
 
 app.include_router(cognitive_router)
+
+
+# ── UNIFIED PIPELINE ENDPOINTS ──────────────────────────
+
+pipeline_router = APIRouter(prefix="/api/v1", tags=["pipeline"])
+
+@pipeline_router.get("/process")
+async def process_through_cognition_get(text: str, user_id: str = "default"):
+    """Process text through full 7-layer cognitive pipeline (GET)."""
+    unified = getattr(app.state, 'unified_runtime', None)
+    if unified:
+        result = await unified.process_text(text, user_id)
+        return {"status": "success", **result}
+    return {"status": "degraded", "response": text, "note": "Unified runtime not initialized"}
+
+@pipeline_router.post("/process")
+async def process_through_cognition_post(text: str, user_id: str = "default"):
+    """Process text through full 7-layer cognitive pipeline (POST)."""
+    return await process_through_cognition_get(text, user_id)
+
+@pipeline_router.post("/voice/start")
+async def start_voice_session(user_id: str = "default"):
+    """Start a voice conversation session."""
+    unified = getattr(app.state, 'unified_runtime', None)
+    if unified:
+        session_id = await unified.start_voice_session(user_id)
+        return {"session_id": session_id, "status": "active"}
+    return {"status": "error", "message": "Unified runtime not initialized"}
+
+@pipeline_router.post("/voice/end")
+async def end_voice_session(session_id: str):
+    """End voice conversation session."""
+    unified = getattr(app.state, 'unified_runtime', None)
+    if unified:
+        await unified.end_voice_session(session_id)
+        return {"status": "ended", "session_id": session_id}
+    return {"status": "error", "message": "Unified runtime not initialized"}
+
+@pipeline_router.get("/memories")
+async def get_memories(user_id: str = "default", query: str = "", limit: int = 10):
+    """Get memories through unified memory system."""
+    unified = getattr(app.state, 'unified_runtime', None)
+    if unified:
+        memories = await unified.retrieve_memories(user_id, query, limit)
+        return {"memories": memories, "count": len(memories)}
+    return {"memories": [], "count": 0}
+
+app.include_router(pipeline_router)
 
 
 # ── ENTRY POINT ───────────────────────────────────────

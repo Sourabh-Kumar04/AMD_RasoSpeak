@@ -1,0 +1,429 @@
+# RasoSpeak OS - Kubernetes Deployment
+# Production-grade deployment configuration
+
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rasospeak
+  labels:
+    app: rasospeak-os
+
+---
+# ConfigMap - Application Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rasospeak-config
+  namespace: rasospeak
+data:
+  DATABASE_URL: "postgresql://postgres:password@postgres.rasospeak.svc.cluster.local:5432/rasospeak"
+  REDIS_URL: "redis://redis.rasospeak.svc.cluster.local:6379"
+  QDRANT_URL: "http://qdrant.rasospeak.svc.cluster.local:6333"
+  JWT_SECRET: "changeme-in-production"
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
+
+---
+# Secrets (Use external secret manager in production)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rasospeak-secrets
+  namespace: rasospeak
+type: Opaque
+data:
+  # Base64 encoded - replace with real values
+  # database-password: cG9zdGdyZXNwYXNz
+  # redis-password: cmVkaXNwYXNz
+  # jwt-secret: Y2hhbmdlbWUtaW4tcHJvZHVjdGlvbi==
+
+---
+# PostgreSQL
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: rasospeak
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: rasospeak
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: rasospeak
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rasospeak-secrets
+                  key: database-password
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+
+---
+# Redis
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: rasospeak
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: rasospeak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          command: ["redis-server", "--appendonly", "yes"]
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+---
+# Qdrant (Vector Store)
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+  namespace: rasospeak
+spec:
+  selector:
+    app: qdrant
+  ports:
+    - port: 6333
+      targetPort: 6333
+      name: http
+    - port: 6334
+      targetPort: 6334
+      name: grpc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qdrant
+  namespace: rasospeak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+    spec:
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.7.0
+          ports:
+            - containerPort: 6333
+            - containerPort: 6334
+          volumeMounts:
+            - name: qdrant-data
+              mountPath: /qdrant/storage
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+---
+# Main API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rasospeak-api
+  namespace: rasospeak
+spec:
+  selector:
+    app: rasospeak-api
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rasospeak-api
+  namespace: rasospeak
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: rasospeak-api
+  template:
+    metadata:
+      labels:
+        app: rasospeak-api
+        version: v1
+    spec:
+      containers:
+        - name: api
+          image: rasospeak/api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: rasospeak-config
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: rasospeak-config
+                  key: REDIS_URL
+            - name: QDRANT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: rasospeak-config
+                  key: QDRANT_URL
+            - name: JWT_SECRET
+              valueFrom:
+                configMapKeyRef:
+                  name: rasospeak-config
+                  key: JWT_SECRET
+          envFrom:
+            - secretRef:
+                name: rasospeak-secrets
+          livenessProbe:
+            httpGet:
+              path: /cognitive/status
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /cognitive/status
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+
+---
+# WebSocket Service for Real-time Voice
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rasospeak-websocket
+  namespace: rasospeak
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rasospeak-websocket
+  template:
+    metadata:
+      labels:
+        app: rasospeak-websocket
+    spec:
+      containers:
+        - name: websocket
+          image: rasospeak/websocket:latest
+          ports:
+            - containerPort: 8001
+          env:
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: rasospeak-config
+                  key: REDIS_URL
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rasospeak-api-hpa
+  namespace: rasospeak
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rasospeak-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+---
+# Ingress for External Access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rasospeak-ingress
+  namespace: rasospeak
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  rules:
+    - host: api.rasospeak.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rasospeak-api
+                port:
+                  number: 80
+    - host: ws.rasospeak.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rasospeak-websocket
+                port:
+                  number: 80
+
+---
+# ResourceQuota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: rasospeak-quota
+  namespace: rasospeak
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+    persistentvolumeclaims: "5"
+
+---
+# NetworkPolicy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rasospeak-network-policy
+  namespace: rasospeak
+spec:
+  podSelector:
+    matchLabels:
+      app: rasospeak-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - podSelector:
+            matchLabels:
+              app: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
