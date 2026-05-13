@@ -76,8 +76,8 @@ class StreamChunk:
     chunk_id: str
     content: str
     delta: str
-    finish_reason: Optional[str] = None
     model: str
+    finish_reason: Optional[str] = None
     usage: Optional[dict] = None
     metadata: dict = field(default_factory=dict)
 

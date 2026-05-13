@@ -402,6 +402,12 @@ async def world_model_summary():
 
 app.include_router(cognitive_router)
 
+# ── PROVIDER RUNTIME ENDPOINTS ───────────────────────────
+
+from services.provider_runtime.src.provider_endpoints import provider_router as provider_runtime_router
+
+app.include_router(provider_runtime_router)
+
 
 # ── UNIFIED PIPELINE ENDPOINTS ──────────────────────────
 

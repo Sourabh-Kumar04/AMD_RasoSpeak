@@ -5,8 +5,8 @@ OpenAI Provider Adapter
 
 import asyncio
 import json
-from typing import AsyncGenerator
-from .provider_base import (
+from typing import AsyncGenerator, Optional
+from ..core.provider_base import (
     ProviderBase, ProviderCapability, ProviderHealth, ProviderStatus,
     ModelInfo, StreamChunk, ProviderResponse, ProviderError
 )

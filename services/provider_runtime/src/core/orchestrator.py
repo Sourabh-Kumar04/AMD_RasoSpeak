@@ -114,7 +114,7 @@ class ProviderOrchestrator:
         max_tokens: Optional[int] = None,
         stream: bool = False,
         **kwargs
-    ) -> tuple[OrchestratorResponse, AsyncGenerator[StreamChunk, None] | None:
+    ) -> tuple[OrchestratorResponse, AsyncGenerator[StreamChunk, None] | None]:
         """
         Main entry point for chat completion with intelligent routing.
 
