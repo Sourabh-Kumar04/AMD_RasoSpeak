@@ -1,7 +1,43 @@
 [project]
-name = "amd-rasospeak"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.14"
-dependencies = []
+name = "rasospeak"
+version = "3.0.0"
+description = "RasoSpeak AI OS — Autonomous Multi-Agent Cognitive Platform"
+requires-python = ">=3.11"
+modules = [
+    "services.api_gateway",
+    "services.agent_runtime",
+    "services.memory_service",
+    "services.workflow_engine",
+    "services.llm_gateway",
+    "services.speech_service",
+    "services.vector_service",
+    "services.observability",
+    "services.security",
+    "shared.python.rasospeak-proto",
+    "shared.python.rasospeak-common",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.1",
+    "ruff>=0.3",
+    "mypy>=1.9",
+    "pre-commit>=3.6",
+    "typer>=0.12",
+    "rich>=13.7",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

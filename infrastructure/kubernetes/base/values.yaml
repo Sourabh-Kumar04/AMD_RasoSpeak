@@ -1,0 +1,434 @@
+# RasoSpeak AI OS — Kubernetes Deployment
+# Production-grade Helm values
+
+global:
+  imageRegistry: ghcr.io/rasospeak
+  imagePullSecrets:
+    - name: ghcr-secret
+  storageClass: standard-ssd
+  tenants:
+    enabled: true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# API Gateway (Kong)
+# ──────────────────────────────────────────────────────────────────────────────
+
+kong:
+  enabled: true
+  replicaCount: 3
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+    hosts:
+      - host: api.rasospeak.ai
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: rasospeak-tls
+        hosts:
+          - api.rasospeak.ai
+
+  env:
+    database:
+      enabled: true
+      postgresql:
+        enabled: true
+        auth:
+          database: rasospeak
+          username: rasospeak
+        primary:
+          persistence:
+            enabled: true
+            size: 50Gi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Agent Runtime
+# ──────────────────────────────────────────────────────────────────────────────
+
+agent-runtime:
+  enabled: true
+  replicaCount: 5
+
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 50
+    metrics:
+      - type: External
+        external:
+          metric:
+            name: active_agents
+          target:
+            type: AverageValue
+            averageValue: "50"
+
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  env:
+    LOG_LEVEL: info
+    REDIS_HOST: redis-master
+    REDIS_PORT: 6379
+    DB_HOST: postgresql-primary
+    DB_PORT: 5432
+    DB_NAME: rasospeak
+
+  healthCheck:
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Memory Service
+# ──────────────────────────────────────────────────────────────────────────────
+
+memory-service:
+  enabled: true
+  replicaCount: 3
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 16Gi
+    requests:
+      cpu: 500m
+      memory: 4Gi
+
+  env:
+    DB_HOST: postgresql-primary
+    DB_PORT: 5432
+    DB_NAME: rasospeak
+    REDIS_HOST: redis-master
+    REDIS_PORT: 6379
+    EMBEDDING_MODEL: text-embedding-3-large
+
+  persistence:
+    enabled: true
+    size: 100Gi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PostgreSQL with pgvector
+# ──────────────────────────────────────────────────────────────────────────────
+
+postgresql:
+  enabled: true
+  auth:
+    database: rasospeak
+    username: rasospeak
+  primary:
+    persistence:
+      enabled: true
+      size: 200Gi
+    resources:
+      limits:
+        cpu: 4000m
+        memory: 16Gi
+  readReplicas:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 200Gi
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Redis
+# ──────────────────────────────────────────────────────────────────────────────
+
+redis:
+  enabled: true
+  architecture: replication
+  auth:
+    enabled: true
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      limits:
+        memory: 4Gi
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 10Gi
+  sentinel:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Qdrant Vector Database
+# ──────────────────────────────────────────────────────────────────────────────
+
+qdrant:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 100Gi
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 8Gi
+  config:
+    service:
+      grpc_port: 6334
+    cluster:
+      enabled: true
+      p2p:
+        port: 6335
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Temporal (Workflow Engine)
+# ──────────────────────────────────────────────────────────────────────────────
+
+temporal:
+  enabled: true
+  server:
+    frontend:
+      replicaCount: 3
+      service:
+        type: ClusterIP
+    history:
+      replicaCount: 3
+    matching:
+      replicaCount: 3
+    worker:
+      replicaCount: 5
+      resources:
+        limits:
+          cpu: 2000m
+          memory: 4Gi
+
+  cassandra:
+    enabled: true
+    persistence:
+      enabled: true
+      size: 200Gi
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# NATS JetStream
+# ──────────────────────────────────────────────────────────────────────────────
+
+nats:
+  enabled: true
+  replicaCount: 3
+  cluster:
+    enabled: true
+    replicas: 3
+  jetstream:
+    enabled: true
+    persistence:
+      enabled: true
+      size: 50Gi
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Monitoring Stack
+# ──────────────────────────────────────────────────────────────────────────────
+
+prometheus:
+  enabled: true
+  alertmanager:
+    enabled: true
+    persistentVolume:
+      enabled: true
+      size: 10Gi
+  server:
+    retention: 30d
+    persistentVolume:
+      enabled: true
+      size: 50Gi
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+
+grafana:
+  enabled: true
+  adminPassword: "" # Set via secret
+  persistentVolume:
+    enabled: true
+    size: 10Gi
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-server
+          access: proxy
+        - name: Loki
+          type: loki
+          url: http://loki
+          access: proxy
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Observability: Langfuse
+# ──────────────────────────────────────────────────────────────────────────────
+
+langfuse:
+  enabled: true
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  database:
+    externalDatabase:
+      host: postgresql-primary
+      port: 5432
+      database: langfuse
+      username: langfuse
+  secretKey: "" # Set via secret
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Service Mesh (Istio)
+# ──────────────────────────────────────────────────────────────────────────────
+
+istio:
+  enabled: true
+  global:
+    mtls:
+      mode: STRICT
+    proxy:
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+
+  ingress:
+    enabled: true
+    gateways:
+      - name: rasospeak-gateway
+        namespace: istio-system
+    k8s:
+      resourceName:
+        http: istio-ingressgateway
+      service:
+        type: LoadBalancer
+
+# ──────────────────────────────────────────────────────────────────────────────
+# GPU Node Pool (for vLLM inference)
+# ──────────────────────────────────────────────────────────────────────────────
+
+gpu-node-pool:
+  enabled: true
+  nodePoolName: gpu-pool
+  machineType: a2-highgpu-1g
+  autoscaling:
+    minNodes: 1
+    maxNodes: 10
+  taints:
+    - key: nvidia.com/gpu
+      value: present
+      effect: NoSchedule
+  labels:
+    gpu: "true"
+    inference: "true"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Autoscaler
+# ──────────────────────────────────────────────────────────────────────────────
+
+cluster-autoscaler:
+  enabled: true
+  awsRegion: us-east-1
+  scaleDownDelayAfterAdd: 10m
+  scaleDownUnneededTime: 10m
+  scaleDownUtilizationThreshold: 0.5
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Certificate Manager
+# ──────────────────────────────────────────────────────────────────────────────
+
+cert-manager:
+  enabled: true
+  installCRDs: true
+  webhook:
+    enabled: true
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Network Policies
+# ──────────────────────────────────────────────────────────────────────────────
+
+networkPolicies:
+  enabled: true
+  isolation: strict
+
+  # Allow ingress from ingress controller only
+  apiGateway:
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                name: ingress-nginx
+
+  # Allow internal service communication
+  internal:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: rasospeak
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pod Disruption Budgets
+# ──────────────────────────────────────────────────────────────────────────────
+
+podDisruptionBudget:
+  apiGateway:
+    minAvailable: 2
+  agentRuntime:
+    minAvailable: 3
+  memoryService:
+    minAvailable: 2
+  temporal:
+    history:
+      minAvailable: 2

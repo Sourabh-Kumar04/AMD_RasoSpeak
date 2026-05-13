@@ -1,0 +1,384 @@
+// RasoSpeak AI OS — Shared Protocol Buffer Definitions
+// These define the core inter-service communication contracts
+
+syntax = "proto3";
+
+package rasospeak.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Common Types
+// ──────────────────────────────────────────────────────────────────────────────
+
+message Tenant {
+  string id = 1;
+  string name = 2;
+  string plan = 3;
+  map<string, string> settings = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message User {
+  string id = 1;
+  string tenant_id = 2;
+  string email = 3;
+  string display_name = 4;
+  string role = 5;
+  map<string, string> metadata = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message Session {
+  string id = 1;
+  string user_id = 2;
+  string tenant_id = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp last_active_at = 5;
+  map<string, string> metadata = 6;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Agent Types
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum AgentState {
+  AGENT_STATE_UNSPECIFIED = 0;
+  AGENT_STATE_CREATED = 1;
+  AGENT_STATE_IDLE = 2;
+  AGENT_STATE_PLANNING = 3;
+  AGENT_STATE_EXECUTING = 4;
+  AGENT_STATE_VERIFYING = 5;
+  AGENT_STATE_REFLECTING = 6;
+  AGENT_STATE_COMPLETED = 7;
+  AGENT_STATE_FAILED = 8;
+  AGENT_STATE_SUSPENDED = 9;
+  AGENT_STATE_TERMINATED = 10;
+}
+
+enum AgentType {
+  AGENT_TYPE_UNSPECIFIED = 0;
+  AGENT_TYPE_SUPERVISOR = 1;
+  AGENT_TYPE_PLANNER = 2;
+  AGENT_TYPE_RESEARCHER = 3;
+  AGENT_TYPE_COACH = 4;
+  AGENT_TYPE_QA = 5;
+  AGENT_TYPE_CRITIC = 6;
+  AGENT_TYPE_MEMORY = 7;
+  AGENT_TYPE_NOTIFICATION = 8;
+  AGENT_TYPE_DOCUMENT = 9;
+  AGENT_TYPE_SPEECH = 10;
+}
+
+message AgentConfig {
+  string agent_id = 1;
+  AgentType agent_type = 2;
+  string tenant_id = 3;
+  string user_id = 4;
+  repeated string capabilities = 5;
+  repeated string tools = 6;
+  int32 max_retries = 7;
+  int32 timeout_seconds = 8;
+  int64 memory_budget_tokens = 9;
+}
+
+message Goal {
+  string goal_id = 1;
+  string description = 2;
+  repeated string success_criteria = 3;
+  int32 priority = 4;
+  google.protobuf.Timestamp deadline = 5;
+  map<string, string> metadata = 6;
+}
+
+message TaskNode {
+  string task_id = 1;
+  string description = 2;
+  repeated string depends_on = 3;
+  repeated string tools_needed = 4;
+  AgentType agent_type = 5;
+  bool completed = 6;
+  google.protobuf.Struct output = 7;
+  int32 retry_count = 8;
+  google.protobuf.Timestamp started_at = 9;
+  google.protobuf.Timestamp completed_at = 10;
+}
+
+message ExecutionContext {
+  Goal goal = 1;
+  repeated MemoryEntry working_memory = 2;
+  repeated MemoryEntry episodic_memory = 3;
+  map<string, string> semantic_memory = 4;
+  repeated string available_tools = 5;
+  int64 token_budget = 6;
+  string trace_id = 7;
+  int32 cycle_number = 8;
+  float confidence = 9;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Memory Types
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum MemoryType {
+  MEMORY_TYPE_UNSPECIFIED = 0;
+  MEMORY_TYPE_WORKING = 1;
+  MEMORY_TYPE_EPISODIC = 2;
+  MEMORY_TYPE_SEMANTIC = 3;
+  MEMORY_TYPE_PROCEDURAL = 4;
+  MEMORY_TYPE_ARCHIVAL = 5;
+}
+
+message MemoryEntry {
+  string memory_id = 1;
+  MemoryType memory_type = 2;
+  string user_id = 3;
+  string content = 4;
+  repeated float embedding = 5;
+  float confidence = 6;
+  float importance = 7;
+  repeated string tags = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp last_accessed = 10;
+  int32 access_count = 11;
+  map<string, string> metadata = 12;
+}
+
+message KnowledgeNode {
+  string node_id = 1;
+  string user_id = 2;
+  string node_type = 3;
+  string name = 4;
+  map<string, string> properties = 5;
+  repeated float embedding = 6;
+  float importance = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message KnowledgeEdge {
+  string edge_id = 1;
+  string source_id = 2;
+  string target_id = 3;
+  string relationship = 4;
+  float weight = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message Procedure {
+  string procedure_id = 1;
+  string user_id = 2;
+  string name = 3;
+  string trigger_conditions_json = 4;
+  string steps_json = 5;
+  float success_rate = 6;
+  int32 usage_count = 7;
+  google.protobuf.Timestamp last_used_at = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Agent Communication Messages
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_TYPE_REQUEST = 1;
+  MESSAGE_TYPE_RESPONSE = 2;
+  MESSAGE_TYPE_EVENT = 3;
+  MESSAGE_TYPE_BROADCAST = 4;
+  MESSAGE_TYPE_DELEGATION = 5;
+  MESSAGE_TYPE_RESULT = 6;
+  MESSAGE_TYPE_ERROR = 7;
+  MESSAGE_TYPE_HEARTBEAT = 8;
+}
+
+message AgentMessage {
+  string message_id = 1;
+  string sender_id = 2;
+  string sender_type = 3;
+  string receiver_id = 4;
+  MessageType type = 5;
+  google.protobuf.Struct payload = 6;
+  map<string, string> metadata = 7;
+  int64 timestamp_ns = 8;
+  string trace_id = 9;
+  string span_id = 10;
+}
+
+message AgentResponse {
+  string message_id = 1;
+  string agent_id = 2;
+  AgentState state = 3;
+  string reasoning = 4;
+  repeated ToolCall actions_taken = 5;
+  google.protobuf.Value output = 6;
+  float confidence = 7;
+  bool needs_handoff = 8;
+  string handoff_target = 9;
+  string error = 10;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Tool Execution
+// ──────────────────────────────────────────────────────────────────────────────
+
+message ToolCall {
+  string call_id = 1;
+  string tool_name = 2;
+  map<string, google.protobuf.Value> parameters = 3;
+  google.protobuf.Timestamp started_at = 4;
+  google.protobuf.Timestamp completed_at = 5;
+  google.protobuf.Value result = 6;
+  string error = 7;
+  int32 retry_count = 8;
+}
+
+message ToolDefinition {
+  string tool_name = 1;
+  string description = 2;
+  repeated ToolParameter parameters = 3;
+  string return_type = 4;
+  repeated string required_capabilities = 5;
+  int32 timeout_seconds = 6;
+}
+
+message ToolParameter {
+  string name = 1;
+  string type = 2;
+  string description = 3;
+  bool required = 4;
+  google.protobuf.Value default_value = 5;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Workflow Types
+// ──────────────────────────────────────────────────────────────────────────────
+
+message WorkflowExecution {
+  string workflow_id = 1;
+  string workflow_type = 2;
+  string user_id = 3;
+  string status = 4;
+  google.protobuf.Struct input = 5;
+  google.protobuf.Struct output = 6;
+  repeated WorkflowStep steps = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp completed_at = 9;
+  int32 retry_count = 10;
+  string error = 11;
+}
+
+message WorkflowStep {
+  string step_id = 1;
+  string step_name = 2;
+  string status = 3;
+  repeated ToolCall tool_calls = 4;
+  google.protobuf.Struct result = 5;
+  google.protobuf.Timestamp started_at = 6;
+  google.protobuf.Timestamp completed_at = 7;
+  string error = 8;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Speech Types
+// ──────────────────────────────────────────────────────────────────────────────
+
+message AudioChunk {
+  bytes audio_data = 1;
+  string encoding = 2;
+  int32 sample_rate = 3;
+  int32 channels = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+message Transcription {
+  string text = 1;
+  float confidence = 2;
+  repeated WordTiming words = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+message WordTiming {
+  string word = 1;
+  float start_time = 2;
+  float end_time = 3;
+  float confidence = 4;
+}
+
+message SynthesisRequest {
+  string text = 2;
+  string voice_id = 3;
+  float speed = 4;
+  string language = 5;
+}
+
+message AudioResponse {
+  bytes audio_data = 1;
+  int32 duration_ms = 2;
+  string format = 3;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Observability Types
+// ──────────────────────────────────────────────────────────────────────────────
+
+message TokenUsage {
+  int32 prompt_tokens = 1;
+  int32 completion_tokens = 2;
+  int32 total_tokens = 3;
+}
+
+message LLMCall {
+  string call_id = 1;
+  string provider = 2;
+  string model = 3;
+  repeated Message messages = 4;
+  string response = 5;
+  TokenUsage usage = 6;
+  float latency_ms = 7;
+  float cost_usd = 8;
+  google.protobuf.Timestamp timestamp = 9;
+}
+
+message Message {
+  string role = 1;
+  string content = 2;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Services
+// ──────────────────────────────────────────────────────────────────────────────
+
+service AgentRuntimeService {
+  rpc CreateAgent(AgentConfig) returns (AgentResponse);
+  rpc SendMessage(AgentMessage) returns (AgentResponse);
+  rpc GetAgentState(string) returns (AgentState);
+  rpc TerminateAgent(string) returns (google.protobuf.Empty);
+  rpc SubscribeToAgent(SubscribeRequest) returns (stream AgentEvent);
+}
+
+message SubscribeRequest {
+  string agent_id = 1;
+  repeated AgentEventType event_types = 2;
+}
+
+enum AgentEventType {
+  AGENT_EVENT_UNSPECIFIED = 0;
+  AGENT_EVENT_STATE_CHANGED = 1;
+  AGENT_EVENT_TOOL_CALLED = 2;
+  AGENT_EVENT_MEMORY_ACCESSED = 3;
+  AGENT_EVENT_MESSAGE_RECEIVED = 4;
+  AGENT_EVENT_COMPLETED = 5;
+  AGENT_EVENT_FAILED = 6;
+}
+
+message AgentEvent {
+  string event_id = 1;
+  string agent_id = 2;
+  AgentEventType event_type = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  google.protobuf.Struct data = 5;
+}
+
+message Empty {}

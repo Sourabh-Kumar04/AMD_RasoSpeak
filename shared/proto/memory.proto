@@ -1,0 +1,256 @@
+syntax = "proto3";
+
+package rasospeak.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "agent.proto";
+
+service MemoryService {
+  // Working Memory
+  rpc StoreWorking(MemoryEntry) returns (StoreResponse);
+  rpc GetWorking(GetWorkingRequest) returns (GetWorkingResponse);
+  rpc ClearWorking(ClearWorkingRequest) returns (Empty);
+  rpc UpdateWorking(UpdateWorkingRequest) returns (Empty);
+
+  // Episodic Memory
+  rpc StoreEpisodic(MemoryEntry) returns (StoreResponse);
+  rpc GetEpisodic(GetEpisodicRequest) returns (GetEpisodicResponse);
+  rpc ListEpisodes(ListEpisodesRequest) returns (ListEpisodesResponse);
+  rpc ArchiveEpisodic(ArchiveRequest) returns (Empty);
+  rpc SummarizeEpisodic(SummarizeRequest) returns (SummarizeResponse);
+
+  // Semantic Memory
+  rpc StoreSemantic(MemoryEntry) returns (StoreResponse);
+  rpc GetSemantic(GetSemanticRequest) returns (GetSemanticResponse);
+  rpc SearchSemantic(SearchSemanticRequest) returns (SearchSemanticResponse);
+  rpc ExtractFacts(ExtractFactsRequest) returns (ExtractFactsResponse);
+  rpc UpdateSemantic(UpdateSemanticRequest) returns (Empty);
+
+  // Procedural Memory
+  rpc StoreProcedure(Procedure) returns (StoreResponse);
+  rpc GetProcedure(GetProcedureRequest) returns (GetProcedureResponse);
+  rpc ListProcedures(ListProceduresRequest) returns (ListProceduresResponse);
+  rpc UpdateProcedureStats(UpdateProcedureStatsRequest) returns (Empty);
+
+  // Knowledge Graph
+  rpc CreateNode(KnowledgeNode) returns (StoreResponse);
+  rpc CreateEdge(KnowledgeEdge) returns (StoreResponse);
+  rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
+  rpc GetRelatedNodes(GetRelatedNodesRequest) returns (GetRelatedNodesResponse);
+  rpc SearchKnowledge(SearchKnowledgeRequest) returns (SearchKnowledgeResponse);
+
+  // Consolidation
+  rpc Consolidate(ConsolidateRequest) returns (ConsolidateResponse);
+  rpc Retrieve(RetrieveRequest) returns (RetrieveResponse);
+  rpc Evict(EvictRequest) returns (EvictResponse);
+
+  // Streaming
+  rpc RetrieveStream(RetrieveRequest) returns (stream MemoryEntry);
+}
+
+message StoreResponse {
+  string id = 1;
+  bool success = 2;
+  google.protobuf.Timestamp stored_at = 3;
+}
+
+message GetWorkingRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  string conversation_id = 3;
+}
+
+message GetWorkingResponse {
+  repeated MemoryEntry entries = 1;
+  int64 total_tokens = 2;
+  int64 remaining_budget = 3;
+}
+
+message ClearWorkingRequest {
+  string user_id = 1;
+  string conversation_id = 2;
+}
+
+message UpdateWorkingRequest {
+  string user_id = 1;
+  string conversation_id = 2;
+  MemoryEntry entry = 3;
+}
+
+message GetEpisodicRequest {
+  string user_id = 1;
+  string episode_id = 2;
+}
+
+message GetEpisodicResponse {
+  MemoryEntry episode = 1;
+  repeated MemoryEntry related = 2;
+}
+
+message ListEpisodesRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  google.protobuf.Timestamp since = 4;
+  repeated string tags = 5;
+}
+
+message ListEpisodesResponse {
+  repeated MemoryEntry episodes = 1;
+  int32 total_count = 2;
+  bool has_more = 3;
+}
+
+message ArchiveRequest {
+  string user_id = 1;
+  repeated string episode_ids = 2;
+}
+
+message SummarizeRequest {
+  string user_id = 1;
+  repeated string episode_ids = 2;
+}
+
+message SummarizeResponse {
+  string summary = 1;
+  repeated string key_points = 2;
+  repeated MemoryEntry extracted_facts = 3;
+}
+
+message GetSemanticRequest {
+  string user_id = 1;
+  string memory_id = 2;
+}
+
+message GetSemanticResponse {
+  MemoryEntry memory = 1;
+}
+
+message SearchSemanticRequest {
+  string user_id = 1;
+  string query = 2;
+  int32 limit = 3;
+  float min_confidence = 4;
+  repeated string categories = 5;
+}
+
+message SearchSemanticResponse {
+  repeated MemoryEntry results = 1;
+  repeated float scores = 2;
+}
+
+message ExtractFactsRequest {
+  string user_id = 1;
+  repeated string episode_ids = 2;
+}
+
+message ExtractFactsResponse {
+  repeated MemoryEntry facts = 1;
+  repeated KnowledgeNode nodes = 2;
+  repeated KnowledgeEdge edges = 3;
+}
+
+message UpdateSemanticRequest {
+  string memory_id = 1;
+  MemoryEntry memory = 2;
+}
+
+message GetProcedureRequest {
+  string user_id = 1;
+  string procedure_id = 2;
+}
+
+message GetProcedureResponse {
+  Procedure procedure = 1;
+  float relevance_score = 2;
+}
+
+message ListProceduresRequest {
+  string user_id = 1;
+  string trigger_type = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListProceduresResponse {
+  repeated Procedure procedures = 1;
+  int32 total_count = 2;
+}
+
+message UpdateProcedureStatsRequest {
+  string procedure_id = 1;
+  bool success = 2;
+}
+
+message GetNodeRequest {
+  string user_id = 1;
+  string node_id = 2;
+}
+
+message GetNodeResponse {
+  KnowledgeNode node = 1;
+  repeated KnowledgeEdge incoming = 2;
+  repeated KnowledgeEdge outgoing = 3;
+}
+
+message GetRelatedNodesRequest {
+  string user_id = 1;
+  string node_id = 2;
+  int32 depth = 3;
+  repeated string relationships = 4;
+}
+
+message GetRelatedNodesResponse {
+  repeated KnowledgeNode nodes = 1;
+  repeated KnowledgeEdge edges = 2;
+}
+
+message SearchKnowledgeRequest {
+  string user_id = 1;
+  string query = 2;
+  int32 limit = 3;
+}
+
+message SearchKnowledgeResponse {
+  repeated KnowledgeNode nodes = 1;
+  repeated KnowledgeEdge edges = 2;
+}
+
+message ConsolidateRequest {
+  string user_id = 1;
+  bool force = 2;
+}
+
+message ConsolidateResponse {
+  int32 episodic_to_semantic = 1;
+  int32 procedures_updated = 2;
+  int32 memories_evicted = 3;
+  google.protobuf.Timestamp completed_at = 4;
+}
+
+message RetrieveRequest {
+  string user_id = 1;
+  string query = 2;
+  int32 max_results = 3;
+  int64 max_tokens = 4;
+  repeated MemoryType memory_types = 5;
+}
+
+message RetrieveResponse {
+  repeated MemoryEntry memories = 1;
+  string constructed_context = 2;
+  int64 token_count = 3;
+  string retrieval_method = 4;
+}
+
+message EvictRequest {
+  string user_id = 1;
+  int32 max_items = 2;
+  MemoryType memory_type = 3;
+}
+
+message EvictResponse {
+  int32 items_evicted = 1;
+  int64 tokens_freed = 2;
+}
