@@ -208,6 +208,9 @@ async def state_js(): return FileResponse("state.js")
 @app.get("/styles.css")
 async def styles_css(): return FileResponse("styles.css")
 
+@app.get("/voice-overlay.js")
+async def voice_overlay_js(): return FileResponse("voice-overlay.js")
+
 @app.get("/")
 async def root(): return FileResponse("index.html")
 

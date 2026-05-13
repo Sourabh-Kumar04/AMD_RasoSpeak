@@ -392,25 +392,28 @@ class VADService:
 # ──────────────────────────────────────────────────────────────────────────────
 
 class WakeWordService:
-    """Wake word detection service."""
+    """Wake word detection service - supports 'Hey Raso' for voice-first OS control."""
 
-    DEFAULT_WAKE_WORDS = ["jarvis", "hey jarvis", "rasospeak"]
+    DEFAULT_WAKE_WORDS = ["hey raso", "raso", "hey jarvis", "jarvis"]
 
     def __init__(
         self,
         wake_words: list[str] = None,
         threshold: float = 0.8,
+        sensitivity: float = 0.9,
     ):
         self._wake_words = wake_words or self.DEFAULT_WAKE_WORDS
         self._threshold = threshold
-        logger.info("wake_word_initialized", wake_words=self._wake_words)
+        self._sensitivity = sensitivity
+        self._last_detection_time: Optional[datetime] = None
+        self._cooldown_seconds = 2.0
+        logger.info("wake_word_initialized", wake_words=self._wake_words, sensitivity=sensitivity)
 
     async def detect(self, audio_chunk: bytes) -> WakeWordResult:
-        """Detect wake word in audio."""
-        # In production, use precise wake word model
-        # For demo, simulate detection
+        """Detect wake word in audio chunk (simulated for demo)."""
+        # In production, use precise wake word model (Porcupine, Snowboy, or custom)
+        # For demo, return false - actual detection happens via text
 
-        # Randomly trigger for demonstration
         return WakeWordResult(
             detected=False,
             wake_word="",
@@ -418,13 +421,36 @@ class WakeWordService:
             timestamp=datetime.utcnow(),
         )
 
-    async def detect_in_text(self, text: str) -> bool:
-        """Detect wake word in transcribed text."""
-        text_lower = text.lower()
+    async def detect_in_text(self, text: str) -> Optional[WakeWordResult]:
+        """Detect wake word in transcribed text - primary detection method."""
+        text_lower = text.lower().strip()
+
+        # Check cooldown
+        if self._last_detection_time:
+            elapsed = (datetime.utcnow() - self._last_detection_time).total_seconds()
+            if elapsed < self._cooldown_seconds:
+                return None
+
         for wake_word in self._wake_words:
-            if wake_word in text_lower:
-                return True
-        return False
+            # Check for exact match or word boundary match
+            if text_lower == wake_word or text_lower.startswith(wake_word + " ") or " " + wake_word + " " in text_lower:
+                self._last_detection_time = datetime.utcnow()
+                logger.info("wake_word_detected", wake_word=wake_word, text=text[:50])
+                return WakeWordResult(
+                    detected=True,
+                    wake_word=wake_word,
+                    confidence=self._sensitivity,
+                    timestamp=datetime.utcnow(),
+                )
+
+        return None
+
+    def is_in_cooldown(self) -> bool:
+        """Check if wake word is in cooldown period."""
+        if not self._last_detection_time:
+            return False
+        elapsed = (datetime.utcnow() - self._last_detection_time).total_seconds()
+        return elapsed < self._cooldown_seconds
 
 
 # ──────────────────────────────────────────────────────────────────────────────
