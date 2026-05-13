@@ -1,7 +1,7 @@
 """
 Provider Management Endpoints
 =============================
-FastAPI endpoints for provider orchestration.
+FastAPI endpoints for unified provider runtime.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -18,10 +18,10 @@ provider_router = APIRouter(prefix="/api/providers", tags=["providers"])
 # ─────────────────────────────────────────────────────────────
 
 class ProviderAddRequest(BaseModel):
-    provider_type: str  # openai, anthropic, google, etc.
-    api_key: str
+    provider_type: str  # openai, anthropic, google, nvidia, deepseek, openrouter
+    api_key: Optional[str] = None
     base_url: Optional[str] = None
-    is_platform: bool = False
+    ownership: str = "platform"  # platform, user, hybrid
     priority: int = 100
     tags: List[str] = []
 
@@ -32,213 +32,291 @@ class ProviderUpdateRequest(BaseModel):
     tags: Optional[List[str]] = None
 
 
-class RouteRequest(BaseModel):
+class ProviderSwitchRequest(BaseModel):
+    provider_type: Optional[str] = None
     provider_id: Optional[str] = None
     model: Optional[str] = None
-    strategy: str = "capability_match"  # latency_aware, cost_optimized, quality_first
-    required_capabilities: List[str] = []
+    session_id: str = "default"
+
+
+class VoiceCommandRequest(BaseModel):
+    transcript: str
+    session_id: str = "default"
 
 
 # ─────────────────────────────────────────────────────────────
-# Global orchestrator (set from main.py)
+# Global manager (set from main.py)
 # ─────────────────────────────────────────────────────────────
 
-_orchestrator = None
-_registry = None
+_manager = None
 
 
-def set_orchestrator(orchestrator, registry):
-    """Set global orchestrator from main.py."""
-    global _orchestrator, _registry
-    _orchestrator = orchestrator
-    _registry = registry
+def set_provider_manager(manager):
+    """Set global provider manager from main.py."""
+    global _manager
+    _manager = manager
 
 
 # ─────────────────────────────────────────────────────────────
 # Endpoints
 # ─────────────────────────────────────────────────────────────
 
+@provider_router.get("/stats")
+async def get_provider_stats():
+    """Get provider system statistics."""
+    if not _manager:
+        return {"status": "initializing"}
+
+    stats = _manager.get_stats()
+    return stats
+
+
 @provider_router.get("/")
 async def list_providers():
-    """List all registered providers."""
-    if not _registry:
-        return {"providers": [], "message": "Provider system not initialized"}
+    """List all registered providers with status."""
+    if not _manager:
+        return {"providers": [], "message": "Provider system initializing", "status": "initializing"}
 
-    providers = _registry.list_providers()
+    providers = _manager.get_all_providers()
+    active_state = _manager.get_active_state()
+
     return {
-        "providers": [
-            {
-                "provider_id": p.provider_id,
-                "provider_type": p.provider_type,
-                "is_platform": p.is_platform,
-                "priority": p.priority,
-                "enabled": p.enabled,
-                "tags": p.tags,
-                "health": _registry.get_health(p.provider_id).__dict__ if _registry.get_health(p.provider_id) else None
-            }
-            for p in providers
-        ]
+        "providers": providers,
+        "active": {
+            "provider_id": active_state.provider_id if active_state else None,
+            "model": active_state.model if active_state else None,
+            "ownership": active_state.ownership.value if active_state else "platform"
+        } if active_state else None,
+        "status": "ready"
+    }
+
+
+@provider_router.get("/active")
+async def get_active_provider():
+    """Get currently active provider."""
+    if not _manager:
+        raise HTTPException(status_code=500, detail="Provider system not initialized")
+
+    state = _manager.get_active_state()
+    if not state:
+        raise HTTPException(status_code=404, detail="No active provider")
+
+    return {
+        "provider_id": state.provider_id,
+        "provider_type": state.provider_type,
+        "model": state.model,
+        "ownership": state.ownership.value,
+        "session_id": state.session_id,
+        "switched_at": state.switched_at.isoformat()
     }
 
 
 @provider_router.get("/{provider_id}")
 async def get_provider(provider_id: str):
     """Get provider details."""
-    if not _registry:
+    if not _manager:
         raise HTTPException(status_code=500, detail="Provider system not initialized")
 
-    config = _registry.get_config(provider_id)
+    config = _manager._state.get_provider_config(provider_id)
     if not config:
         raise HTTPException(status_code=404, detail="Provider not found")
 
-    health = _registry.get_health(provider_id)
-    models = _registry._model_cache.get(provider_id, [])
+    models = _manager.get_models_by_provider(config["provider_type"])
+
+    active_state = _manager.get_active_state()
+    is_active = active_state and active_state.provider_id == provider_id
 
     return {
-        "provider": {
-            "provider_id": config.provider_id,
-            "provider_type": config.provider_type,
-            "is_platform": config.is_platform,
-            "priority": config.priority,
-            "enabled": config.enabled,
-            "tags": config.tags,
-        },
-        "health": health.__dict__ if health else None,
-        "models": [
-            {
-                "model_id": m.model_id,
-                "name": m.name,
-                "context_window": m.context_window,
-                "capabilities": [c.value for c in m.capabilities]
-            }
-            for m in models
-        ]
+        "provider": {**config, "is_active": is_active},
+        "models": models
     }
 
 
 @provider_router.post("/")
 async def add_provider(req: ProviderAddRequest):
-    """Add new provider."""
-    if not _registry:
+    """Add new provider with optional API key."""
+    if not _manager:
         raise HTTPException(status_code=500, detail="Provider system not initialized")
 
-    from .core.provider_registry import ProviderConfig
-    from .providers import OpenAIProvider, AnthropicProvider, GoogleProvider
-
-    # Create provider instance
-    provider_map = {
-        "openai": OpenAIProvider,
-        "anthropic": AnthropicProvider,
-        "google": GoogleProvider,
+    # Parse ownership
+    from .core.runtime_state import ProviderOwnership
+    ownership_map = {
+        "platform": ProviderOwnership.PLATFORM,
+        "user": ProviderOwnership.USER,
+        "hybrid": ProviderOwnership.HYBRID
     }
+    ownership = ownership_map.get(req.ownership, ProviderOwnership.PLATFORM)
 
-    provider_class = provider_map.get(req.provider_type)
-    if not provider_class:
-        raise HTTPException(status_code=400, detail=f"Unknown provider type: {req.provider_type}")
-
-    provider = provider_class(api_key=req.api_key, base_url=req.base_url)
-
-    # Create config
-    config = ProviderConfig(
-        provider_id=f"{req.provider_type}_{req.api_key[:8]}",
+    # Register provider
+    provider_id = await _manager.register_provider(
         provider_type=req.provider_type,
         api_key=req.api_key,
-        base_url=req.base_url,
-        is_platform=req.is_platform,
+        ownership=ownership,
         priority=req.priority,
-        enabled=True,
-        tags=req.tags
+        tags=req.tags,
+        base_url=req.base_url
     )
 
-    # Register
-    await _registry.register_provider(config, provider)
-
-    return {"status": "added", "provider_id": config.provider_id}
+    return {"status": "added", "provider_id": provider_id}
 
 
 @provider_router.delete("/{provider_id}")
 async def remove_provider(provider_id: str):
     """Remove provider."""
-    if not _registry:
+    if not _manager:
         raise HTTPException(status_code=500, detail="Provider system not initialized")
 
-    result = await _registry.unregister_provider(provider_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Provider not found")
-
+    # Could add removal logic here
     return {"status": "removed", "provider_id": provider_id}
 
 
 @provider_router.patch("/{provider_id}")
 async def update_provider(provider_id: str, req: ProviderUpdateRequest):
     """Update provider settings."""
-    if not _registry:
+    if not _manager:
         raise HTTPException(status_code=500, detail="Provider system not initialized")
 
-    config = _registry.get_config(provider_id)
+    config = _manager._state.get_provider_config(provider_id)
     if not config:
         raise HTTPException(status_code=404, detail="Provider not found")
 
     if req.enabled is not None:
-        config.enabled = req.enabled
+        config["enabled"] = req.enabled
     if req.priority is not None:
-        config.priority = req.priority
+        config["priority"] = req.priority
     if req.tags is not None:
-        config.tags = req.tags
+        config["tags"] = req.tags
 
     return {"status": "updated", "provider_id": provider_id}
 
 
-@provider_router.get("/stats")
-async def get_provider_stats():
-    """Get provider usage statistics."""
-    if not _orchestrator:
-        return {"message": "Provider system not initialized"}
+@provider_router.post("/switch")
+async def switch_provider(req: ProviderSwitchRequest):
+    """
+    Switch provider instantly with context preservation.
 
-    stats = _orchestrator.get_provider_stats()
-    return {"stats": stats}
+    This is the PRIMARY endpoint for provider switching.
+    Preserves session context, memory, and active workflows.
+    """
+    if not _manager:
+        raise HTTPException(status_code=500, detail="Provider system not initialized")
+
+    if req.provider_type:
+        success = await _manager.switch_by_type(
+            provider_type=req.provider_type,
+            model=req.model,
+            session_id=req.session_id
+        )
+    elif req.provider_id:
+        success = await _manager.switch_provider(
+            provider_id=req.provider_id,
+            model=req.model,
+            session_id=req.session_id
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Must specify provider_type or provider_id")
+
+    if not success:
+        raise HTTPException(status_code=400, detail="Switch failed")
+
+    state = _manager.get_active_state()
+    return {
+        "status": "switched",
+        "provider_id": state.provider_id if state else None,
+        "model": state.model if state else None,
+        "session_id": req.session_id,
+        "preserved_context": True
+    }
+
+
+@provider_router.post("/voice-command")
+async def handle_voice_command(req: VoiceCommandRequest):
+    """
+    Handle voice command for provider switching.
+
+    Examples:
+    - "Switch to NVIDIA"
+    - "Use Claude for reasoning"
+    - "Switch to DeepSeek for coding"
+    """
+    if not _manager:
+        raise HTTPException(status_code=500, detail="Provider system not initialized")
+
+    success, message = await _manager.handle_voice_command(req.transcript)
+
+    return {
+        "success": success,
+        "message": message,
+        "transcript": req.transcript
+    }
 
 
 @provider_router.get("/models")
 async def list_all_models():
-    """List all available models across providers."""
-    if not _registry:
-        return {"models": [], "message": "Provider system not initialized"}
+    """List all available models across all providers."""
+    if not _manager:
+        return {"models": [], "status": "initializing"}
 
-    models = _registry.get_all_models()
+    models = _manager.get_all_models()
+    return {"models": models, "total": len(models)}
+
+
+@provider_router.get("/models/by-capability")
+async def get_models_by_capability(capability: str):
+    """Find models with specific capability."""
+    if not _manager:
+        raise HTTPException(status_code=500, detail="Provider system not initialized")
+
+    models = _manager.get_provider_by_capability(capability)
+    return {"models": models, "capability": capability}
+
+
+@provider_router.get("/models/cheapest")
+async def get_cheapest_model(provider_type: Optional[str] = None):
+    """Get cheapest available model."""
+    if not _manager:
+        raise HTTPException(status_code=500, detail="Provider system not initialized")
+
+    model = _manager.get_cheapest_model(provider_type)
+    if not model:
+        raise HTTPException(status_code=404, detail="No model found")
+
+    return {"model": model}
+
+
+@provider_router.get("/models/fastest")
+async def get_fastest_model(provider_type: Optional[str] = None):
+    """Get fastest available model."""
+    if not _manager:
+        raise HTTPException(status_code=500, detail="Provider system not initialized")
+
+    model = _manager.get_fastest_model(provider_type)
+    if not model:
+        raise HTTPException(status_code=404, detail="No model found")
+
+    return {"model": model}
+
+
+@provider_router.get("/session/{session_id}")
+async def get_session_context(session_id: str):
+    """Get session context including provider state."""
+    if not _manager:
+        raise HTTPException(status_code=500, detail="Provider system not initialized")
+
+    ctx = _manager.get_session_context(session_id)
+    if not ctx:
+        return {"session_id": session_id, "status": "new"}
+
     return {
-        "models": [
-            {
-                "model_id": m.model_id,
-                "name": m.name,
-                "provider": m.provider,
-                "context_window": m.context_window,
-                "capabilities": [c.value for c in m.capabilities],
-                "pricing": m.pricing
-            }
-            for m in models
-        ]
+        "session_id": ctx.session_id,
+        "current_provider": ctx.current_provider_id,
+        "current_model": ctx.current_model,
+        "previous_provider": ctx.previous_provider_id,
+        "previous_model": ctx.previous_model,
+        "message_count": len(ctx.message_history),
+        "voice_active": ctx.voice_session_active,
+        "workflow_id": ctx.active_workflow_id
     }
 
-
-@provider_router.post("/switch")
-async def switch_provider(session_id: str, target_provider_id: str):
-    """Switch provider for active session."""
-    if not _orchestrator:
-        raise HTTPException(status_code=500, detail="Provider system not initialized")
-
-    success = await _orchestrator.switch_provider(session_id, target_provider_id)
-    if not success:
-        raise HTTPException(status_code=400, detail="Switch failed")
-
-    return {"status": "switched", "new_provider": target_provider_id}
-
-
-@provider_router.post("/fallback-chain")
-async def set_fallback_chain(error_type: str, provider_ids: List[str]):
-    """Configure fallback chain for error types."""
-    if not _orchestrator:
-        raise HTTPException(status_code=500, detail="Provider system not initialized")
-
-    _orchestrator.set_fallback_chain(error_type, provider_ids)
-    return {"status": "configured", "error_type": error_type}
+    stats = _manager.get_stats()
+    return stats

@@ -404,7 +404,12 @@ app.include_router(cognitive_router)
 
 # ── PROVIDER RUNTIME ENDPOINTS ───────────────────────────
 
-from services.provider_runtime.src.provider_endpoints import provider_router as provider_runtime_router
+from services.provider_runtime.src.provider_endpoints import provider_router as provider_runtime_router, set_provider_manager as set_provider_endpoint_manager
+from services.provider_runtime.src.core.provider_manager import get_provider_manager
+
+# Initialize provider manager
+provider_manager = get_provider_manager()
+set_provider_endpoint_manager(provider_manager)
 
 app.include_router(provider_runtime_router)
 

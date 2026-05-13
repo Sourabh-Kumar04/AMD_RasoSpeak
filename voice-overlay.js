@@ -388,6 +388,36 @@ const RasoVoice = {
   // Process voice command through 7-layer cognitive pipeline
   async processCommand(text) {
     this.setState('processing');
+
+    // Check for provider switching commands
+    const providerKeywords = ['switch to', 'use ', 'change to', 'go to', 'switch model'];
+    const isProviderCommand = providerKeywords.some(kw => text.toLowerCase().includes(kw));
+    const systemKeywords = ['settings', 'memory', 'status', 'provider', 'model'];
+    const isSystemCommand = systemKeywords.some(kw => text.toLowerCase().includes(kw));
+
+    // Handle provider switching commands
+    if (isProviderCommand && !isSystemCommand) {
+      this.showAIResponse('Switching provider...', 'Planning');
+      try {
+        const resp = await fetch('/api/providers/voice-command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript: text, session_id: this.sessionId || 'default' })
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          this.showAIResponse(data.message || 'Provider switched', 'Execution');
+          this.speak(data.message || 'Provider switched successfully');
+          return;
+        }
+      } catch (e) {
+        console.error('RasoVoice: Provider switch failed', e);
+      }
+      // Fall through to normal processing if switch fails
+    }
+
+    // Normal command processing through 7-layer cognitive pipeline
     this.showAIResponse('Processing your request...', 'Perception');
 
     try {
