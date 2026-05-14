@@ -498,9 +498,10 @@ class CognitivePipeline:
         )
 
     def _is_simple_query(self, text: str) -> bool:
-        """Check if simple query for reactive fast path."""
+        """Check if simple query for reactive fast path - uses word boundaries."""
         simple_patterns = ["hello", "hi", "hey", "time", "date", "weather"]
-        return any(p in text.lower() for p in simple_patterns)
+        words = text.lower().split()
+        return any(p in words for p in simple_patterns)
 
     async def _reactive_response(self, request: CognitionRequest, response_id: str, trace: list[str]) -> CognitionResponse:
         """Fast reactive response."""
