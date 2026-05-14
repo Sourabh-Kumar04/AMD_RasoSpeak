@@ -194,8 +194,11 @@ class UnifiedMemorySystem:
         metadata: dict = None,
     ) -> MemoryNode:
         """Store memory and propagate to all systems."""
-        # Generate embedding
-        embedding = await self._embedder.embed(content)
+        # Generate embedding (fallback to zero vector if no embedder)
+        if self._embedder is None:
+            embedding = [0.0] * 1536  # OpenAI embedding size fallback
+        else:
+            embedding = await self._embedder.embed(content)
 
         # Create memory node
         node = MemoryNode(

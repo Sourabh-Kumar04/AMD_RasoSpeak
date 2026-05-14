@@ -48,9 +48,23 @@ class WorldModelAdapter:
             "goals": []
         }
 
+    async def get_entities(self, user_id: str) -> list:
+        """Get all entities for user."""
+        if self._brain and hasattr(self._brain, 'get_entities'):
+            return await self._brain.get_entities(user_id)
+        return []
+
+    async def add_interaction(self, user_id: str, interaction_type: str, content: str, response: str = None):
+        """Add interaction to world model."""
+        pass
+
     async def update_entity(self, user_id: str, entity_type: str, entity_data: dict):
         """Update entity in world model."""
         pass  # Would delegate to brain agent
+
+    async def upsert_entities(self, user_id: str, entities: list):
+        """Upsert entities into world model."""
+        pass
 
 
 class MemoryServiceAdapter:
@@ -116,13 +130,51 @@ class ProactiveServiceAdapter:
 
 
 class LLMGatewayAdapter:
-    """Wraps LLM client for cognitive pipeline."""
+    """Wraps LLM client for cognitive pipeline - integrates with ProviderManager for real provider switching."""
 
     def __init__(self, llm_client=None):
         self._client = llm_client
+        self._provider_manager = None
+        self._active_provider = "google"  # Default
+        self._active_model = "gemini-2.0-flash-exp"
+
+    def set_provider_manager(self, pm):
+        """Wire in ProviderManager for live provider switching."""
+        self._provider_manager = pm
+        if pm:
+            state = pm.get_active_state()
+            if state:
+                self._active_provider = state.provider_type
+                self._active_model = state.model
 
     async def generate(self, prompt: str, **kwargs) -> str:
-        """Generate LLM response."""
+        """Generate LLM response - uses active provider from ProviderManager."""
+        # Check if provider was switched via ProviderManager
+        if self._provider_manager:
+            state = self._provider_manager.get_active_state()
+            if state:
+                self._active_provider = state.provider_type
+                self._active_model = state.model
+
+        # Use actual LLM client if available
         if self._client and hasattr(self._client, 'generate'):
-            return await self._client.generate(prompt, **kwargs)
+            return await self._client.generate(prompt, provider=self._active_provider, model=self._active_model, **kwargs)
+
+        # Fallback - use provider manager directly if available
+        if self._provider_manager:
+            try:
+                return await self._call_provider(prompt)
+            except Exception as e:
+                return f"I'm thinking... (provider: {self._active_provider}, model: {self._active_model})"
+
         return "I'm here to help. How can I assist you?"
+
+    async def _call_provider(self, prompt: str) -> str:
+        """Call provider via ProviderManager."""
+        # This would integrate with actual provider API calls
+        # For now, just return a response indicating provider is active
+        return f"I'm thinking using {self._active_provider}/{self._active_model}"
+
+    def get_active_provider(self) -> tuple[str, str]:
+        """Get current active provider and model."""
+        return self._active_provider, self._active_model

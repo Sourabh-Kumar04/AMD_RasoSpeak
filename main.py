@@ -19,10 +19,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from agents.transcription_agent import TranscriptionAgent
 from agents.scoring_agent import ScoringAgent
@@ -146,6 +147,9 @@ async def lifespan(app: FastAPI):
         cognitive_adapter = CognitiveEngineAdapter(agents.get("brain"))
         proactive_adapter = ProactiveServiceAdapter(agents.get("brain"))
         llm_adapter = LLMGatewayAdapter()
+
+        # Wire ProviderManager into LLM adapter for live provider switching
+        llm_adapter.set_provider_manager(provider_manager)
 
         unified_runtime = await create_unified_runtime(
             voice_service=voice_adapter,
@@ -407,7 +411,7 @@ app.include_router(cognitive_router)
 from services.provider_runtime.src.provider_endpoints import provider_router as provider_runtime_router, set_provider_manager as set_provider_endpoint_manager
 from services.provider_runtime.src.core.provider_manager import get_provider_manager
 
-# Initialize provider manager
+# Initialize provider manager FIRST (needed by unified runtime)
 provider_manager = get_provider_manager()
 set_provider_endpoint_manager(provider_manager)
 
@@ -418,6 +422,11 @@ app.include_router(provider_runtime_router)
 
 pipeline_router = APIRouter(prefix="/api/v1", tags=["pipeline"])
 
+class ProcessRequest(BaseModel):
+    text: str
+    user_id: str = "default"
+
+
 @pipeline_router.get("/process")
 async def process_through_cognition_get(text: str, user_id: str = "default"):
     """Process text through full 7-layer cognitive pipeline (GET)."""
@@ -427,10 +436,15 @@ async def process_through_cognition_get(text: str, user_id: str = "default"):
         return {"status": "success", **result}
     return {"status": "degraded", "response": text, "note": "Unified runtime not initialized"}
 
+
 @pipeline_router.post("/process")
-async def process_through_cognition_post(text: str, user_id: str = "default"):
-    """Process text through full 7-layer cognitive pipeline (POST)."""
-    return await process_through_cognition_get(text, user_id)
+async def process_through_cognition_post(req: ProcessRequest):
+    """Process text through full 7-layer cognitive pipeline (POST with JSON body)."""
+    unified = getattr(app.state, 'unified_runtime', None)
+    if unified:
+        result = await unified.process_text(req.text, req.user_id)
+        return {"status": "success", **result}
+    return {"status": "degraded", "response": req.text, "note": "Unified runtime not initialized"}
 
 @pipeline_router.post("/voice/start")
 async def start_voice_session(user_id: str = "default"):
@@ -460,6 +474,114 @@ async def get_memories(user_id: str = "default", query: str = "", limit: int = 1
     return {"memories": [], "count": 0}
 
 app.include_router(pipeline_router)
+
+
+# ── WEBSOCKET FOR REAL-TIME STATE SYNC ─────────────────
+
+from typing import Dict, Set
+
+class ConnectionManager:
+    """Manages WebSocket connections for real-time state sync."""
+    def __init__(self):
+        self.active_connections: Dict[str, Set[WebSocket]] = {}
+
+    async def connect(self, websocket: WebSocket, user_id: str = "default"):
+        await websocket.accept()
+        if user_id not in self.active_connections:
+            self.active_connections[user_id] = set()
+        self.active_connections[user_id].add(websocket)
+
+    def disconnect(self, websocket: WebSocket, user_id: str = "default"):
+        if user_id in self.active_connections:
+            self.active_connections[user_id].discard(websocket)
+
+    async def broadcast_provider_state(self, user_id: str, state: dict):
+        """Broadcast provider state to all connections."""
+        message = {"type": "provider_state", "data": state}
+        if user_id in self.active_connections:
+            dead = set()
+            for ws in self.active_connections[user_id]:
+                try:
+                    await ws.send_json(message)
+                except:
+                    dead.add(ws)
+            for ws in dead:
+                self.active_connections[user_id].discard(ws)
+
+    async def broadcast_cognition_event(self, user_id: str, event: dict):
+        """Broadcast cognition events to UI."""
+        message = {"type": "cognition_event", "data": event}
+        if user_id in self.active_connections:
+            for ws in self.active_connections[user_id]:
+                try:
+                    await ws.send_json(message)
+                except:
+                    pass
+
+
+ws_manager = ConnectionManager()
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket for real-time sync - provider state, cognition events, memory updates."""
+    user_id = websocket.query_params.get("user_id", "default")
+    await ws_manager.connect(websocket, user_id)
+
+    try:
+        # Send initial state
+        provider_state = provider_manager.get_active_state()
+        await websocket.send_json({
+            "type": "connected",
+            "user_id": user_id,
+            "provider": {
+                "provider_id": provider_state.provider_id if provider_state else "google",
+                "provider_type": provider_state.provider_type if provider_state else "google",
+                "model": provider_state.model if provider_state else "gemini-2.0-flash-exp"
+            } if provider_state else {"provider_id": "google", "provider_type": "google", "model": "gemini-2.0-flash-exp"}
+        })
+
+        # Register provider switch callback to broadcast changes
+        async def on_provider_switch(event):
+            state = provider_manager.get_active_state()
+            await ws_manager.broadcast_provider_state(user_id, {
+                "provider_id": state.provider_id if state else "unknown",
+                "provider_type": state.provider_type if state else "unknown",
+                "model": state.model if state else "unknown",
+                "switched_at": str(state.switched_at) if state else None
+            })
+
+        provider_manager.register_switch_callback(on_provider_switch)
+
+        while True:
+            # Receive messages from client
+            data = await websocket.receive_json()
+            msg_type = data.get("type", "")
+
+            if msg_type == "ping":
+                await websocket.send_json({"type": "pong"})
+
+            elif msg_type == "switch_provider":
+                # Client requests provider switch
+                provider_type = data.get("provider_type")
+                model = data.get("model")
+                await provider_manager.switch_by_type(provider_type, model)
+
+            elif msg_type == "get_state":
+                # Client requests current state
+                state = provider_manager.get_active_state()
+                await websocket.send_json({
+                    "type": "provider_state",
+                    "data": {
+                        "provider_id": state.provider_id if state else "google",
+                        "model": state.model if state else "gemini-2.0-flash-exp"
+                    }
+                })
+
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket, user_id)
+    except Exception as e:
+        ws_manager.disconnect(websocket, user_id)
 
 
 # ── ENTRY POINT ───────────────────────────────────────
