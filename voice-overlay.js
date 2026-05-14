@@ -22,6 +22,12 @@ const RasoVoice = {
   lastWakeTime: 0,
   cooldownMs: 2000,
 
+  // WebSocket for real-time sync
+  ws: null,
+  wsConnected: false,
+  currentProvider: 'google',
+  currentModel: 'gemini-2.0-flash-exp',
+
   // DOM Elements
   overlay: null,
   statusIndicator: null,
@@ -31,7 +37,74 @@ const RasoVoice = {
     this.createOverlay();
     this.setupSpeechRecognition();
     this.setupWakeWordDetection();
+    this.connectWebSocket();
     console.log('RasoVoice: Voice overlay initialized');
+  },
+
+  connectWebSocket() {
+    // Connect to backend WebSocket for real-time state sync
+    const wsUrl = (location.protocol === 'https:' ? 'wss:' : 'ws:') +
+      '//' + location.host + '/ws?user_id=default';
+
+    try {
+      this.ws = new WebSocket(wsUrl);
+
+      this.ws.onopen = () => {
+        console.log('RasoVoice: WebSocket connected');
+        this.wsConnected = true;
+      };
+
+      this.ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          this.handleWSMessage(msg);
+        } catch (e) {
+          console.warn('RasoVoice: WS parse error', e);
+        }
+      };
+
+      this.ws.onerror = (e) => {
+        console.warn('RasoVoice: WebSocket error', e);
+      };
+
+      this.ws.onclose = () => {
+        console.log('RasoVoice: WebSocket disconnected');
+        this.wsConnected = false;
+        // Reconnect after 3 seconds
+        setTimeout(() => this.connectWebSocket(), 3000);
+      };
+    } catch (e) {
+      console.warn('RasoVoice: WebSocket connection failed', e);
+    }
+  },
+
+  handleWSMessage(msg) {
+    const { type, data } = msg;
+
+    switch (type) {
+      case 'connected':
+        // Store initial provider info
+        if (data.provider) {
+          this.currentProvider = data.provider.provider_type || 'google';
+          this.currentModel = data.provider.model || 'gemini-2.0-flash-exp';
+        }
+        break;
+
+      case 'provider_state':
+        // Provider was switched - update state
+        this.currentProvider = data.provider_type || this.currentProvider;
+        this.currentModel = data.model || this.currentModel;
+        console.log('RasoVoice: Provider changed to', this.currentProvider, '/', this.currentModel);
+        // Dispatch event for UI updates
+        window.dispatchEvent(new CustomEvent('provider-changed', {
+          detail: { provider: this.currentProvider, model: this.currentModel }
+        }));
+        break;
+
+      case 'cognition_event':
+        // Cognitive pipeline event
+        break;
+    }
   },
 
   createOverlay() {
