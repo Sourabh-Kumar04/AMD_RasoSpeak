@@ -305,6 +305,27 @@ function handleWSMessage(msg) {
   const { type, data } = msg;
 
   switch (type) {
+    case 'connected':
+      // Initial connection - store provider info
+      if (data.provider) {
+        console.log('[WS] Connected with provider:', data.provider);
+        // Dispatch event for UI to update
+        window.dispatchEvent(new CustomEvent('provider-changed', { detail: data.provider }));
+      }
+      break;
+
+    case 'provider_state':
+      // Provider was switched - update UI
+      console.log('[WS] Provider changed:', data);
+      window.dispatchEvent(new CustomEvent('provider-changed', { detail: data }));
+      break;
+
+    case 'cognition_event':
+      // Cognitive pipeline event
+      console.log('[WS] Cognition event:', data);
+      window.dispatchEvent(new CustomEvent('cognition-event', { detail: data }));
+      break;
+
     case 'SESSION_READY':
       logCoach('ok', '✅', `GPU agents ready · ${data.message}`);
       setTimeout(() => doDeliver(), 600);
