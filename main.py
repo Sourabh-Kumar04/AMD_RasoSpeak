@@ -15,6 +15,7 @@ Architecture:
 
 import logging
 import os
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -636,6 +637,91 @@ async def websocket_endpoint(websocket: WebSocket):
         ws_manager.disconnect(websocket, user_id)
     except Exception as e:
         ws_manager.disconnect(websocket, user_id)
+
+
+# ── AUDIO WEBSOCKET FOR SERVER-SIDE VOICE PROCESSING ─
+
+@app.websocket("/ws/audio")
+async def audio_websocket_endpoint(websocket: WebSocket):
+    """WebSocket for server-side audio processing (STT + TTS).
+
+    Flow:
+    1. Client sends audio binary chunks
+    2. Server processes with STT ( Whisper )
+    3. Server runs cognitive pipeline on transcript
+    4. Server generates TTS response
+    5. Server streams audio back to client
+    """
+    user_id = websocket.query_params.get("user_id", "default")
+    await websocket.accept()
+
+    try:
+        # Send ready message
+        await websocket.send_json({
+            "type": "ready",
+            "mode": "audio",
+            "capabilities": ["stt", "tts", "cognition"]
+        })
+
+        while True:
+            # Receive audio or text messages
+            data = await websocket.receive()
+
+            if "text" in data:
+                # Text message
+                try:
+                    msg = json.loads(data["text"])
+                    msg_type = msg.get("type", "")
+
+                    if msg_type == "transcribe":
+                        # Client requests server-side transcription
+                        audio_base64 = msg.get("audio")
+                        # TODO: Integrate Whisper STT here
+                        transcript = "[Server STT not configured - using client-side]"
+
+                        # Run cognitive pipeline
+                        unified = getattr(app.state, 'unified_runtime', None)
+                        if unified:
+                            result = await unified.process_text(transcript, user_id)
+
+                            # TODO: Generate TTS response
+                            await websocket.send_json({
+                                "type": "transcript",
+                                "text": transcript,
+                                "response": result.get("response", ""),
+                                "cognitive_layers": result.get("cognitive_layers", [])
+                            })
+
+                    elif msg_type == "tts":
+                        # Client requests TTS generation
+                        text = msg.get("text", "")
+                        # TODO: Integrate TTS here
+                        await websocket.send_json({
+                            "type": "tts_ready",
+                            "message": "TTS not configured"
+                        })
+
+                except json.JSONDecodeError:
+                    pass
+
+            elif "bytes" in data:
+                # Binary audio data
+                audio_chunk = data["bytes"]
+                # TODO: Process audio chunk with streaming STT
+                # For now, acknowledge receipt
+                await websocket.send_json({
+                    "type": "audio_received",
+                    "size": len(audio_chunk)
+                })
+
+    except WebSocketDisconnect:
+        log.info(f"Audio session closed for user {user_id}")
+    except Exception as e:
+        log.error(f"Audio WebSocket error: {e}")
+        try:
+            await websocket.send_json({"type": "error", "message": str(e)})
+        except:
+            pass
 
 
 # ── ENTRY POINT ───────────────────────────────────────
