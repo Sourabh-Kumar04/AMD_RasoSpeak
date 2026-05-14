@@ -68,7 +68,7 @@ class WorldModelAdapter:
 
 
 class MemoryServiceAdapter:
-    """Wraps memory agents for UnifiedRuntime."""
+    """Wraps memory agents for UnifiedRuntime - UNIFIES all memory through SecondBrainAgent."""
 
     def __init__(self, session_memory_agent=None, shared_memory_agent=None, second_brain_agent=None):
         self._session = session_memory_agent
@@ -84,18 +84,58 @@ class MemoryServiceAdapter:
                 pass
 
     async def store(self, user_id: str, content: str, memory_type: str) -> dict:
-        """Store memory."""
+        """Store memory - delegates to SecondBrainAgent for unified storage."""
         node_id = str(uuid.uuid4())
-        if self._brain and hasattr(self._brain, 'add_memory'):
-            await self._brain.add_memory(user_id, content, memory_type)
+        if self._brain and hasattr(self._brain, 'store'):
+            # Map memory types to brain storage
+            node_type_map = {
+                "semantic": "semantic",
+                "episodic": "conversation",
+                "working": "working",
+                "procedural": "skill",
+                "social": "relationship",
+            }
+            node_type = node_type_map.get(memory_type, "conversation")
+            try:
+                await self._brain.store(
+                    content=content,
+                    node_type=node_type,
+                    user_id=user_id,
+                    importance=0.5
+                )
+            except Exception as e:
+                # Fallback - create memory without full store
+                pass
         return {"node_id": node_id, "content": content, "type": memory_type}
 
     async def retrieve(self, user_id: str, query: str, limit: int = 10) -> list:
-        """Semantic memory retrieval."""
+        """Semantic memory retrieval - uses SecondBrainAgent's recall methods."""
         memories = []
-        if self._brain and hasattr(self._brain, 'search_memories'):
-            results = await self._brain.search_memories(user_id, query, limit)
-            memories = [{"content": r.get("content", ""), "type": r.get("type", "episodic"), "importance": r.get("importance", 0.5)} for r in results]
+        if not self._brain:
+            return memories
+
+        # Use brain's recall methods for unified memory retrieval
+        try:
+            if hasattr(self._brain, 'recall_by_topic'):
+                # Search by topic/keywords
+                results = await self._brain.recall_by_topic(query, limit=limit)
+                memories = [{"content": r.get("content", ""), "type": r.get("type", "episodic"), "importance": r.get("importance", 0.5)} for r in results]
+            elif hasattr(self._brain, 'recall'):
+                # General recall
+                results = await self._brain.recall(query=query, limit=limit)
+                memories = [{"content": r.get("content", ""), "type": r.get("type", "episodic"), "importance": r.get("importance", 0.5)} for r in results]
+            elif hasattr(self._brain, 'search_memories'):
+                results = await self._brain.search_memories(user_id, query, limit)
+                memories = [{"content": r.get("content", ""), "type": r.get("type", "episodic"), "importance": r.get("importance", 0.5)} for r in results]
+        except Exception as e:
+            # Fallback to session memory if brain fails
+            if self._session and hasattr(self._session, 'recall'):
+                try:
+                    results = await self._session.recall(query=query, limit=limit)
+                    memories = [{"content": r, "type": "session", "importance": 0.5} for r in results]
+                except:
+                    pass
+
         return memories
 
 

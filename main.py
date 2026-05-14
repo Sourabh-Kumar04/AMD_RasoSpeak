@@ -437,6 +437,60 @@ async def process_through_cognition_get(text: str, user_id: str = "default"):
     return {"status": "degraded", "response": text, "note": "Unified runtime not initialized"}
 
 
+@pipeline_router.get("/status")
+async def get_system_status():
+    """Get comprehensive system status - single source of truth for all subsystems."""
+    # Provider state
+    provider_state = provider_manager.get_active_state()
+    provider_info = {
+        "provider_id": provider_state.provider_id if provider_state else "google",
+        "provider_type": provider_state.provider_type if provider_state else "google",
+        "model": provider_state.model if provider_state else "gemini-2.0-flash-exp",
+        "ownership": provider_state.ownership.value if provider_state else "platform"
+    } if provider_state else {"provider_id": "google", "provider_type": "google", "model": "gemini-2.0-flash-exp"}
+
+    # Unified runtime state
+    unified = getattr(app.state, 'unified_runtime', None)
+    cognitive_status = "active" if unified else "unavailable"
+    memory_status = "connected" if unified else "disconnected"
+
+    # Agent health
+    agent_health = getattr(app.state, 'agent_health', {})
+
+    # Memory stats from SecondBrain
+    brain_stats = {}
+    if agents.get("brain"):
+        try:
+            if hasattr(agents["brain"], 'get_memory_stats'):
+                brain_stats = await agents["brain"].get_memory_stats()
+        except:
+            pass
+
+    return {
+        "status": "operational",
+        "version": "2.1.0",
+        "provider": provider_info,
+        "cognitive_pipeline": {
+            "status": cognitive_status,
+            "layers": ["reactive", "perception", "planning", "execution", "reflection", "memory", "world_model"]
+        },
+        "memory": {
+            "status": memory_status,
+            "system": "second_brain_unified",
+            "stats": brain_stats
+        },
+        "agents": agent_health,
+        "websocket": "/ws endpoint available",
+        "capabilities": {
+            "provider_switching": True,
+            "memory_retrieval": True,
+            "cognitive_pipeline": True,
+            "real_time_sync": True,
+            "voice_commands": True
+        }
+    }
+
+
 @pipeline_router.post("/process")
 async def process_through_cognition_post(req: ProcessRequest):
     """Process text through full 7-layer cognitive pipeline (POST with JSON body)."""

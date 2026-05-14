@@ -145,6 +145,14 @@ class Settings(BaseSettings):
     redis_port: int = 6379
     redis_db: int = 0
 
+    # ── POSTGRESQL (production) ───────────────────────────
+    postgres_host: str = os.getenv("POSTGRES_HOST", "localhost")
+    postgres_port: int = int(os.getenv("POSTGRES_PORT", "5432"))
+    postgres_user: str = os.getenv("POSTGRES_USER", "rasospeak")
+    postgres_password: str = os.getenv("POSTGRES_PASSWORD", "")
+    postgres_database: str = os.getenv("POSTGRES_DATABASE", "rasospeak")
+    postgres_use: bool = os.getenv("POSTGRES_USE", "false").lower() == "true"
+
     # ── LLM BACKEND (optional vLLM) ──────────────────────
     vllm_base_url: str = ""
     llm_timeout_seconds: int = 60
