@@ -112,7 +112,7 @@ class EventBus:
                 else:
                     handler(event)
             except Exception as e:
-                logger.error("event_handler_failed", handler=handler.__name__, error=str(e))
+                logger.error("event_handler_failed", _kw={"handler": handler.__name__, "error": str(e)})
 
         logger.debug("event_published", event_type=event.event_type.value, event_id=event.event_id)
 
@@ -563,7 +563,12 @@ Respond thoughtfully, referencing relevant memories."""
                 response = await self._llm.generate(prompt)
                 return {"response": response, "confidence": 0.85, "actions": ["llm_generation"]}
             except Exception as e:
-                logger.error("llm_generation_failed", error=str(e))
+                error_str = str(e)
+                # Check for quota exceeded
+                if "quota" in error_str.lower() or "429" in error_str:
+                    logger.warning("llm_quota_exceeded", provider=self._active_provider)
+                    return {"response": "I've reached my daily limit. Configure a paid API key in settings for unlimited usage.", "confidence": 0.3, "actions": ["quota_exceeded"]}
+                logger.error("llm_generation_failed", error=error_str)
 
         return {"response": "I'm thinking about your question.", "confidence": 0.5, "actions": []}
 

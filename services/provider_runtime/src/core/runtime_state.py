@@ -93,7 +93,7 @@ class ProviderRuntimeState:
 
         # Default settings
         self._default_provider_id: str = "google"
-        self._default_model: str = "gemini-2.0-flash-exp"
+        self._default_model: str = "gemini-1.5-flash-8b"
 
         # Model registry (dynamically discovered)
         self._model_registry: dict[str, list[dict]] = {}  # provider_type -> models
@@ -412,12 +412,12 @@ class ProviderRuntimeState:
     def get_model_for_provider(self, provider_id: str) -> str:
         """Get default model for provider."""
         provider_model_map = {
-            "google": "gemini-2.0-flash-exp",
+            "google": "gemini-1.5-flash-8b",
             "openai": "gpt-4o",
-            "anthropic": "claude-sonnet-4-20250514",
-            "nvidia": "nvidia/nemotron-4-mini",
+            "anthropic": "claude-3-5-sonnet-20241022",
+            "nvidia": "meta/llama-3.1-70b-instruct",
             "deepseek": "deepseek-chat",
-            "openrouter": "openrouter/auto"
+            "openrouter": "google/gemini-2.0-flash"
         }
         return provider_model_map.get(provider_id, "gpt-4o")
 
@@ -450,5 +450,5 @@ def get_provider_runtime_state() -> ProviderRuntimeState:
     if _runtime_state is None:
         _runtime_state = ProviderRuntimeState()
         # Set defaults
-        _runtime_state.set_default_provider("google", "gemini-2.0-flash-exp")
+        _runtime_state.set_default_provider("google", "gemini-1.5-flash-8b")
     return _runtime_state

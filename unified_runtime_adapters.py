@@ -5,10 +5,13 @@ Wraps existing RasoSpeak agents to provide interfaces required by IntegratedRunt
 
 import asyncio
 import json
+import logging
 from typing import Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime
 import uuid
+
+logger = logging.getLogger("rasospeak.unified_adapters")
 
 
 class VoiceServiceAdapter:
@@ -188,7 +191,7 @@ class LLMGatewayAdapter:
                 self._active_model = state.model
 
     async def generate(self, prompt: str, **kwargs) -> str:
-        """Generate LLM response - uses active provider from ProviderManager."""
+        """Generate LLM response - uses active provider from ProviderManager with REAL LLM API calls."""
         # Check if provider was switched via ProviderManager
         if self._provider_manager:
             state = self._provider_manager.get_active_state()
@@ -196,24 +199,47 @@ class LLMGatewayAdapter:
                 self._active_provider = state.provider_type
                 self._active_model = state.model
 
-        # Use actual LLM client if available
-        if self._client and hasattr(self._client, 'generate'):
-            return await self._client.generate(prompt, provider=self._active_provider, model=self._active_model, **kwargs)
+        # Build messages for LLM
+        messages = [{"role": "user", "content": prompt}]
 
-        # Fallback - use provider manager directly if available
-        if self._provider_manager:
+        # Try using actual LLM client via .chat() method
+        if self._client and hasattr(self._client, 'chat'):
             try:
-                return await self._call_provider(prompt)
+                result = await self._client.chat(
+                    messages=messages,
+                    model=self._active_model,
+                    temperature=0.15,
+                    max_tokens=4096,
+                    stream=False
+                )
+                if isinstance(result, dict) and result.get("content"):
+                    return result["content"]
             except Exception as e:
-                return f"I'm thinking... (provider: {self._active_provider}, model: {self._active_model})"
+                logger.error("llm_call_failed: " + str(e))
 
-        return "I'm here to help. How can I assist you?"
+        # Fallback: try to create LLMClient directly if not provided
+        try:
+            from agents.llm_client import LLMClient
+            client = LLMClient(provider=self._active_provider)
+            result = await client.chat(
+                messages=messages,
+                model=self._active_model,
+                temperature=0.15,
+                max_tokens=4096,
+                stream=False
+            )
+            await client.close()
+            if isinstance(result, dict) and result.get("content"):
+                return result["content"]
+        except Exception as e:
+            logger.error("llm_fallback_failed: " + str(e))
+
+        # Last resort - indicate provider but with helpful response
+        return f"I understand you're asking about '{prompt[:50]}...'. I'm connected to {self._active_provider} ({self._active_model}). Configure your API key in settings to enable full responses."
 
     async def _call_provider(self, prompt: str) -> str:
-        """Call provider via ProviderManager."""
-        # This would integrate with actual provider API calls
-        # For now, just return a response indicating provider is active
-        return f"I'm thinking using {self._active_provider}/{self._active_model}"
+        """Call provider via LLM client."""
+        return await self.generate(prompt)
 
     def get_active_provider(self) -> tuple[str, str]:
         """Get current active provider and model."""
