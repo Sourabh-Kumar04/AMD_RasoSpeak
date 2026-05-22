@@ -3,13 +3,15 @@ Raso routes — /raso/*, /partner/* (aliases), and /voice/* endpoints.
 Your AI companion with memory, wake word detection, and reminders.
 """
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, HTTPException
 from pydantic import BaseModel, Field
+import logging
 
 from api.state import agents
 from api.middleware.auth import verify_api_key
 
 router = APIRouter(prefix="", tags=["🤖 Raso"])
+log = logging.getLogger("rasospeak.raso")
 
 
 # ── REQUEST MODELS ──────────────────────────────────────
@@ -39,52 +41,72 @@ class WakeAskRequest(BaseModel):
 @router.post("/raso/start")
 async def start_partner_mode(session_id: str = None):
     """Start continuous Raso mode — your AI companion is always listening for your commands."""
-    return await agents["raso"].start_continuous_mode(session_id)
+    try:
+        return await agents["raso"].start_continuous_mode(session_id)
+    except Exception as e:
+        log.error(f"Error starting partner mode: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/raso/stop")
 async def stop_partner_mode():
     """Stop continuous Raso mode."""
-    return await agents["raso"].stop_continuous_mode()
+    try:
+        return await agents["raso"].stop_continuous_mode()
+    except Exception as e:
+        log.error(f"Error stopping partner mode: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/raso/status")
 async def get_partner_status():
     """Get Raso companion status."""
-    current_provider = await agents["raso"].get_current_provider()
-    prefs = await agents["shared_memory"].get_user_preferences()
-    return {
-        "continuous_mode": agents["raso"].is_continuous_mode(),
-        "current_provider": current_provider,
-        "default_provider": prefs.get("preferred_ai_provider", "qwen_local"),
-        "temporary_provider": prefs.get("temporary_ai_provider"),
-    }
+    try:
+        current_provider = await agents["raso"].get_current_provider()
+        prefs = await agents["shared_memory"].get_user_preferences()
+        return {
+            "continuous_mode": agents["raso"].is_continuous_mode(),
+            "current_provider": current_provider,
+            "default_provider": prefs.get("preferred_ai_provider", "qwen_local"),
+            "temporary_provider": prefs.get("temporary_ai_provider"),
+        }
+    except Exception as e:
+        log.error(f"Error getting partner status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/raso/provider")
 async def set_partner_provider(provider: str, temporary: bool = False):
     """Set the AI provider for Raso."""
-    if temporary:
-        await agents["shared_memory"].set_user_preference("temporary_ai_provider", provider)
-    else:
-        await agents["shared_memory"].set_user_preference("preferred_ai_provider", provider)
-        await agents["shared_memory"].set_user_preference("temporary_ai_provider", None)
-    provider_names = {
-        "openai": "ChatGPT", "anthropic": "Claude", "google": "Gemini",
-        "xai": "Grok", "qwen_local": "Local Qwen",
-    }
-    return {
-        "provider": provider,
-        "display_name": provider_names.get(provider, provider),
-        "temporary": temporary,
-        "message": f"Switched to {provider_names.get(provider, provider)}" + (" for this question" if temporary else ""),
-    }
+    try:
+        if temporary:
+            await agents["shared_memory"].set_user_preference("temporary_ai_provider", provider)
+        else:
+            await agents["shared_memory"].set_user_preference("preferred_ai_provider", provider)
+            await agents["shared_memory"].set_user_preference("temporary_ai_provider", None)
+        provider_names = {
+            "openai": "ChatGPT", "anthropic": "Claude", "google": "Gemini",
+            "xai": "Grok", "qwen_local": "Local Qwen",
+        }
+        return {
+            "provider": provider,
+            "display_name": provider_names.get(provider, provider),
+            "temporary": temporary,
+            "message": f"Switched to {provider_names.get(provider, provider)}" + (" for this question" if temporary else ""),
+        }
+    except Exception as e:
+        log.error(f"Error setting provider: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/raso/ask")
 async def ask_partner(request: Request, req: PartnerAskRequest):
     """Ask your AI partner anything. Uses past conversations + web search + knowledge."""
-    return await agents["raso"].ask_partner(req.message, req.provider)
+    try:
+        return await agents["raso"].ask_partner(req.message, req.provider)
+    except Exception as e:
+        log.error(f"Error in ask_partner: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/raso/listen")

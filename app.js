@@ -2,6 +2,12 @@
    RasoSpeak — Frontend App
    WebSocket client connecting to GPU Developer Cloud backend.
    Agents run on GPU via ROCm + vLLM.
+
+   NOTE: This file is 2700+ lines and should be split into modules:
+   - components/ (UI components)
+   - services/ (API, WebSocket)
+   - state/ (state management)
+   - utils/ (helpers)
    ═══════════════════════════════════════════════════ */
 
 // ── CONFIG ────────────────────────────────────────────

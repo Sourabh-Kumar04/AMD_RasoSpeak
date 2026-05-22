@@ -52,6 +52,35 @@ from unified_runtime_adapters import (
 )
 from integrated_runtime import create_unified_runtime
 
+# ── NEW IMPORTS (v2.1 Production) ─────────────────────
+# Database layer
+try:
+    from db.unified import db, init_database
+except ImportError:
+    db = None
+    init_database = None
+
+# Observability
+try:
+    from api.observability import observability, instrument_fastapi
+except ImportError:
+    observability = None
+    instrument_fastapi = lambda x: None
+
+# Voice pipeline
+try:
+    from services.voice import voice_pipeline, WakeWordDetector
+except ImportError:
+    voice_pipeline = None
+    WakeWordDetector = None
+
+# Unified Memory (replaces 4 separate systems)
+try:
+    from agents.unified_memory_agent import unified_memory, UnifiedMemoryAgent
+except ImportError:
+    unified_memory = None
+    UnifiedMemoryAgent = None
+
 # ── LOGGING ───────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -167,6 +196,41 @@ async def lifespan(app: FastAPI):
         log.error(f"❌ Unified Runtime initialization failed: {e}")
         app.state.unified_runtime = None
 
+    # ── v2.1 NEW: Database & Observability ─────────────
+    # Initialize PostgreSQL database
+    if init_database:
+        try:
+            await init_database()
+            log.info("✅ Database initialized")
+        except Exception as e:
+            log.warning(f"⚠️ Database init failed: {e} (using fallback)")
+
+    # Initialize observability (OpenTelemetry)
+    if observability:
+        try:
+            observability.initialize()
+            log.info("✅ Observability initialized")
+        except Exception as e:
+            log.warning(f"⚠️ Observability init failed: {e}")
+
+    # Initialize voice pipeline
+    if voice_pipeline:
+        try:
+            await voice_pipeline.initialize()
+            log.info("✅ Voice pipeline initialized")
+        except Exception as e:
+            log.warning(f"⚠️ Voice pipeline init failed: {e}")
+
+    # Initialize unified memory (replaces 4 systems)
+    if unified_memory:
+        try:
+            await unified_memory.initialize()
+            agents["unified_memory"] = unified_memory
+            agent_health["unified_memory"] = "ok"
+            log.info("✅ Unified Memory (single system) initialized")
+        except Exception as e:
+            log.warning(f"⚠️ Unified Memory init failed: {e}")
+
     log.info(f"🚀 Startup complete. Agent health: {agent_health}")
     yield
 
@@ -218,6 +282,37 @@ app.add_middleware(
 )
 
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# ── HEALTH CHECK ──────────────────────────────────────
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for container orchestration (K8s, etc.)."""
+    agent_health = getattr(app.state, 'agent_health', {})
+    healthy_agents = sum(1 for status in agent_health.values() if status == "ok")
+    total_agents = len(agent_health)
+
+    return {
+        "status": "healthy" if healthy_agents == total_agents else "degraded",
+        "version": "2.0.0",
+        "agents": {
+            "total": total_agents,
+            "healthy": healthy_agents,
+            "details": agent_health
+        },
+        "unified_runtime": app.state.unified_runtime is not None
+    }
+
+
+# ── GLOBAL EXCEPTION HANDLER ──────────────────────────
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Catch-all exception handler for unhandled errors."""
+    log.error(f"Unhandled exception: {exc}", exc_info=True)
+    return {"error": "Internal server error", "detail": str(exc)}
+
 
 # ── LOGO RECOVERY ────────────────────────────────────
 
@@ -718,6 +813,54 @@ async def audio_websocket_endpoint(websocket: WebSocket):
         log.info(f"Audio session closed for user {user_id}")
     except Exception as e:
         log.error(f"Audio WebSocket error: {e}")
+        try:
+            await websocket.send_json({"type": "error", "message": str(e)})
+        except:
+            pass
+
+
+# ── VOICE STREAMING PIPELINE (v2.1 NEW) ───────────────
+
+@app.websocket("/ws/voice")
+async def voice_streaming_endpoint(websocket: WebSocket):
+    """
+    Server-side voice pipeline WebSocket.
+    Handles streaming STT → Cognition → TTS in one flow.
+    """
+    if not voice_pipeline:
+        await websocket.close(code=1011, reason="Voice pipeline not available")
+        return
+
+    user_id = websocket.query_params.get("user_id", "default")
+
+    # Set cognition callback to use unified runtime
+    async def cognition_callback(transcript: str, uid: str) -> dict:
+        unified = getattr(app.state, 'unified_runtime', None)
+        if unified:
+            result = await unified.process_text(transcript, uid)
+            return {"text": result.get("response", "")}
+        return {"text": f"You said: {transcript}"}
+
+    voice_pipeline.set_cognition_callback(cognition_callback)
+
+    # Process audio stream
+    try:
+        async for message in voice_pipeline.process_audio_stream(websocket, user_id):
+            if message.get("type") == "transcript":
+                # Send transcript + response audio
+                await websocket.send_json({
+                    "type": "voice_response",
+                    "transcript": message.get("text", ""),
+                    "response": message.get("response", ""),
+                    "audio": message.get("audio", ""),  # base64 TTS
+                })
+            else:
+                await websocket.send_json(message)
+
+    except WebSocketDisconnect:
+        log.info(f"Voice session closed for user {user_id}")
+    except Exception as e:
+        log.error(f"Voice streaming error: {e}")
         try:
             await websocket.send_json({"type": "error", "message": str(e)})
         except:

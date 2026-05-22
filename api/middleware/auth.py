@@ -14,11 +14,17 @@ from fastapi.security import APIKeyHeader, HTTPBearer
 from config.settings import settings
 from dataclasses import dataclass
 
+# Import settings
+from config.settings import settings
+
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 _bearer = HTTPBearer(auto_error=False)
 
 # JWT Configuration
-SECRET_KEY = os.getenv("JWT_SECRET", "rasospeak-dev-secret-change-in-production")
+# SECURITY: JWT_SECRET must be set in environment - no default fallback
+SECRET_KEY = settings.jwt_secret
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET environment variable must be set for production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 

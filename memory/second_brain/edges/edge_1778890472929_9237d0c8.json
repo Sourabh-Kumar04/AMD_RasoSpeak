@@ -1,0 +1,9 @@
+{
+  "id": "edge_1778890472929_9237d0c8",
+  "source_id": "node_1778873473272_a0096626",
+  "target_id": "node_1778883304450_d85b884a",
+  "relation_type": "auto_linked",
+  "weight": 0.5,
+  "created_at": "2026-05-16T00:14:32.930454",
+  "metadata": {}
+}

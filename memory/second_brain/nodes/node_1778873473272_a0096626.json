@@ -1,0 +1,28 @@
+{
+  "id": "node_1778873473272_a0096626",
+  "type": "conversation",
+  "content": {
+    "user": "Hello, what is 2+2?",
+    "ai": "I'm here to help! Currently, I'm having trouble connecting to the AI. Please try again in a moment.",
+    "provider": "partner",
+    "context": "continuous_partner_mode",
+    "timestamp": "2026-05-15T19:31:13.272757"
+  },
+  "tier": "long_term",
+  "importance": 3,
+  "created_at": "2026-05-15T19:31:13.272817",
+  "updated_at": "2026-05-15T19:31:13.272821",
+  "last_accessed": "2026-05-15T19:31:13.272824",
+  "access_count": 0,
+  "decay_score": 1.0,
+  "metadata": {},
+  "entities": [],
+  "relationships": [],
+  "tags": [
+    "conversation",
+    "partner"
+  ],
+  "source": "chat_partner",
+  "confidence": 0.8,
+  "version": 2
+}

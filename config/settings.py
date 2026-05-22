@@ -135,6 +135,9 @@ class Settings(BaseSettings):
     allowed_origins: str = os.getenv("ALLOWED_ORIGINS", "*")
     api_key: str = os.getenv("API_KEY", "")
 
+    # ── JWT AUTH ─────────────────────────────────────────
+    jwt_secret: str = os.getenv("JWT_SECRET", "")
+
     # ── SESSIONS ─────────────────────────────────────────
     max_sessions: int = 50
     session_ttl_seconds: int = 3600
@@ -151,7 +154,12 @@ class Settings(BaseSettings):
     postgres_user: str = os.getenv("POSTGRES_USER", "rasospeak")
     postgres_password: str = os.getenv("POSTGRES_PASSWORD", "")
     postgres_database: str = os.getenv("POSTGRES_DATABASE", "rasospeak")
-    postgres_use: bool = os.getenv("POSTGRES_USE", "false").lower() == "true"
+    # Enable PostgreSQL when host is explicitly set (not localhost default)
+    postgres_use: bool = os.getenv("POSTGRES_USE", "").lower() == "true" or os.getenv("POSTGRES_HOST") not in (None, "", "localhost")
+
+    # ── VECTOR EMBEDDINGS ────────────────────────────────
+    embedding_model: str = os.getenv("EMBEDDING_MODEL", "text-embedding-ada-002")
+    embedding_dimensions: int = 1536
 
     # ── LLM BACKEND (optional vLLM) ──────────────────────
     vllm_base_url: str = ""
